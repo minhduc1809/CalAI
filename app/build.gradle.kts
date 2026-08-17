@@ -24,6 +24,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -44,6 +48,11 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = false
+        aidl = false
+        renderScript = false
+        resValues = false
+        shaders = false
     }
 
     composeOptions {
@@ -59,6 +68,7 @@ android {
 
 kapt {
     correctErrorTypes = true
+    useBuildCache = true
 }
 
 dependencies {
