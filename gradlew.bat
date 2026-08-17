@@ -33,14 +33,24 @@ set APP_HOME=%DIRNAME%
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
-set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
+set DEFAULT_JVM_OPTS=-Xmx64m -Xms64m
 
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
 
+:findJavaFromPath
 set JAVA_EXE=java.exe
 %JAVA_EXE% -version >NUL 2>&1
 if %ERRORLEVEL% equ 0 goto execute
+
+if exist "C:\Program Files\Android\Android Studio\jbr\bin\java.exe" (
+    set "JAVA_EXE=C:\Program Files\Android\Android Studio\jbr\bin\java.exe"
+    goto execute
+)
+if exist "%LOCALAPPDATA%\Android\Android Studio\jbr\bin\java.exe" (
+    set "JAVA_EXE=%LOCALAPPDATA%\Android\Android Studio\jbr\bin\java.exe"
+    goto execute
+)
 
 echo.
 echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
@@ -52,17 +62,12 @@ goto fail
 
 :findJavaFromJavaHome
 set JAVA_HOME=%JAVA_HOME:"=%
-set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+set JAVA_EXE=%JAVA_HOME%\bin\java.exe
 
 if exist "%JAVA_EXE%" goto execute
 
-echo.
-echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME%
-echo.
-echo Please set the JAVA_HOME variable in your environment to match the
-echo location of your Java installation.
-
-goto fail
+@rem If JAVA_HOME path is invalid, fallback to PATH or Android Studio JDK
+goto findJavaFromPath
 
 :execute
 @rem Setup the command line
@@ -80,7 +85,7 @@ if %ERRORLEVEL% equ 0 goto mainEnd
 rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
 rem the _cmd.exe /c_ return code!
 set EXIT_CODE=%ERRORLEVEL%
-if %EXIT_CODE% equ 0 set EXIT_CODE=1
+if %ERRORLEVEL% equ 0 set EXIT_CODE=1
 if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
 exit /b %EXIT_CODE%
 
