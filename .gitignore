@@ -1,17 +1,44 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files & Build outputs
+bin/
+gen/
+out/
+build/
+**/build/
+app/build/
+reports/
+
+# Gradle files & caches
+.gradle/
+**/.gradle/
+buildOutputCleanup/
+
+# Local configuration file (contains SDK path)
 local.properties
+
+# Android Studio / IntelliJ IDEA
 .idea/
+**/.idea/
+*.iml
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Profiler & memory dumps
 *.hprof
+
+# OS specific
+.DS_Store
+Thumbs.db
