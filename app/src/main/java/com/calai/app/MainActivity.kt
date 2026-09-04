@@ -41,9 +41,16 @@ class MainActivity : ComponentActivity() {
                             })
                         }
                         composable(Screen.Home.route) {
-                            HomeScreen(onAddMealClick = {
-                                navController.navigate(Screen.AddMeal.route)
-                            })
+                            HomeScreen(
+                                onAddMealClick = {
+                                    navController.navigate(Screen.AddMeal.route)
+                                },
+                                onLogout = {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = true }
+                                    }
+                                }
+                            )
                         }
                         composable(Screen.AddMeal.route) {
                             AddMealScreen(onBack = {
