@@ -55,6 +55,9 @@ fun LoginScreen(
             value = uiState.username,
             onValueChange = { viewModel.onUsernameChange(it) },
             label = { Text("Tên đăng nhập") },
+            supportingText = if (!uiState.isLoginMode) {
+                { Text("3-30 ký tự, chỉ gồm chữ cái, số và _", style = MaterialTheme.typography.bodySmall) }
+            } else null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -88,6 +91,9 @@ fun LoginScreen(
             value = uiState.password,
             onValueChange = { viewModel.onPasswordChange(it) },
             label = { Text("Mật khẩu") },
+            supportingText = if (!uiState.isLoginMode) {
+                { Text("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số (VD: Admin@123)", style = MaterialTheme.typography.bodySmall) }
+            } else null,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             singleLine = true,

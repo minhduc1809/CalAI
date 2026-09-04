@@ -10,8 +10,10 @@ import com.calai.app.domain.model.Meal
 import com.calai.app.domain.model.User
 import com.calai.app.domain.model.WeightLog
 import com.calai.app.domain.repository.CalAIRepository
+import com.google.gson.JsonParser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import retrofit2.HttpException
 import javax.inject.Inject
 
 /**
@@ -23,6 +25,26 @@ class CalAIRepositoryImpl @Inject constructor(
     private val api: CalAIApi,
     private val tokenManager: TokenManager
 ) : CalAIRepository {
+
+    private fun extractErrorMessage(e: Throwable): String {
+        if (e is HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            if (!errorBody.isNullOrBlank()) {
+                try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    if (json.has("message")) {
+                        val msgElem = json.get("message")
+                        if (msgElem.isJsonArray) {
+                            return msgElem.asJsonArray.joinToString("\n") { it.asString }
+                        } else if (msgElem.isJsonPrimitive) {
+                            return msgElem.asString
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+        return e.localizedMessage ?: "Có lỗi xảy ra"
+    }
 
     // --- Local Database ---
     override fun getUser(userId: String): Flow<User?> {
@@ -60,7 +82,7 @@ class CalAIRepositoryImpl @Inject constructor(
     // --- Authentication ---
     override suspend fun login(username: String, password: String): Result<AuthResponseData> {
         return try {
-            val response = api.login(LoginRequest(username = username, password = password))
+            val response = api.login(LoginRequest(username = username.trim(), password = password))
             if (response.success && response.data != null) {
                 tokenManager.saveTokens(response.data.accessToken, response.data.refreshToken)
                 tokenManager.saveUser(
@@ -73,7 +95,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng nhập thất bại"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -86,10 +108,10 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             val response = api.register(
                 RegisterRequest(
-                    username = username,
-                    email = if (email.isNullOrBlank()) null else email,
+                    username = username.trim(),
+                    email = if (email.isNullOrBlank()) null else email.trim(),
                     password = password,
-                    name = if (name.isNullOrBlank()) null else name
+                    name = if (name.isNullOrBlank()) null else name.trim()
                 )
             )
             if (response.success && response.data != null) {
@@ -104,7 +126,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng ký thất bại"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -112,13 +134,11 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             try {
                 api.logout()
-            } catch (_: Exception) {
-                // Tiếp tục xóa token cục bộ dù gọi API bị lỗi
-            }
+            } catch (_: Exception) {}
             tokenManager.clear()
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -138,7 +158,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể lấy thông tin cá nhân"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -151,7 +171,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể cập nhật thông tin"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -165,7 +185,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải tổng hợp dinh dưỡng"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -178,7 +198,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải danh sách bữa ăn"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -186,7 +206,6 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             val response = api.createMeal(request)
             if (response.success && response.data != null) {
-                // Đồng bộ món ăn vừa tạo vào Room Database cục bộ
                 val userId = tokenManager.getUserId() ?: ""
                 for (item in response.data.items) {
                     val localMeal = Meal(
@@ -207,7 +226,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tạo bữa ăn"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -220,7 +239,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể xóa bữa ăn"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -234,7 +253,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tra cứu món ăn"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -247,7 +266,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải danh mục món ăn"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -269,7 +288,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể lưu cân nặng"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -282,7 +301,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải lịch sử cân nặng"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 }
