@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.calai.app.data.local.CalAIDao
 import com.calai.app.data.local.CalAIDatabase
+import com.calai.app.data.local.TokenManager
+import com.calai.app.data.remote.AuthInterceptor
 import com.calai.app.data.remote.CalAIApi
 import com.calai.app.data.repository.CalAIRepositoryImpl
 import com.calai.app.domain.repository.CalAIRepository
@@ -12,8 +14,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -36,17 +41,51 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideApi(): CalAIApi {
-        return Retrofit.Builder()
-            .baseUrl(CalAIApi.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(CalAIApi::class.java)
+    fun provideTokenManager(@ApplicationContext context: Context): TokenManager {
+        return TokenManager(context)
     }
 
     @Provides
     @Singleton
-    fun provideRepository(dao: CalAIDao): CalAIRepository {
-        return CalAIRepositoryImpl(dao)
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(CalAIApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideApi(retrofit: Retrofit): CalAIApi {
+        return retrofit.create(CalAIApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRepository(
+        dao: CalAIDao,
+        api: CalAIApi,
+        tokenManager: TokenManager
+    ): CalAIRepository {
+        return CalAIRepositoryImpl(dao, api, tokenManager)
     }
 }
