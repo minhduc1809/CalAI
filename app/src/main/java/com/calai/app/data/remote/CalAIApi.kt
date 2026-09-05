@@ -1,6 +1,7 @@
 package com.calai.app.data.remote
 
 import com.calai.app.data.remote.dto.*
+import okhttp3.MultipartBody
 import retrofit2.http.*
 
 /**
@@ -60,6 +61,18 @@ interface CalAIApi {
 
     @GET("recommendations/foods/categories")
     suspend fun getFoodCategories(): ApiResponse<List<String>>
+
+    // --- AI ENGINE ---
+    @Multipart
+    @POST("ai/recognize-food")
+    suspend fun recognizeFood(
+        @Part image: MultipartBody.Part
+    ): ApiResponse<FoodRecognitionResultDto>
+
+    @POST("ai/recognize-food-base64")
+    suspend fun recognizeFoodBase64(
+        @Body request: RecognizeFoodBase64Request
+    ): ApiResponse<FoodRecognitionResultDto>
 
     companion object {
         // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)

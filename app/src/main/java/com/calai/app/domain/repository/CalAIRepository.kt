@@ -5,6 +5,7 @@ import com.calai.app.domain.model.Meal
 import com.calai.app.domain.model.User
 import com.calai.app.domain.model.WeightLog
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 
 /**
  * Interface Repository định nghĩa các phương thức thao tác dữ liệu
@@ -47,4 +48,8 @@ interface CalAIRepository {
     // --- Weight Logs Remote ---
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>
     suspend fun fetchRemoteWeightLogs(limit: Int = 30): Result<List<WeightLogResponseDto>>
+
+    // --- AI Food Recognition ---
+    suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>
+    suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto>
 }
