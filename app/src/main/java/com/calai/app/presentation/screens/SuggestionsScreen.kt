@@ -48,19 +48,20 @@ import com.calai.app.presentation.viewmodel.SuggestionsViewModel
 fun SuggestionsScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit = {},
+    isDarkTheme: Boolean = true,
     viewModel: SuggestionsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        containerColor = ObsidianBackground,
+        containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Gợi ý cho bạn",
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite,
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
                         fontSize = 19.sp,
                         letterSpacing = (-0.3).sp
                     )
@@ -70,11 +71,13 @@ fun SuggestionsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = TextWhite
+                            tint = if (isDarkTheme) TextWhite else TextInkPrimary
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBackground)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground
+                )
             )
         }
     ) { padding ->
@@ -100,7 +103,7 @@ fun SuggestionsScreen(
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            ProteinGradientStart.copy(alpha = 0.08f),
+                            ProteinGradientStart.copy(alpha = if (isDarkTheme) 0.08f else 0.03f),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.85f, size.height * 0.15f),
@@ -113,7 +116,7 @@ fun SuggestionsScreen(
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            VividOrange.copy(alpha = 0.06f),
+                            VividOrange.copy(alpha = if (isDarkTheme) 0.06f else 0.02f),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.15f, size.height * 0.55f),
@@ -137,12 +140,12 @@ fun SuggestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        DuotoneDietIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        DuotoneDietIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
                         Text(
                             text = "Thực đơn phù hợp mục tiêu",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.3).sp
                         )
                     }
@@ -158,8 +161,8 @@ fun SuggestionsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(CharcoalSurface)
-                                .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                                .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
                                 .clickable { viewModel.toggleMonthlyView() }
                                 .padding(horizontal = 18.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -169,18 +172,18 @@ fun SuggestionsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                DuotoneCalendarIcon(size = 20.dp, outlineColor = TextLightGrey, accentColor = LavenderGradientStart)
+                                DuotoneCalendarIcon(size = 20.dp, outlineColor = if (isDarkTheme) TextLightGrey else TextInkSecondary, accentColor = LavenderGradientStart)
                                 Text(
                                     "Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = TextWhite
+                                    color = if (isDarkTheme) TextWhite else TextInkPrimary
                                 )
                             }
                             Icon(
                                 if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
-                                tint = TextMuted,
+                                tint = if (isDarkTheme) TextMuted else TextInkMuted,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -202,12 +205,12 @@ fun SuggestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        DuotoneWorkoutIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        DuotoneWorkoutIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
                         Text(
                             text = "Lộ trình tập luyện gợi ý",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.3).sp
                         )
                     }
@@ -217,6 +220,7 @@ fun SuggestionsScreen(
                     item {
                         WorkoutCard(
                             data = it,
+                            isDarkTheme = isDarkTheme,
                             expandedDayName = uiState.expandedDayName,
                             onToggleDay = viewModel::toggleDayExpand,
                             onStartWorkout = onNavigateToLogWorkout
@@ -230,12 +234,12 @@ fun SuggestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        DuotoneExerciseIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        DuotoneExerciseIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
                         Text(
                             text = "Kho bài tập chuẩn",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.3).sp
                         )
                     }
@@ -245,6 +249,7 @@ fun SuggestionsScreen(
                     ExerciseFilters(
                         selectedGender = uiState.selectedGender,
                         selectedLevel = uiState.selectedLevel,
+                        isDarkTheme = isDarkTheme,
                         onGenderSelect = viewModel::selectGender,
                         onLevelSelect = viewModel::selectLevel
                     )
@@ -253,6 +258,7 @@ fun SuggestionsScreen(
                 items(uiState.exercises) { exercise ->
                     ExerciseCard(
                         exercise = exercise,
+                        isDarkTheme = isDarkTheme,
                         isExpanded = uiState.expandedExerciseId == exercise.id,
                         onClick = { viewModel.toggleExerciseExpand(exercise.id) },
                         onLogWorkout = onNavigateToLogWorkout
@@ -535,6 +541,7 @@ private fun MiniStatPillDark(text: String) {
 private fun WorkoutCard(
     data: WorkoutRecommendationData,
     expandedDayName: String?,
+    isDarkTheme: Boolean = true,
     onToggleDay: (String) -> Unit,
     onStartWorkout: () -> Unit
 ) {
@@ -545,8 +552,8 @@ private fun WorkoutCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CharcoalCardElevated)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(24.dp))
+            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
             .padding(20.dp)
     ) {
         Column {
@@ -554,11 +561,11 @@ private fun WorkoutCard(
                 text = plan.title,
                 fontSize = 16.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary,
                 letterSpacing = (-0.2).sp
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(plan.description, fontSize = 12.5.sp, color = TextMuted, lineHeight = 17.sp)
+            Text(plan.description, fontSize = 12.5.sp, color = if (isDarkTheme) TextMuted else TextInkMuted, lineHeight = 17.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             // Badge trạng thái chuẩn Spec 10.2 (VividOrangeSoft 15-20% + VividOrangeLight)
@@ -585,6 +592,7 @@ private fun WorkoutCard(
             displayedDays.forEach { day ->
                 DayRow(
                     day = day,
+                    isDarkTheme = isDarkTheme,
                     isExpanded = expandedDayName == day.dayName,
                     onClick = { onToggleDay(day.dayName) },
                     onStartWorkout = onStartWorkout
@@ -612,6 +620,7 @@ private fun WorkoutCard(
 @Composable
 private fun DayRow(
     day: DayWorkoutPlanDto,
+    isDarkTheme: Boolean = true,
     isExpanded: Boolean,
     onClick: () -> Unit,
     onStartWorkout: () -> Unit = {}
@@ -620,8 +629,8 @@ private fun DayRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(CharcoalCard)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(16.dp))
+            .background(if (isDarkTheme) CharcoalCard else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(14.dp)
     ) {
@@ -631,18 +640,18 @@ private fun DayRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(day.dayName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                Text(day.dayName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isDarkTheme) TextWhite else TextInkPrimary)
                 Text(
                     text = if (day.exercises.isEmpty()) day.focus else "${day.focus} · ${day.estimatedMinutes} phút",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = if (isDarkTheme) TextMuted else TextInkMuted
                 )
             }
             if (day.exercises.isNotEmpty()) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = TextMuted,
+                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -650,7 +659,7 @@ private fun DayRow(
 
         AnimatedVisibility(visible = isExpanded) {
             Column(modifier = Modifier.padding(top = 10.dp)) {
-                HorizontalDivider(color = CharcoalBorder, thickness = 0.75.dp)
+                HorizontalDivider(color = if (isDarkTheme) CharcoalBorder else PearlBorder, thickness = 0.75.dp)
                 Spacer(modifier = Modifier.height(8.dp))
                 day.exercises.forEach { ex ->
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -658,12 +667,12 @@ private fun DayRow(
                             text = "${ex.name} — ${ex.sets}x${ex.repsOrDuration}",
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextLightGrey
+                            color = if (isDarkTheme) TextLightGrey else TextInkPrimary
                         )
                         Text(
                             text = ex.instructions,
                             fontSize = 11.5.sp,
-                            color = TextMuted,
+                            color = if (isDarkTheme) TextMuted else TextInkMuted,
                             lineHeight = 16.sp
                         )
                     }
@@ -698,13 +707,14 @@ private fun DayRow(
 private fun ExerciseFilters(
     selectedGender: String,
     selectedLevel: String?,
+    isDarkTheme: Boolean = true,
     onGenderSelect: (String) -> Unit,
     onLevelSelect: (String?) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterPill("Nam", selectedGender == "MALE") { onGenderSelect("MALE") }
-            FilterPill("Nữ", selectedGender == "FEMALE") { onGenderSelect("FEMALE") }
+            FilterPill("Nam", selectedGender == "MALE", isDarkTheme) { onGenderSelect("MALE") }
+            FilterPill("Nữ", selectedGender == "FEMALE", isDarkTheme) { onGenderSelect("FEMALE") }
         }
         Row(
             modifier = Modifier
@@ -712,21 +722,25 @@ private fun ExerciseFilters(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterPill("Tất cả", selectedLevel == null) { onLevelSelect(null) }
-            FilterPill("Dễ", selectedLevel == "BEGINNER") { onLevelSelect("BEGINNER") }
-            FilterPill("Vừa", selectedLevel == "INTERMEDIATE") { onLevelSelect("INTERMEDIATE") }
-            FilterPill("Nâng cao", selectedLevel == "ADVANCED") { onLevelSelect("ADVANCED") }
+            FilterPill("Tất cả", selectedLevel == null, isDarkTheme) { onLevelSelect(null) }
+            FilterPill("Dễ", selectedLevel == "BEGINNER", isDarkTheme) { onLevelSelect("BEGINNER") }
+            FilterPill("Vừa", selectedLevel == "INTERMEDIATE", isDarkTheme) { onLevelSelect("INTERMEDIATE") }
+            FilterPill("Nâng cao", selectedLevel == "ADVANCED", isDarkTheme) { onLevelSelect("ADVANCED") }
         }
     }
 }
 
 @Composable
-private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) {
+private fun FilterPill(label: String, isSelected: Boolean, isDarkTheme: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) VividOrange else CharcoalCard)
-            .border(1.dp, if (isSelected) VividOrangeLight else CharcoalBorder, RoundedCornerShape(12.dp))
+            .background(if (isSelected) VividOrange else if (isDarkTheme) CharcoalCard else PearlCard)
+            .border(
+                1.dp,
+                if (isSelected) VividOrangeLight else if (isDarkTheme) CharcoalBorder else PearlBorder,
+                RoundedCornerShape(12.dp)
+            )
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 9.dp)
     ) {
@@ -734,7 +748,7 @@ private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) 
             text = label,
             fontSize = 12.5.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) TextWhite else TextMuted
+            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
         )
     }
 }
@@ -743,6 +757,7 @@ private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) 
 private fun ExerciseCard(
     exercise: ExerciseGuideDto,
     isExpanded: Boolean,
+    isDarkTheme: Boolean = true,
     onClick: () -> Unit,
     onLogWorkout: () -> Unit = {}
 ) {
@@ -750,8 +765,8 @@ private fun ExerciseCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(CharcoalCardElevated)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
             .clickable { onClick() }
             .padding(16.dp)
     ) {
@@ -766,28 +781,28 @@ private fun ExerciseCard(
                         text = exercise.name,
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                     )
                     Text(
                         text = "${exercise.targetMuscle} • ${exercise.sets}x${exercise.repsOrDuration}",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = TextMuted,
+                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
 
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(12.dp))
-                ExerciseInstructionRow("Chuẩn bị", exercise.instructions.preparation)
-                ExerciseInstructionRow("Thực hiện", exercise.instructions.execution)
-                ExerciseInstructionRow("Lỗi thường gặp", exercise.instructions.commonMistakes)
-                ExerciseInstructionRow("Hít thở", exercise.instructions.breathing)
+                ExerciseInstructionRow("Chuẩn bị", exercise.instructions.preparation, isDarkTheme)
+                ExerciseInstructionRow("Thực hiện", exercise.instructions.execution, isDarkTheme)
+                ExerciseInstructionRow("Lỗi thường gặp", exercise.instructions.commonMistakes, isDarkTheme)
+                ExerciseInstructionRow("Hít thở", exercise.instructions.breathing, isDarkTheme)
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
@@ -812,7 +827,7 @@ private fun ExerciseCard(
 }
 
 @Composable
-private fun ExerciseInstructionRow(label: String, content: String) {
+private fun ExerciseInstructionRow(label: String, content: String, isDarkTheme: Boolean = true) {
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         Text(
             text = label,
@@ -823,7 +838,7 @@ private fun ExerciseInstructionRow(label: String, content: String) {
         Text(
             text = content,
             fontSize = 12.sp,
-            color = TextLightGrey,
+            color = if (isDarkTheme) TextLightGrey else TextInkSecondary,
             lineHeight = 16.sp
         )
     }

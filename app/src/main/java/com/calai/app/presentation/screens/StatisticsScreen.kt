@@ -2,6 +2,7 @@ package com.calai.app.presentation.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +33,7 @@ import com.calai.app.presentation.viewmodel.StatsPeriod
 @Composable
 fun StatisticsScreen(
     onNavigateTab: (DockTab) -> Unit,
+    isDarkTheme: Boolean = true,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -39,7 +41,7 @@ fun StatisticsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         Column(
             modifier = Modifier
@@ -54,7 +56,7 @@ fun StatisticsScreen(
                 text = "Phân Tích & Xu Hướng",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary,
                 letterSpacing = (-0.5).sp
             )
 
@@ -89,7 +91,8 @@ fun StatisticsScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CharcoalSurface)
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -106,7 +109,7 @@ fun StatisticsScreen(
                         text = "Theo Ngày",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.DAILY) TextWhite else TextMuted
+                        color = if (uiState.period == StatsPeriod.DAILY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
 
@@ -123,7 +126,7 @@ fun StatisticsScreen(
                         text = "Theo Tuần",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.WEEKLY) TextWhite else TextMuted
+                        color = if (uiState.period == StatsPeriod.WEEKLY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
             }
@@ -132,16 +135,17 @@ fun StatisticsScreen(
             CalorieTrendsCard(uiState = uiState)
 
             // Thẻ Macro Distribution
-            MacroDistributionCard(uiState = uiState)
+            MacroDistributionCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
             // Thẻ Xu Hướng Cân Nặng (EWMA Trend)
-            WeightTrendCard(uiState = uiState)
+            WeightTrendCard(uiState = uiState, isDarkTheme = isDarkTheme)
         }
 
         // Thanh Dock nổi ở đáy
         FloatingBottomDock(
             currentTab = DockTab.STATISTICS,
             onTabSelected = onNavigateTab,
+            isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -269,12 +273,13 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
 }
 
 @Composable
-private fun MacroDistributionCard(uiState: StatisticsUiState) {
+private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CharcoalSurface)
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -282,13 +287,13 @@ private fun MacroDistributionCard(uiState: StatisticsUiState) {
                 text = "Phân bổ nhóm chất dinh dưỡng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Duy trì tỉ lệ đạm cao giúp bảo vệ khối cơ bắp khi thâm hụt calo.",
                 fontSize = 12.sp,
-                color = TextMuted
+                color = if (isDarkTheme) TextMuted else TextInkMuted
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -322,7 +327,7 @@ private fun MacroSharePill(label: String, percent: String, color: Color, modifie
 }
 
 @Composable
-private fun WeightTrendCard(uiState: StatisticsUiState) {
+private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
     val diff = uiState.weightChangedKg
     val diffSign = if (diff <= 0) "" else "+"
     val diffFormatted = String.format("%.1f", diff)
@@ -331,7 +336,8 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CharcoalSurface)
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -345,12 +351,12 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                         text = "Xu hướng cân nặng EWMA",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                     )
                     Text(
                         text = "Làm mịn biến động nước cơ thể",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
                 Surface(
@@ -410,15 +416,20 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Bắt đầu", fontSize = 11.sp, color = TextMuted)
-                    Text("${uiState.startWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                    Text("Bắt đầu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text(
+                        "${uiState.startWeight} kg",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Hiện tại", fontSize = 11.sp, color = TextMuted)
+                    Text("Hiện tại", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
                     Text("${uiState.currentWeight} kg", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Mục tiêu", fontSize = 11.sp, color = TextMuted)
+                    Text("Mục tiêu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
                     Text("${uiState.targetWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
                 }
             }
@@ -428,7 +439,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                 text = "Đã hoàn thành ${uiState.weightProgressPercent}% mục tiêu cân nặng",
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextMuted,
+                color = if (isDarkTheme) TextMuted else TextInkMuted,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )

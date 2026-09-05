@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +51,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         if (uiState.isLoading && uiState.dailySummary == null) {
             CircularProgressIndicator(
@@ -96,13 +97,13 @@ fun HomeScreen(
                                     text = "Chào buổi sáng,",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = TextMuted
+                                    color = if (isDarkTheme) TextMuted else TextInkMuted
                                 )
                                 Text(
                                     text = uiState.username.ifEmpty { "Bạn" },
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite,
+                                    color = if (isDarkTheme) TextWhite else TextInkPrimary,
                                     letterSpacing = (-0.3).sp
                                 )
                             }
@@ -123,8 +124,8 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(CircleShape)
-                                    .background(CharcoalSurface)
-                                    .border(1.dp, CharcoalBorder, CircleShape)
+                                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
                                     .clickable { onOpenSuggestions() },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -141,15 +142,15 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(CircleShape)
-                                    .background(CharcoalSurface)
-                                    .border(1.dp, CharcoalBorder, CircleShape)
+                                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
                                     .clickable { onLogout() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.ExitToApp,
+                                    Icons.AutoMirrored.Filled.ExitToApp,
                                     contentDescription = "Đăng xuất",
-                                    tint = TextMuted,
+                                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
                                     modifier = Modifier.size(17.dp)
                                 )
                             }
@@ -161,6 +162,7 @@ fun HomeScreen(
                 item {
                     WeeklyCalendarStrip(
                         selectedDateIso = selectedDateIso,
+                        isDarkTheme = isDarkTheme,
                         onDateSelected = { newDate ->
                             selectedDateIso = newDate
                             viewModel.loadData(newDate)
@@ -174,12 +176,12 @@ fun HomeScreen(
                         text = "Tổng quan calo hôm nay",
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite,
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
                         letterSpacing = (-0.4).sp
                     )
                 }
 
-                // 4. HERO CARD CALORIES — Nền CharcoalCardElevated + Viền CharcoalBorder + Arc Gauge Gradient (Spec 9.2 #1, #3, #7)
+                // 4. HERO CARD CALORIES — Nền CharcoalCardElevated / PearlCardElevated
                 item {
                     val summary = uiState.dailySummary?.summary
                     val targetCal = (summary?.targetCalories ?: 2200.0).toInt()
@@ -190,8 +192,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(28.dp))
-                            .background(CharcoalCardElevated)
-                            .border(1.dp, CharcoalBorder, RoundedCornerShape(28.dp))
+                            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
+                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(28.dp))
                             .padding(22.dp)
                     ) {
                         Column {
@@ -214,7 +216,7 @@ fun HomeScreen(
                                         text = "Calories",
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite
+                                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                                     )
                                 }
 
@@ -238,7 +240,7 @@ fun HomeScreen(
                             ArcCaloriesGauge(
                                 remainingCalories = remainingCal,
                                 targetCalories = targetCal,
-                                isDarkTheme = true
+                                isDarkTheme = isDarkTheme
                             )
 
                             // Tỉ lệ scale ở dưới đáy card
@@ -251,13 +253,13 @@ fun HomeScreen(
                                 Text(
                                     text = "0 kcal",
                                     fontSize = 12.sp,
-                                    color = TextMuted,
+                                    color = if (isDarkTheme) TextMuted else TextInkMuted,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = "Mục tiêu: $targetCal kcal",
                                     fontSize = 12.sp,
-                                    color = TextLightGrey,
+                                    color = if (isDarkTheme) TextLightGrey else TextInkSecondary,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -365,7 +367,7 @@ fun HomeScreen(
                             text = "Nhật ký bữa ăn",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.3).sp
                         )
                         Surface(
@@ -389,8 +391,13 @@ fun HomeScreen(
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = CharcoalSurface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDarkTheme) CharcoalSurface else PearlCard
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isDarkTheme) CharcoalBorder else PearlBorder
+                            ),
                             shape = RoundedCornerShape(24.dp)
                         ) {
                             Column(
@@ -403,8 +410,8 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(54.dp)
                                         .clip(CircleShape)
-                                        .background(CharcoalCardElevated)
-                                        .border(1.dp, CharcoalBorder, CircleShape),
+                                        .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
+                                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -419,13 +426,13 @@ fun HomeScreen(
                                     text = "Chưa có bữa ăn nào hôm nay",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite
+                                    color = if (isDarkTheme) TextWhite else TextInkPrimary
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = "Nhấn nút Camera Quét AI bên dưới để chụp món ăn và tính calo tức thì.",
                                     fontSize = 13.sp,
-                                    color = TextMuted,
+                                    color = if (isDarkTheme) TextMuted else TextInkMuted,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     lineHeight = 18.sp
                                 )
@@ -436,6 +443,7 @@ fun HomeScreen(
                     items(uiState.meals) { meal ->
                         MealItemRow(
                             meal = meal,
+                            isDarkTheme = isDarkTheme,
                             onDelete = { viewModel.deleteMeal(meal.id) },
                             onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
                             onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) }
@@ -448,6 +456,7 @@ fun HomeScreen(
         // 7. THANH ĐIỀU HƯỚNG NỔI DẠNG ĐẢO (Floating Island Dock)
         FloatingBottomDock(
             currentTab = DockTab.HOME,
+            isDarkTheme = isDarkTheme,
             onTabSelected = { tab ->
                 when (tab) {
                     DockTab.HOME -> {}
@@ -470,6 +479,7 @@ private val MEAL_TYPE_LABELS = listOf(
 @Composable
 private fun MealItemRow(
     meal: MealResponseDto,
+    isDarkTheme: Boolean = true,
     onDelete: () -> Unit,
     onChangeMealType: (String) -> Unit,
     onCopy: (String) -> Unit
@@ -486,6 +496,7 @@ private fun MealItemRow(
 
     if (showCopyDialog) {
         CopyMealDialog(
+            isDarkTheme = isDarkTheme,
             onDismiss = { showCopyDialog = false },
             onConfirm = { targetDate ->
                 onCopy(targetDate)
@@ -498,8 +509,8 @@ private fun MealItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(CharcoalSurface)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(22.dp))
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
             .padding(18.dp)
     ) {
         Row(
@@ -526,14 +537,14 @@ private fun MealItemRow(
                     text = itemsSummary.ifEmpty { "Món ăn tổng hợp" },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextWhite,
+                    color = if (isDarkTheme) TextWhite else TextInkPrimary,
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${meal.totalProtein.toInt()}g P • ${meal.totalCarb.toInt()}g C • ${meal.totalFat.toInt()}g F",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = if (isDarkTheme) TextMuted else TextInkMuted
                 )
             }
 
@@ -545,14 +556,14 @@ private fun MealItemRow(
                     text = "${meal.totalCalories.toInt()} kcal",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = TextWhite
+                    color = if (isDarkTheme) TextWhite else TextInkPrimary
                 )
                 Box {
                     IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = "Thêm hành động",
-                            tint = TextMuted.copy(alpha = 0.8f),
+                            tint = if (isDarkTheme) TextMuted.copy(alpha = 0.8f) else TextInkMuted.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -560,28 +571,47 @@ private fun MealItemRow(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
                         modifier = Modifier
-                            .background(CharcoalCardElevated)
-                            .border(1.dp, CharcoalBorder, RoundedCornerShape(8.dp))
+                            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
+                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(8.dp))
                     ) {
                         Text(
                             "Chuyển thành",
                             fontSize = 11.sp,
-                            color = TextMuted,
+                            color = if (isDarkTheme) TextMuted else TextInkMuted,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                         MEAL_TYPE_LABELS.filter { it.first != meal.mealType }.forEach { (type, label) ->
                             DropdownMenuItem(
-                                text = { Text(label, color = TextWhite, fontSize = 13.sp) },
+                                text = {
+                                    Text(
+                                        label,
+                                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                                        fontSize = 13.sp
+                                    )
+                                },
                                 onClick = {
                                     showMenu = false
                                     onChangeMealType(type)
                                 }
                             )
                         }
-                        HorizontalDivider(color = CharcoalBorder)
+                        HorizontalDivider(color = if (isDarkTheme) CharcoalBorder else PearlBorder)
                         DropdownMenuItem(
-                            text = { Text("Sao chép sang ngày khác", color = TextWhite, fontSize = 13.sp) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp)) },
+                            text = {
+                                Text(
+                                    "Sao chép sang ngày khác",
+                                    color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                                    fontSize = 13.sp
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showMenu = false
                                 showCopyDialog = true
@@ -604,6 +634,7 @@ private fun MealItemRow(
 
 @Composable
 private fun CopyMealDialog(
+    isDarkTheme: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (targetDate: String) -> Unit
 ) {
@@ -624,8 +655,15 @@ private fun CopyMealDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CharcoalSurface,
-        title = { Text("Sao chép bữa ăn sang ngày khác", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+        containerColor = if (isDarkTheme) CharcoalSurface else PearlSurface,
+        title = {
+            Text(
+                "Sao chép bữa ăn sang ngày khác",
+                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 presets.forEach { (label, dateStr) ->
@@ -633,21 +671,28 @@ private fun CopyMealDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(CharcoalCard)
-                            .border(1.dp, CharcoalBorder, RoundedCornerShape(12.dp))
+                            .background(if (isDarkTheme) CharcoalCard else PearlCard)
+                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(12.dp))
                             .clickable { onConfirm(dateStr) }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(label, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Text(dateStr, color = TextMuted, fontSize = 12.sp)
+                        Text(
+                            label,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(dateStr, color = if (isDarkTheme) TextMuted else TextInkMuted, fontSize = 12.sp)
                     }
                 }
             }
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Hủy", color = TextMuted) }
+            TextButton(onClick = onDismiss) {
+                Text("Hủy", color = if (isDarkTheme) TextMuted else TextInkMuted)
+            }
         }
     )
 }
