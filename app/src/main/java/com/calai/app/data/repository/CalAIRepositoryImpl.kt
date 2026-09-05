@@ -13,7 +13,11 @@ import com.calai.app.domain.repository.CalAIRepository
 import com.google.gson.JsonParser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.HttpException
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -299,6 +303,35 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.message ?: "Không thể tải lịch sử cân nặng"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    // --- AI Food Recognition ---
+    override suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto> {
+        return try {
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+            val response = api.recognizeFood(body)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể nhận diện món ăn"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto> {
+        return try {
+            val response = api.recognizeFoodBase64(RecognizeFoodBase64Request(base64Image = base64))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể nhận diện món ăn"))
             }
         } catch (e: Exception) {
             Result.failure(Exception(extractErrorMessage(e)))
