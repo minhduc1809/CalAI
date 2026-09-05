@@ -92,6 +92,18 @@ interface CalAIApi {
     @DELETE("recommendations/favorites/{foodName}")
     suspend fun removeFavoriteFood(@Path("foodName") foodName: String): ApiResponse<Any?>
 
+    @GET("recommendations/diet")
+    suspend fun getDietRecommendation(): ApiResponse<DietRecommendationData>
+
+    @GET("recommendations/workout")
+    suspend fun getWorkoutRecommendation(): ApiResponse<WorkoutRecommendationData>
+
+    @GET("recommendations/exercises")
+    suspend fun getExercises(
+        @Query("gender") gender: String? = null,
+        @Query("level") level: String? = null
+    ): ApiResponse<ExerciseListData>
+
     // --- AI ENGINE ---
     @Multipart
     @POST("ai/recognize-food")

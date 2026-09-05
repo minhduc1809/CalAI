@@ -623,6 +623,171 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchDietRecommendation(): Result<DietRecommendationData> {
+        return try {
+            val response = api.getDietRecommendation()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockDietRecommendation()
+            }
+        } catch (_: Exception) {
+            getMockDietRecommendation()
+        }
+    }
+
+    private fun getMockDietRecommendation(): Result<DietRecommendationData> {
+        val plan = VietnameseDietPlanDto(
+            id = "diet-lose-1500",
+            goal = "LOSE_WEIGHT",
+            title = "Thực đơn giảm cân 1500 kcal - Giàu đạm",
+            description = "Ưu tiên ức gà, cá, trứng và rau xanh, tinh bột hấp thu chậm để no lâu và giữ cơ trong quá trình giảm cân.",
+            targetCalo = 1500f,
+            macroRatio = MacroRatioDto(proteinPercent = 35, carbPercent = 40, fatPercent = 25),
+            meals = DietMealsDto(
+                breakfast = MealBlockDto(
+                    title = "Bữa sáng",
+                    items = listOf(VietnameseMealItemDto("Trứng ốp la + bánh mì nguyên cám", "1 phần", 350f, 18f, 35f, 14f)),
+                    totalCalories = 350f
+                ),
+                lunch = MealBlockDto(
+                    title = "Bữa trưa",
+                    items = listOf(VietnameseMealItemDto("Ức gà áp chảo + cơm gạo lứt + rau luộc", "1 phần", 550f, 42f, 55f, 12f)),
+                    totalCalories = 550f
+                ),
+                dinner = MealBlockDto(
+                    title = "Bữa tối",
+                    items = listOf(VietnameseMealItemDto("Cá hấp + salad rau củ", "1 phần", 450f, 32f, 30f, 18f)),
+                    totalCalories = 450f
+                ),
+                snack = MealBlockDto(
+                    title = "Bữa phụ",
+                    items = listOf(VietnameseMealItemDto("Sữa chua không đường + hạt óc chó", "1 phần", 150f, 8f, 10f, 9f)),
+                    totalCalories = 150f
+                )
+            )
+        )
+        return Result.success(
+            DietRecommendationData(
+                userTarget = UserDietTargetDto(goal = "LOSE_WEIGHT", targetCalories = 1500f, targetProtein = 135f, targetCarb = 150f, targetFat = 42f),
+                recommendedPlan = plan,
+                availableOptions = listOf(
+                    DietOptionDto("diet-lose-1500", plan.title, 1500f, plan.description),
+                    DietOptionDto("diet-lose-1800", "Thực đơn giảm cân 1800 kcal", 1800f, "Phù hợp người vận động nhiều hơn.")
+                )
+            )
+        )
+    }
+
+    override suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData> {
+        return try {
+            val response = api.getWorkoutRecommendation()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutRecommendation()
+            }
+        } catch (_: Exception) {
+            getMockWorkoutRecommendation()
+        }
+    }
+
+    private fun getMockWorkoutRecommendation(): Result<WorkoutRecommendationData> {
+        val plan = WorkoutTemplatePlanDto(
+            id = "workout-lose-home-beginner",
+            goal = "LOSE_WEIGHT",
+            level = "BEGINNER",
+            title = "Lộ trình đốt mỡ toàn thân tại nhà 4 tuần",
+            description = "Bài tập Bodyweight an toàn cho khớp gối, tăng nhịp tim để đốt mỡ hiệu quả.",
+            suitableForBmi = "Thừa cân (BMI >= 23)",
+            weeklySchedule = listOf(
+                DayWorkoutPlanDto(
+                    dayName = "Thứ 2 - Toàn thân",
+                    focus = "Cardio + Bodyweight",
+                    estimatedMinutes = 30,
+                    exercises = listOf(
+                        WorkoutExerciseItemDto("Jumping Jack", "Toàn thân", 3, "45 giây", 30, 40f, "Bật nhảy dang tay chân liên tục, giữ nhịp thở đều."),
+                        WorkoutExerciseItemDto("Squat", "Đùi, Mông", 3, "15 lần", 45, 35f, "Hạ hông xuống như ngồi ghế, giữ lưng thẳng.")
+                    )
+                ),
+                DayWorkoutPlanDto(dayName = "Thứ 3 - Nghỉ phục hồi", focus = "Nghỉ ngơi", estimatedMinutes = 0, exercises = emptyList())
+            )
+        )
+        return Result.success(
+            WorkoutRecommendationData(
+                userProfile = UserWorkoutProfileDto(bmi = 24.5f, goal = "LOSE_WEIGHT", activityLevel = "SEDENTARY"),
+                recommendedWorkout = plan,
+                allWorkoutPlans = listOf(
+                    WorkoutOptionDto(plan.id, plan.title, plan.goal, plan.level, plan.suitableForBmi)
+                )
+            )
+        )
+    }
+
+    override suspend fun fetchExercises(gender: String?, level: String?): Result<ExerciseListData> {
+        return try {
+            val response = api.getExercises(gender, level)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockExercises(gender)
+            }
+        } catch (_: Exception) {
+            getMockExercises(gender)
+        }
+    }
+
+    private fun getMockExercises(gender: String?): Result<ExerciseListData> {
+        val targetGender = gender ?: "MALE"
+        val exercises = listOf(
+            ExerciseGuideDto(
+                id = "mock-ex-1",
+                name = "Chống đẩy quỳ gối",
+                genderTarget = targetGender,
+                level = "BEGINNER",
+                targetMuscle = "Ngực, Vai, Tay sau",
+                equipment = "NO_EQUIPMENT",
+                sets = 3,
+                repsOrDuration = "10-12 lần",
+                restSeconds = 45,
+                caloriesBurnedEstimate = 30f,
+                instructions = ExerciseInstructionsDto(
+                    preparation = "Quỳ 2 gối trên thảm, 2 tay chống rộng hơn vai.",
+                    execution = "Hạ ngực xuống gần sàn rồi đẩy lên, giữ thân thẳng.",
+                    commonMistakes = "Võng lưng, hạ đầu trước ngực.",
+                    breathing = "Hít vào khi hạ xuống, thở ra khi đẩy lên."
+                )
+            ),
+            ExerciseGuideDto(
+                id = "mock-ex-2",
+                name = "Plank",
+                genderTarget = targetGender,
+                level = "BEGINNER",
+                targetMuscle = "Core, Bụng",
+                equipment = "NO_EQUIPMENT",
+                sets = 3,
+                repsOrDuration = "30-45 giây",
+                restSeconds = 30,
+                caloriesBurnedEstimate = 20f,
+                instructions = ExerciseInstructionsDto(
+                    preparation = "Chống 2 cẳng tay và mũi chân xuống sàn.",
+                    execution = "Giữ thân người thành 1 đường thẳng, siết bụng.",
+                    commonMistakes = "Võng hông xuống hoặc đẩy mông lên cao.",
+                    breathing = "Thở đều, không nín thở."
+                )
+            )
+        )
+        return Result.success(
+            ExerciseListData(
+                gender = targetGender,
+                totalCount = exercises.size,
+                filteredCount = exercises.size,
+                levelsSummary = LevelsSummaryDto(beginner = exercises.size, intermediate = 0, advanced = 0),
+                exercises = exercises
+            )
+        )
+    }
+
     // --- Weight Logs Remote ---
     override suspend fun createRemoteWeightLog(weightKg: Float, note: String?): Result<WeightLogResponseDto> {
         return try {

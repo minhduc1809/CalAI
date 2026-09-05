@@ -59,6 +59,9 @@ interface CalAIRepository {
     suspend fun fetchFavoriteFoods(): Result<List<String>>
     suspend fun addFavoriteFood(foodName: String): Result<Unit>
     suspend fun removeFavoriteFood(foodName: String): Result<Unit>
+    suspend fun fetchDietRecommendation(): Result<DietRecommendationData>
+    suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
+    suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
 
     // --- Weight Logs Remote ---
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>
