@@ -27,3 +27,8 @@ data class FoodSearchResultData(
     @SerializedName("items")
     val items: List<FoodItemDto>
 )
+
+data class AddFavoriteFoodRequest(
+    @SerializedName("foodName")
+    val foodName: String
+)

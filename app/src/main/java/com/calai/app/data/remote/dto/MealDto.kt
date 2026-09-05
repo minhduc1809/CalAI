@@ -32,6 +32,23 @@ data class CreateMealRequest(
     val items: List<CreateMealItemDto>
 )
 
+data class QuickAddMealRequest(
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("mealType")
+    val mealType: String,
+    @SerializedName("date")
+    val date: String,
+    @SerializedName("calories")
+    val calories: Float,
+    @SerializedName("protein")
+    val protein: Float = 0f,
+    @SerializedName("carb")
+    val carb: Float = 0f,
+    @SerializedName("fat")
+    val fat: Float = 0f
+)
+
 data class MealItemResponseDto(
     @SerializedName("id")
     val id: String,
