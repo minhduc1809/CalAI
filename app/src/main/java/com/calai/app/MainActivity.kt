@@ -80,7 +80,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
-                                }
+                                },
+                                isDarkTheme = isDarkTheme,
+                                onThemeChanged = { isDarkTheme = it }
                             )
                         }
 
