@@ -132,7 +132,7 @@ fun StatisticsScreen(
             CalorieTrendsCard(uiState = uiState)
 
             // Thẻ Macro Distribution
-            MacroDistributionCard()
+            MacroDistributionCard(uiState = uiState)
 
             // Thẻ Xu Hướng Cân Nặng (EWMA Trend)
             WeightTrendCard(uiState = uiState)
@@ -165,74 +165,82 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Trung bình: ${uiState.averageCalories} kcal/ngày",
+                text = "Trung bình: ${uiState.averageCalories} kcal/ngày · Mục tiêu ${uiState.targetCalories} kcal",
                 fontSize = 13.sp,
                 color = TextDeepInk.copy(alpha = 0.65f)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Biểu đồ đường cong Bézier 7 ngày
+            // Biểu đồ đường cong calo thực tế (GET /meals/statistics)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(110.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
+                if (uiState.weeklyStats.isNotEmpty()) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val width = size.width
+                        val height = size.height
+                        val calories = uiState.weeklyStats.map { it.calories }
+                        val minCal = minOf(calories.min(), uiState.targetCalories)
+                        val maxCal = maxOf(calories.max(), uiState.targetCalories)
+                        val range = (maxCal - minCal).takeIf { it > 0 } ?: 1
 
-                    // Đường mục tiêu đứt nét
-                    val targetY = height * 0.4f
-                    drawLine(
-                        color = TextDeepInk.copy(alpha = 0.25f),
-                        start = Offset(0f, targetY),
-                        end = Offset(width, targetY),
-                        strokeWidth = 2.dp.toPx()
-                    )
+                        // Trục dọc đảo chiều (calo cao -> gần đỉnh), chừa lề trên/dưới 15%
+                        fun yFor(value: Int): Float {
+                            val t = (value - minCal).toFloat() / range
+                            return height * (0.85f - t * 0.70f)
+                        }
 
-                    // Vẽ đường cong calo các ngày
-                    val points = listOf(
-                        Offset(width * 0.05f, height * 0.65f),
-                        Offset(width * 0.20f, height * 0.35f),
-                        Offset(width * 0.35f, height * 0.70f),
-                        Offset(width * 0.50f, height * 0.45f),
-                        Offset(width * 0.65f, height * 0.20f),
-                        Offset(width * 0.80f, height * 0.55f),
-                        Offset(width * 0.95f, height * 0.75f)
-                    )
+                        // Đường mục tiêu đứt nét — đúng vị trí Target Calories thật của người dùng
+                        val targetY = yFor(uiState.targetCalories)
+                        drawLine(
+                            color = TextDeepInk.copy(alpha = 0.25f),
+                            start = Offset(0f, targetY),
+                            end = Offset(width, targetY),
+                            strokeWidth = 2.dp.toPx()
+                        )
 
-                    val path = Path()
-                    path.moveTo(points[0].x, points[0].y)
-                    for (i in 1 until points.size) {
-                        val prev = points[i - 1]
-                        val curr = points[i]
-                        val midX = (prev.x + curr.x) / 2
-                        path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
-                    }
+                        // Vẽ đường cong calo các ngày từ dữ liệu thật
+                        val n = uiState.weeklyStats.size
+                        val points = uiState.weeklyStats.mapIndexed { index, day ->
+                            val x = if (n == 1) width / 2f else width * index / (n - 1).toFloat()
+                            Offset(x, yFor(day.calories))
+                        }
 
-                    drawPath(
-                        path = path,
-                        color = TextDeepInk,
-                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-                    )
+                        val path = Path()
+                        path.moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            val prev = points[i - 1]
+                            val curr = points[i]
+                            val midX = (prev.x + curr.x) / 2
+                            path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                        }
 
-                    // Vẽ các điểm mút
-                    points.forEach { pt ->
-                        drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
+                        drawPath(
+                            path = path,
+                            color = TextDeepInk,
+                            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                        )
+
+                        // Vẽ các điểm mút
+                        points.forEach { pt ->
+                            drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
+                        }
                     }
                 }
             }
 
-            // Nhãn thứ
+            // Nhãn thứ — lấy đúng thứ thật trong tuần của từng ngày dữ liệu
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN").forEach { day ->
-                    Text(day, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.5f))
+                uiState.weeklyStats.forEach { day ->
+                    Text(day.dayLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.5f))
                 }
             }
 
@@ -261,7 +269,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
 }
 
 @Composable
-private fun MacroDistributionCard() {
+private fun MacroDistributionCard(uiState: StatisticsUiState) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -289,9 +297,9 @@ private fun MacroDistributionCard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MacroSharePill("Đạm (Protein)", "30%", PastelMint, Modifier.weight(1f))
-                MacroSharePill("Carb", "45%", PastelButtercup, Modifier.weight(1f))
-                MacroSharePill("Chất béo", "25%", PastelRose, Modifier.weight(1f))
+                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", PastelMint, Modifier.weight(1f))
+                MacroSharePill("Carb", "${uiState.carbPercent}%", PastelButtercup, Modifier.weight(1f))
+                MacroSharePill("Chất béo", "${uiState.fatPercent}%", PastelRose, Modifier.weight(1f))
             }
         }
     }
@@ -315,7 +323,7 @@ private fun MacroSharePill(label: String, percent: String, color: Color, modifie
 
 @Composable
 private fun WeightTrendCard(uiState: StatisticsUiState) {
-    val diff = uiState.currentWeight - uiState.startWeight
+    val diff = uiState.weightChangedKg
     val diffSign = if (diff <= 0) "" else "+"
     val diffFormatted = String.format("%.1f", diff)
 
@@ -359,7 +367,43 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Sparkline đường Trend Weight thật (EWMA, alpha = 0.1) từ GET /weight-logs/trend
+            if (uiState.weightTrendPoints.size >= 2) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    val width = size.width
+                    val height = size.height
+                    val values = uiState.weightTrendPoints.map { it.trendWeight }
+                    val minV = values.min()
+                    val maxV = values.max()
+                    val range = (maxV - minV).takeIf { it > 0f } ?: 1f
+                    val n = values.size
+
+                    val points = values.mapIndexed { index, v ->
+                        val x = width * index / (n - 1).toFloat()
+                        val y = height * (0.9f - ((v - minV) / range) * 0.8f)
+                        Offset(x, y)
+                    }
+
+                    val path = Path()
+                    path.moveTo(points[0].x, points[0].y)
+                    for (i in 1 until points.size) {
+                        val prev = points[i - 1]
+                        val curr = points[i]
+                        val midX = (prev.x + curr.x) / 2
+                        path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                    }
+
+                    drawPath(path = path, color = VividOrange, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+                    drawCircle(color = VividOrange, radius = 4.dp.toPx(), center = points.last())
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -378,6 +422,16 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                     Text("${uiState.targetWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Đã hoàn thành ${uiState.weightProgressPercent}% mục tiêu cân nặng",
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextMuted,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

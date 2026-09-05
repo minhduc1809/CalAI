@@ -39,6 +39,12 @@ interface CalAIApi {
     @GET("meals/summary")
     suspend fun getDailySummary(@Query("date") date: String? = null): ApiResponse<DailyNutritionSummaryData>
 
+    @GET("meals/statistics")
+    suspend fun getMealsStatistics(
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
+    ): ApiResponse<NutritionStatisticsData>
+
     @DELETE("meals/{id}")
     suspend fun deleteMeal(@Path("id") mealId: String): ApiResponse<Any?>
 
@@ -48,6 +54,12 @@ interface CalAIApi {
 
     @GET("weight-logs")
     suspend fun getWeightLogs(@Query("limit") limit: Int = 30): ApiResponse<List<WeightLogResponseDto>>
+
+    @GET("weight-logs/trend")
+    suspend fun getWeightTrend(@Query("limit") limit: Int = 60): ApiResponse<List<WeightTrendPointDto>>
+
+    @GET("weight-logs/progress")
+    suspend fun getWeightProgress(): ApiResponse<WeightProgressDto>
 
     @DELETE("weight-logs/{id}")
     suspend fun deleteWeightLog(@Path("id") logId: String): ApiResponse<Any?>
