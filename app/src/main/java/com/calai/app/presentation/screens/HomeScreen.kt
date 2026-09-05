@@ -38,6 +38,8 @@ fun HomeScreen(
     onNavigateTab: (DockTab) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenSuggestions: () -> Unit = {},
+    isDarkTheme: Boolean = true,
+    onThemeChanged: (Boolean) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -63,7 +65,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(top = 24.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // 1. TOP HEADER: Avatar + Chào buổi sáng + Glassmorphic Icons (Spec 9.2 #6)
+                // 1. TOP HEADER: Avatar + Chào buổi sáng + TactileThemeSwitch + Icons (Spec 9.2 #6, Spec 10.5)
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -72,11 +74,11 @@ fun HomeScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(46.dp)
+                                    .size(42.dp)
                                     .clip(CircleShape)
                                     .background(VividOrange)
                                     .border(1.5.dp, VividOrangeLight.copy(alpha = 0.5f), CircleShape),
@@ -98,7 +100,7 @@ fun HomeScreen(
                                 )
                                 Text(
                                     text = uiState.username.ifEmpty { "Bạn" },
-                                    fontSize = 18.sp,
+                                    fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextWhite,
                                     letterSpacing = (-0.3).sp
@@ -106,11 +108,20 @@ fun HomeScreen(
                             }
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Nút chuyển giao diện Sáng / Tối dạng khối xúc giác 3D (Spec 10.5)
+                            TactileThemeSwitch(
+                                isDarkTheme = isDarkTheme,
+                                onThemeChanged = onThemeChanged
+                            )
+
                             // Nút Gợi ý món & Lộ trình tập luyện thông minh
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
+                                    .size(38.dp)
                                     .clip(CircleShape)
                                     .background(CharcoalSurface)
                                     .border(1.dp, CharcoalBorder, CircleShape)
@@ -121,14 +132,14 @@ fun HomeScreen(
                                     Icons.Default.AutoAwesome,
                                     contentDescription = "Gợi ý cho bạn",
                                     tint = VividOrange,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(19.dp)
                                 )
                             }
 
                             // Nút Đăng xuất
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
+                                    .size(38.dp)
                                     .clip(CircleShape)
                                     .background(CharcoalSurface)
                                     .border(1.dp, CharcoalBorder, CircleShape)
@@ -139,7 +150,7 @@ fun HomeScreen(
                                     Icons.Default.ExitToApp,
                                     contentDescription = "Đăng xuất",
                                     tint = TextMuted,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(17.dp)
                                 )
                             }
                         }
