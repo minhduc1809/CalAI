@@ -111,7 +111,7 @@ fun ProfileScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = profile?.name ?: "Người dùng CalAI",
+                            text = profile?.name ?: "Người dùng NutriWise",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextWhite
