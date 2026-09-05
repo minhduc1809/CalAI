@@ -15,27 +15,32 @@ val CharcoalCardElevated = Color(0xFF262A34)     // Card/modal nổi cao hơn (b
 val CharcoalBorder = Color(0xFF2B2E3A)           // Viền 1px, divider
 val CharcoalDock = Color(0xFF242630)             // Floating bottom dock
 
-// 2. Bento Pastel — Gradient 2 tông (Đá quý)
-val ProteinGradientStart = Color(0xFF34D399)
-val ProteinGradientEnd = Color(0xFF76CBA3)
+// 2. Bento Pastel — Gradient 2 tông Đã Hiệu Chỉnh Hài Hòa (Spec 10.4)
+// Độ sáng 68-80%, Độ bão hòa 45-60%, êm dịu như bộ macaron cao cấp
+val CalorieCardGradientStart = Color(0xFFF2A585)
+val CalorieCardGradientEnd = Color(0xFFF7C4AC)
 
-val CarbGradientStart = Color(0xFFE0B93A)
-val CarbGradientEnd = Color(0xFFE5D266)
+val ProteinGradientStart = Color(0xFF8FE0BE)     // Bạc hà dịu
+val ProteinGradientEnd = Color(0xFFB9EFD8)
 
-val FatGradientStart = Color(0xFFEC7FA6)
-val FatGradientEnd = Color(0xFFE89BB6)
+val CarbGradientStart = Color(0xFFF4D486)        // Vàng mật ong nhạt
+val CarbGradientEnd = Color(0xFFFAE7B8)
 
-val LavenderGradientStart = Color(0xFFA78BFA)    // Chỉ dùng cho trạng thái "đang chọn" (lịch tuần...)
-val LavenderGradientEnd = Color(0xFFB8A7EA)
+val FatGradientStart = Color(0xFFF3B8CE)         // Hồng phấn dịu
+val FatGradientEnd = Color(0xFFF9D6E3)
+
+val LavenderGradientStart = Color(0xFFC9BBF5)    // Tím nhạt dịu cho selection
+val LavenderGradientEnd = Color(0xFFE2D9FA)
 
 // Brush helpers cho Bento Macro
 val ProteinBrush = Brush.verticalGradient(listOf(ProteinGradientStart, ProteinGradientEnd))
 val CarbBrush = Brush.verticalGradient(listOf(CarbGradientStart, CarbGradientEnd))
 val FatBrush = Brush.horizontalGradient(listOf(FatGradientStart, FatGradientEnd))
 val LavenderBrush = Brush.verticalGradient(listOf(LavenderGradientStart, LavenderGradientEnd))
+val CalorieCardBrush = Brush.verticalGradient(listOf(CalorieCardGradientStart, CalorieCardGradientEnd))
 
 // Màu đơn tương thích (Legacy support)
-val PastelLavender = Color(0xFFDCD3F6)
+val PastelLavender = LavenderGradientStart
 val PastelLavenderDark = LavenderGradientEnd
 val PastelMint = ProteinGradientStart
 val PastelMintDark = ProteinGradientEnd
