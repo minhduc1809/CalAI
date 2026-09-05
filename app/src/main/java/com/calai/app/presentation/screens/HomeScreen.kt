@@ -33,6 +33,7 @@ fun HomeScreen(
     onCameraClick: () -> Unit = {},
     onNavigateTab: (DockTab) -> Unit = {},
     onLogout: () -> Unit = {},
+    onOpenSuggestions: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -104,6 +105,21 @@ fun HomeScreen(
                                     Icons.Default.ExitToApp,
                                     contentDescription = "Đăng xuất",
                                     tint = TextMuted
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(CharcoalSurface)
+                                    .clickable { onOpenSuggestions() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = "Gợi ý cho bạn",
+                                    tint = VividOrange,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             Box(

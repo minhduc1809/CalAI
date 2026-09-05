@@ -74,8 +74,18 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.Login.route) {
                                         popUpTo(Screen.Home.route) { inclusive = true }
                                     }
+                                },
+                                onOpenSuggestions = {
+                                    navController.navigate(Screen.Suggestions.route)
                                 }
                             )
+                        }
+
+                        // 2b. Màn hình Gợi ý Thực đơn & Tập luyện (Suggestions)
+                        composable(Screen.Suggestions.route) {
+                            SuggestionsScreen(onBack = {
+                                navController.popBackStack()
+                            })
                         }
 
                         // 3. Màn hình Thêm bữa ăn (Add Meal)
