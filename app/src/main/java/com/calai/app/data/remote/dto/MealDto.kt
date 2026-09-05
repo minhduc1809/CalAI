@@ -72,6 +72,20 @@ data class MealItemResponseDto(
     val source: String
 )
 
+data class UpdateMealRequest(
+    @SerializedName("mealType")
+    val mealType: String? = null,
+    @SerializedName("date")
+    val date: String? = null
+)
+
+data class CopyMealRequest(
+    @SerializedName("targetDate")
+    val targetDate: String,
+    @SerializedName("mealType")
+    val mealType: String? = null
+)
+
 data class MealResponseDto(
     @SerializedName("id")
     val id: String,

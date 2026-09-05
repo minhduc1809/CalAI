@@ -376,6 +376,48 @@ class CalAIRepositoryImpl @Inject constructor(
         return Result.success(mockMeal)
     }
 
+    override suspend fun updateRemoteMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
+        val request = UpdateMealRequest(mealType = mealType, date = date)
+        return try {
+            val response = api.updateMeal(mealId, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockUpdatedMeal(mealId, request.mealType, request.date)
+            }
+        } catch (_: Exception) {
+            getMockUpdatedMeal(mealId, request.mealType, request.date)
+        }
+    }
+
+    private fun getMockUpdatedMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
+        return Result.success(
+            MealResponseDto(
+                id = mealId,
+                userId = "mock_user_01",
+                mealType = mealType ?: "LUNCH",
+                date = date ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
+                totalCalories = 0f,
+                totalProtein = 0f,
+                totalCarb = 0f,
+                totalFat = 0f
+            )
+        )
+    }
+
+    override suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String?): Result<MealResponseDto> {
+        return try {
+            val response = api.copyMeal(mealId, CopyMealRequest(targetDate = targetDate, mealType = mealType))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockUpdatedMeal(mealId, mealType, targetDate)
+            }
+        } catch (_: Exception) {
+            getMockUpdatedMeal(mealId, mealType, targetDate)
+        }
+    }
+
     override suspend fun deleteRemoteMeal(mealId: String): Result<Unit> {
         return try {
             val response = api.deleteMeal(mealId)

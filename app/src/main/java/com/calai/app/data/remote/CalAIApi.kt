@@ -48,6 +48,12 @@ interface CalAIApi {
         @Query("endDate") endDate: String? = null
     ): ApiResponse<NutritionStatisticsData>
 
+    @PATCH("meals/{id}")
+    suspend fun updateMeal(@Path("id") mealId: String, @Body request: UpdateMealRequest): ApiResponse<MealResponseDto>
+
+    @POST("meals/{id}/copy")
+    suspend fun copyMeal(@Path("id") mealId: String, @Body request: CopyMealRequest): ApiResponse<MealResponseDto>
+
     @DELETE("meals/{id}")
     suspend fun deleteMeal(@Path("id") mealId: String): ApiResponse<Any?>
 

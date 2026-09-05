@@ -39,6 +39,8 @@ interface CalAIRepository {
     suspend fun fetchDailySummary(date: String? = null): Result<DailyNutritionSummaryData>
     suspend fun fetchMealsFromRemote(date: String? = null): Result<List<MealResponseDto>>
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
+    suspend fun updateRemoteMeal(mealId: String, mealType: String? = null, date: String? = null): Result<MealResponseDto>
+    suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String? = null): Result<MealResponseDto>
     suspend fun deleteRemoteMeal(mealId: String): Result<Unit>
     suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null): Result<NutritionStatisticsData>
     suspend fun quickAddMeal(
