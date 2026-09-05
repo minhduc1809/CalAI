@@ -38,6 +38,8 @@ fun HomeScreen(
     onNavigateTab: (DockTab) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenSuggestions: () -> Unit = {},
+    onOpenWorkoutHub: () -> Unit = {},
+    onOpenLogWorkout: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -107,6 +109,22 @@ fun HomeScreen(
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Nút Trung tâm Tập luyện & Lịch sử
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(CharcoalSurface)
+                                    .border(1.dp, CharcoalBorder, CircleShape)
+                                    .clickable { onOpenWorkoutHub() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                DuotoneDumbbellIcon(
+                                    size = 20.dp,
+                                    primaryColor = PastelMint
+                                )
+                            }
+
                             // Nút Gợi ý món thông minh
                             Box(
                                 modifier = Modifier

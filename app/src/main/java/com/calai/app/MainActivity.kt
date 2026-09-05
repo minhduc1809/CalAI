@@ -80,15 +80,53 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
+                                },
+                                onOpenWorkoutHub = {
+                                    navController.navigate(Screen.WorkoutHub.route)
+                                },
+                                onOpenLogWorkout = {
+                                    navController.navigate(Screen.LogWorkout.route)
                                 }
                             )
                         }
 
                         // 2b. Màn hình Gợi ý Thực đơn & Tập luyện (Suggestions)
                         composable(Screen.Suggestions.route) {
-                            SuggestionsScreen(onBack = {
-                                navController.popBackStack()
-                            })
+                            SuggestionsScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onNavigateToWorkoutHub = {
+                                    navController.navigate(Screen.WorkoutHub.route)
+                                },
+                                onNavigateToLogWorkout = {
+                                    navController.navigate(Screen.LogWorkout.route)
+                                }
+                            )
+                        }
+
+                        // 2c. Màn hình Trung tâm Tập luyện (Workout Hub: Program + History + Exercise Library)
+                        composable(Screen.WorkoutHub.route) {
+                            WorkoutHubScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onNavigateToLogWorkout = {
+                                    navController.navigate(Screen.LogWorkout.route)
+                                }
+                            )
+                        }
+
+                        // 2d. Màn hình Ghi nhận Buổi tập (Log Workout - Sets, Reps, Calo, MET, Rest Timer)
+                        composable(Screen.LogWorkout.route) {
+                            LogWorkoutScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onSaveSuccess = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
 
                         // 3. Màn hình Thêm bữa ăn (Add Meal)
