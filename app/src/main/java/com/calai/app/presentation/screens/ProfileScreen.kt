@@ -30,6 +30,8 @@ import com.calai.app.presentation.viewmodel.ProfileViewModel
 fun ProfileScreen(
     onNavigateTab: (DockTab) -> Unit,
     onLogout: () -> Unit,
+    isDarkTheme: Boolean = true,
+    onToggleTheme: (Boolean) -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -38,7 +40,7 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         Column(
             modifier = Modifier
@@ -55,10 +57,10 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Hồ Sơ & Mục Tiêu",
+                    text = "Hồ Sơ & Cài Đặt",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextWhite,
+                    color = if (isDarkTheme) TextWhite else TextInkPrimary,
                     letterSpacing = (-0.5).sp
                 )
 
@@ -66,14 +68,14 @@ fun ProfileScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(CharcoalSurface)
-                        .border(1.dp, CharcoalBorder, CircleShape),
+                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = "Cài đặt",
-                        tint = TextWhite,
+                        tint = if (isDarkTheme) TextWhite else TextInkPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -84,8 +86,8 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CharcoalSurface)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(24.dp))
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
                     .padding(20.dp)
             ) {
                 Row(
@@ -97,7 +99,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(68.dp)
                             .clip(CircleShape)
-                            .background(PastelLavender)
+                            .background(LavenderGradientStart)
                             .border(2.dp, VividOrange, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -105,7 +107,7 @@ fun ProfileScreen(
                             text = (profile?.name?.take(1) ?: profile?.username?.take(1) ?: "C").uppercase(),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
-                            color = CharcoalSurface
+                            color = TextDeepInk
                         )
                     }
 
@@ -114,12 +116,12 @@ fun ProfileScreen(
                             text = profile?.name ?: "Người dùng NutriWise",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary
                         )
                         Text(
                             text = "@${profile?.username ?: "calai_user"}",
                             fontSize = 13.sp,
-                            color = TextMuted
+                            color = if (isDarkTheme) TextMuted else TextInkMuted
                         )
 
                         val goalLabel = when (profile?.goal) {
@@ -129,7 +131,7 @@ fun ProfileScreen(
                             else -> "Ăn uống lành mạnh"
                         }
                         Surface(
-                            color = VividOrange.copy(alpha = 0.15f),
+                            color = VividOrangeSoft,
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
@@ -149,7 +151,7 @@ fun ProfileScreen(
                 text = "Chỉ số sinh học",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
             )
 
             Row(
@@ -160,14 +162,16 @@ fun ProfileScreen(
                     title = "Chiều cao",
                     value = "${profile?.heightCm?.toInt() ?: 175}",
                     unit = "cm",
-                    color = PastelLavender,
+                    color = LavenderGradientStart,
+                    isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)
                 )
                 BioMetricCard(
                     title = "Cân nặng",
                     value = "${profile?.weightKg ?: 68.5f}",
                     unit = "kg",
-                    color = MintJade,
+                    color = ProteinGradientStart,
+                    isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -180,14 +184,16 @@ fun ProfileScreen(
                     title = "Chỉ số BMI",
                     value = String.format("%.1f", profile?.bmi ?: 22.4f),
                     unit = "Bình thường",
-                    color = ButtercupYellow,
+                    color = CarbGradientStart,
+                    isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)
                 )
                 BioMetricCard(
                     title = "Năng lượng TDEE",
                     value = "${profile?.tdee?.toInt() ?: 2310}",
                     unit = "kcal/ngày",
-                    color = RoseBlush,
+                    color = FatGradientStart,
+                    isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -197,8 +203,8 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CharcoalSurface)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(24.dp))
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -211,7 +217,7 @@ fun ProfileScreen(
                             text = "Mục tiêu calo & dinh dưỡng",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary
                         )
                         Text(
                             text = "${profile?.targetCalories?.toInt() ?: 1810} kcal",
@@ -228,66 +234,77 @@ fun ProfileScreen(
                         MacroBadgePill(
                             label = "Protein",
                             amount = "${profile?.targetProtein?.toInt() ?: 135}g",
-                            accentColor = MintJade,
+                            accentColor = ProteinGradientStart,
+                            isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                         MacroBadgePill(
                             label = "Carbs",
                             amount = "${profile?.targetCarb?.toInt() ?: 200}g",
-                            accentColor = ButtercupYellow,
+                            accentColor = CarbGradientStart,
+                            isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                         MacroBadgePill(
                             label = "Fat",
                             amount = "${profile?.targetFat?.toInt() ?: 50}g",
-                            accentColor = RoseBlush,
+                            accentColor = FatGradientStart,
+                            isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
 
-            // 5. AI ENGINE STATUS CARD
+            // 5. CÀI ĐẶT GIAO DIỆN (LIGHT / DARK THEME SWITCH) - Spec 9.6 #7
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(PastelLavender.copy(alpha = 0.12f))
-                    .border(1.dp, PastelLavender.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                    .padding(16.dp)
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 18.dp, vertical = 14.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(PastelLavender),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            Icons.Default.AutoAwesome,
+                            if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
                             contentDescription = null,
-                            tint = ObsidianBackground,
+                            tint = VividOrange,
                             modifier = Modifier.size(22.dp)
                         )
+                        Column {
+                            Text(
+                                text = if (isDarkTheme) "Giao diện Dark Luxury" else "Giao diện Ivory Luxury",
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                            )
+                            Text(
+                                text = if (isDarkTheme) "Nền Obsidian sang trọng" else "Nền trắng ngà ấm áp",
+                                fontSize = 12.sp,
+                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                            )
+                        }
                     }
 
-                    Column {
-                        Text(
-                            text = "AI Vision & Coach",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                    Switch(
+                        checked = isDarkTheme,
+                        onCheckedChange = { onToggleTheme(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = TextWhite,
+                            checkedTrackColor = VividOrange,
+                            uncheckedThumbColor = TextInkPrimary,
+                            uncheckedTrackColor = PearlBorder
                         )
-                        Text(
-                            text = "Hạn mức hôm nay: ${profile?.dailyAiQuota ?: 50} / 50 lượt chụp",
-                            fontSize = 12.sp,
-                            color = TextLightGray
-                        )
-                    }
+                    )
                 }
             }
 
@@ -296,12 +313,12 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(CharcoalSurface)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(20.dp))
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
             ) {
-                ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false)
-                ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false)
-                ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = true)
+                ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme)
+                ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme)
+                ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = true, isDark = isDarkTheme)
             }
 
             // 7. LOGOUT BUTTON
@@ -344,18 +361,19 @@ private fun BioMetricCard(
     value: String,
     unit: String,
     color: Color,
+    isDark: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(CharcoalSurface)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(20.dp))
+            .background(if (isDark) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text = title, fontSize = 12.sp, color = TextMuted)
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+            Text(text = title, fontSize = 12.sp, color = if (isDark) TextMuted else TextInkMuted)
+            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (isDark) TextWhite else TextInkPrimary)
             Text(text = unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
         }
     }
@@ -366,17 +384,19 @@ private fun MacroBadgePill(
     label: String,
     amount: String,
     accentColor: Color,
+    isDark: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(CharcoalDock)
+            .background(if (isDark) CharcoalDock else PearlSurface)
+            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(14.dp))
             .padding(vertical = 10.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label, fontSize = 11.sp, color = TextMuted)
+            Text(text = label, fontSize = 11.sp, color = if (isDark) TextMuted else TextInkMuted)
             Spacer(modifier = Modifier.height(2.dp))
             Text(text = amount, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accentColor)
         }
@@ -387,7 +407,8 @@ private fun MacroBadgePill(
 private fun ActionRowItem(
     icon: ImageVector,
     label: String,
-    isLast: Boolean
+    isLast: Boolean,
+    isDark: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -401,21 +422,22 @@ private fun ActionRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
-            Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextWhite)
+            Icon(icon, contentDescription = null, tint = if (isDark) TextMuted else TextInkMuted, modifier = Modifier.size(20.dp))
+            Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (isDark) TextWhite else TextInkPrimary)
         }
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = TextMuted.copy(alpha = 0.5f),
+            tint = (if (isDark) TextMuted else TextInkMuted).copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
     if (!isLast) {
         HorizontalDivider(
-            color = CharcoalBorder.copy(alpha = 0.5f),
+            color = (if (isDark) CharcoalBorder else PearlBorder).copy(alpha = 0.5f),
             thickness = 1.dp,
             modifier = Modifier.padding(horizontal = 18.dp)
         )
     }
 }
+

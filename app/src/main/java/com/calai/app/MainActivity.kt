@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,7 +22,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            CalAITheme {
+            var isDarkTheme by remember { mutableStateOf(true) }
+
+            CalAITheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -130,6 +133,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.Login.route) {
                                         popUpTo(Screen.Home.route) { inclusive = true }
                                     }
+                                },
+                                isDarkTheme = isDarkTheme,
+                                onToggleTheme = { newTheme ->
+                                    isDarkTheme = newTheme
                                 }
                             )
                         }
@@ -139,3 +146,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
