@@ -77,4 +77,13 @@ interface CalAIRepository {
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>
     suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto>
     suspend fun chatAi(message: String): Result<ChatAiResponseDto>
+
+    // --- Workouts & Training Remote ---
+    suspend fun fetchWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>>
+    suspend fun fetchWorkoutSummary(date: String? = null): Result<WorkoutSummaryDto>
+    suspend fun createWorkoutLog(request: CreateWorkoutLogRequest): Result<WorkoutLogDto>
+    suspend fun fetchWorkouts(date: String? = null, startDate: String? = null, endDate: String? = null, category: String? = null): Result<List<WorkoutLogDto>>
+    suspend fun fetchWorkoutById(id: String): Result<WorkoutLogDto>
+    suspend fun updateWorkoutLog(id: String, request: UpdateWorkoutLogRequest): Result<WorkoutLogDto>
+    suspend fun deleteWorkoutLog(id: String): Result<Unit>
 }

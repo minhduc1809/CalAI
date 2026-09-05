@@ -119,6 +119,44 @@ interface CalAIApi {
     @DELETE("recommendations/custom-foods/{id}")
     suspend fun deleteCustomFood(@Path("id") id: String): ApiResponse<Any?>
 
+    // --- WORKOUTS & TRAINING ---
+    @GET("workouts/categories")
+    suspend fun getWorkoutCategories(): ApiResponse<List<WorkoutCategoryInfoDto>>
+
+    @GET("workouts/summary")
+    suspend fun getWorkoutSummary(
+        @Query("date") date: String? = null
+    ): ApiResponse<WorkoutSummaryDto>
+
+    @POST("workouts")
+    suspend fun createWorkout(
+        @Body request: CreateWorkoutLogRequest
+    ): ApiResponse<WorkoutLogDto>
+
+    @GET("workouts")
+    suspend fun getWorkouts(
+        @Query("date") date: String? = null,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null,
+        @Query("category") category: String? = null
+    ): ApiResponse<List<WorkoutLogDto>>
+
+    @GET("workouts/{id}")
+    suspend fun getWorkoutById(
+        @Path("id") id: String
+    ): ApiResponse<WorkoutLogDto>
+
+    @PATCH("workouts/{id}")
+    suspend fun updateWorkout(
+        @Path("id") id: String,
+        @Body request: UpdateWorkoutLogRequest
+    ): ApiResponse<WorkoutLogDto>
+
+    @DELETE("workouts/{id}")
+    suspend fun deleteWorkout(
+        @Path("id") id: String
+    ): ApiResponse<Any?>
+
     // --- AI ENGINE ---
     @Multipart
     @POST("ai/recognize-food")

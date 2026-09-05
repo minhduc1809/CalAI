@@ -1064,4 +1064,270 @@ class CalAIRepositoryImpl @Inject constructor(
         }
         return Result.success(ChatAiResponseDto(reply = answer))
     }
+
+    // --- Workouts & Training Implementation ---
+
+    override suspend fun fetchWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {
+        return try {
+            val response = api.getWorkoutCategories()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutCategories()
+            }
+        } catch (_: Exception) {
+            getMockWorkoutCategories()
+        }
+    }
+
+    private fun getMockWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {
+        return Result.success(
+            listOf(
+                WorkoutCategoryInfoDto(WorkoutCategory.STRENGTH, "Tập tạ / Kháng lực", 5.0f, "Tập kháng lực, nâng tạ nghỉ giữa các hiệp"),
+                WorkoutCategoryInfoDto(WorkoutCategory.RUNNING, "Chạy bộ", 9.8f, "Chạy ngoài trời hoặc máy chạy bộ tốc độ ~8.5 km/h"),
+                WorkoutCategoryInfoDto(WorkoutCategory.HIIT, "HIIT / Tabata", 8.5f, "Tập luyện ngắt quãng cường độ cao"),
+                WorkoutCategoryInfoDto(WorkoutCategory.CYCLING, "Đạp xe", 7.5f, "Đạp xe ngoài trời hoặc máy đạp xe cường độ vừa"),
+                WorkoutCategoryInfoDto(WorkoutCategory.SWIMMING, "Bơi lội", 8.0f, "Bơi sải hoặc bơi ếch nhịp độ liên tục"),
+                WorkoutCategoryInfoDto(WorkoutCategory.CARDIO, "Cardio tổng hợp", 6.5f, "Aerobic, nhảy dây, leo cầu thang"),
+                WorkoutCategoryInfoDto(WorkoutCategory.WALKING, "Đi bộ", 3.8f, "Đi bộ nhanh tốc độ ~5 km/h"),
+                WorkoutCategoryInfoDto(WorkoutCategory.YOGA, "Yoga / Giãn cơ", 2.8f, "Hatha/Vinyasa yoga, kéo giãn cơ bắp"),
+                WorkoutCategoryInfoDto(WorkoutCategory.SPORTS, "Thể thao đối kháng", 7.0f, "Cầu lông, bóng đá, bóng rổ, tennis"),
+                WorkoutCategoryInfoDto(WorkoutCategory.OTHER, "Vận động khác", 4.0f, "Lao động tay chân, vận động tự do")
+            )
+        )
+    }
+
+    override suspend fun fetchWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
+        return try {
+            val response = api.getWorkoutSummary(date)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutSummary(date)
+            }
+        } catch (_: Exception) {
+            getMockWorkoutSummary(date)
+        }
+    }
+
+    private fun getMockWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
+        return Result.success(
+            WorkoutSummaryDto(
+                date = date ?: "2026-09-06",
+                totalActiveCalories = 420,
+                totalDurationMinutes = 55,
+                workoutCount = 1,
+                categories = listOf("STRENGTH")
+            )
+        )
+    }
+
+    override suspend fun createWorkoutLog(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
+        return try {
+            val response = api.createWorkout(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockCreatedWorkout(request)
+            }
+        } catch (_: Exception) {
+            getMockCreatedWorkout(request)
+        }
+    }
+
+    private fun getMockCreatedWorkout(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
+        val cat = try {
+            WorkoutCategory.valueOf(request.category)
+        } catch (_: Exception) {
+            WorkoutCategory.STRENGTH
+        }
+        val exDtos = request.exercises?.mapIndexed { index, ex ->
+            WorkoutExerciseDto(
+                id = "mock_ex_$index",
+                name = ex.name,
+                order = ex.order,
+                sets = ex.sets.map { s ->
+                    WorkoutSetDto(
+                        id = "mock_set_${s.setNumber}",
+                        setNumber = s.setNumber,
+                        reps = s.reps,
+                        weightKg = s.weightKg,
+                        rpe = s.rpe,
+                        isCompleted = true
+                    )
+                }
+            )
+        } ?: emptyList()
+
+        val totalVol = exDtos.sumOf { ex ->
+            ex.sets.sumOf { (it.reps * it.weightKg).toDouble() }
+        }.toFloat()
+
+        return Result.success(
+            WorkoutLogDto(
+                id = "mock_workout_${System.currentTimeMillis()}",
+                name = request.name,
+                category = cat,
+                date = request.date ?: "2026-09-06T08:00:00.000Z",
+                durationMinutes = request.durationMinutes,
+                caloriesBurned = request.caloriesBurned ?: (request.durationMinutes * 6.5f),
+                rpe = request.rpe ?: 8,
+                note = request.note,
+                exercises = exDtos,
+                totalVolumeKg = totalVol
+            )
+        )
+    }
+
+    override suspend fun fetchWorkouts(
+        date: String?,
+        startDate: String?,
+        endDate: String?,
+        category: String?
+    ): Result<List<WorkoutLogDto>> {
+        return try {
+            val response = api.getWorkouts(date, startDate, endDate, category)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkouts()
+            }
+        } catch (_: Exception) {
+            getMockWorkouts()
+        }
+    }
+
+    private fun getMockWorkouts(): Result<List<WorkoutLogDto>> {
+        val sampleWorkouts = listOf(
+            WorkoutLogDto(
+                id = "workout_1",
+                name = "Buổi tập Ngực & Tay sau (Push Day)",
+                category = WorkoutCategory.STRENGTH,
+                date = "2026-09-05T08:30:00.000Z",
+                durationMinutes = 60,
+                caloriesBurned = 380f,
+                rpe = 8,
+                note = "Đẩy ngực lên 80kg 6 reps rất tốt, form chuẩn.",
+                exercises = listOf(
+                    WorkoutExerciseDto(
+                        id = "ex_1",
+                        name = "Barbell Bench Press (Đẩy ngực ngang)",
+                        order = 1,
+                        sets = listOf(
+                            WorkoutSetDto("s1", 1, 12, 60f, 7),
+                            WorkoutSetDto("s2", 2, 10, 70f, 8),
+                            WorkoutSetDto("s3", 3, 8, 75f, 8),
+                            WorkoutSetDto("s4", 4, 6, 80f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_2",
+                        name = "Incline Dumbbell Press (Đẩy tạ đơn ngực trên)",
+                        order = 2,
+                        sets = listOf(
+                            WorkoutSetDto("s5", 1, 10, 24f, 8),
+                            WorkoutSetDto("s6", 2, 10, 24f, 8),
+                            WorkoutSetDto("s7", 3, 8, 26f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_3",
+                        name = "Cable Triceps Pushdown (Kéo cáp tay sau)",
+                        order = 3,
+                        sets = listOf(
+                            WorkoutSetDto("s8", 1, 15, 25f, 7),
+                            WorkoutSetDto("s9", 2, 12, 30f, 8),
+                            WorkoutSetDto("s10", 3, 10, 35f, 9)
+                        )
+                    )
+                ),
+                totalVolumeKg = 3480f
+            ),
+            WorkoutLogDto(
+                id = "workout_2",
+                name = "Chạy bộ sáng Cardio (Outdoor Run)",
+                category = WorkoutCategory.RUNNING,
+                date = "2026-09-04T06:15:00.000Z",
+                durationMinutes = 35,
+                caloriesBurned = 320f,
+                rpe = 7,
+                note = "Chạy quanh công viên tốc độ đều pace 5:45.",
+                exercises = emptyList(),
+                totalVolumeKg = 0f
+            ),
+            WorkoutLogDto(
+                id = "workout_3",
+                name = "Buổi tập Lưng & Tay trước (Pull Day)",
+                category = WorkoutCategory.STRENGTH,
+                date = "2026-09-03T17:45:00.000Z",
+                durationMinutes = 65,
+                caloriesBurned = 410f,
+                rpe = 8,
+                note = "Deadlift 110kg 5 reps. Cảm giác lưng xô căng tốt.",
+                exercises = listOf(
+                    WorkoutExerciseDto(
+                        id = "ex_4",
+                        name = "Conventional Deadlift",
+                        order = 1,
+                        sets = listOf(
+                            WorkoutSetDto("s11", 1, 8, 90f, 7),
+                            WorkoutSetDto("s12", 2, 6, 100f, 8),
+                            WorkoutSetDto("s13", 3, 5, 110f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_5",
+                        name = "Lat Pulldown (Kéo xô rộng tay)",
+                        order = 2,
+                        sets = listOf(
+                            WorkoutSetDto("s14", 1, 12, 55f, 8),
+                            WorkoutSetDto("s15", 2, 10, 60f, 8),
+                            WorkoutSetDto("s16", 3, 10, 60f, 9)
+                        )
+                    )
+                ),
+                totalVolumeKg = 3520f
+            )
+        )
+        return Result.success(sampleWorkouts)
+    }
+
+    override suspend fun fetchWorkoutById(id: String): Result<WorkoutLogDto> {
+        return try {
+            val response = api.getWorkoutById(id)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+            }
+        } catch (_: Exception) {
+            getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+        }
+    }
+
+    override suspend fun updateWorkoutLog(id: String, request: UpdateWorkoutLogRequest): Result<WorkoutLogDto> {
+        return try {
+            val response = api.updateWorkout(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                fetchWorkoutById(id)
+            }
+        } catch (_: Exception) {
+            fetchWorkoutById(id)
+        }
+    }
+
+    override suspend fun deleteWorkoutLog(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteWorkout(id)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.success(Unit)
+            }
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
 }

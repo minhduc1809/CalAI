@@ -42,3 +42,8 @@ captures/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Documentation / Prompt Rules (Local Only)
+CODING_RULES.md
+*RULES*.md
+

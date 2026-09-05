@@ -47,6 +47,8 @@ import com.calai.app.presentation.viewmodel.SuggestionsViewModel
 @Composable
 fun SuggestionsScreen(
     onBack: () -> Unit,
+    onNavigateToWorkoutHub: () -> Unit = {},
+    onNavigateToLogWorkout: () -> Unit = {},
     viewModel: SuggestionsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -219,6 +221,32 @@ fun SuggestionsScreen(
                             expandedDayName = uiState.expandedDayName,
                             onToggleDay = viewModel::toggleDayExpand
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Nút mở Trung Tâm Tập Luyện
+                        Button(
+                            onClick = onNavigateToWorkoutHub,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CharcoalSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, VividOrange.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                DuotoneDumbbellIcon(size = 18.dp, primaryColor = VividOrange)
+                                Text(
+                                    text = "Mở Trung Tâm Tập Luyện & Lịch Sử",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VividOrange
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -273,23 +301,6 @@ private fun DietCard(data: DietRecommendationData) {
             .border(1.dp, CharcoalBorder, RoundedCornerShape(28.dp))
             .padding(20.dp)
     ) {
-        // Specular radial highlight góc trên-trái (Spec 10.2 & 10.4)
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.40f),
-                        Color.White.copy(alpha = 0.10f),
-                        Color.Transparent
-                    ),
-                    center = Offset(28.dp.toPx(), 28.dp.toPx()),
-                    radius = 65.dp.toPx()
-                ),
-                radius = 65.dp.toPx(),
-                center = Offset(28.dp.toPx(), 28.dp.toPx())
-            )
-        }
-
         Column {
             Text(
                 text = plan.title,

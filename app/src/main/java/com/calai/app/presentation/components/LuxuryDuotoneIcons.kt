@@ -31,7 +31,8 @@ fun DuotoneDietIcon(
     modifier: Modifier = Modifier,
     size: Dp = 22.dp,
     outlineColor: Color = TextWhite,
-    accentColor: Color = VividOrange
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
 ) {
     Canvas(modifier = modifier.size(size)) {
         val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -40,7 +41,7 @@ fun DuotoneDietIcon(
 
         // Đĩa tròn ngoài
         drawCircle(
-            color = outlineColor,
+            color = primaryColor,
             radius = w * 0.42f,
             center = Offset(w / 2, h / 2),
             style = stroke
@@ -55,14 +56,14 @@ fun DuotoneDietIcon(
 
         // Vạch nĩa & dao tối giản
         drawLine(
-            color = outlineColor.copy(alpha = 0.6f),
+            color = primaryColor.copy(alpha = 0.6f),
             start = Offset(w * 0.28f, h * 0.35f),
             end = Offset(w * 0.28f, h * 0.65f),
             strokeWidth = 1.4.dp.toPx(),
             cap = StrokeCap.Round
         )
         drawLine(
-            color = outlineColor.copy(alpha = 0.6f),
+            color = primaryColor.copy(alpha = 0.6f),
             start = Offset(w * 0.72f, h * 0.35f),
             end = Offset(w * 0.72f, h * 0.65f),
             strokeWidth = 1.4.dp.toPx(),
@@ -76,7 +77,8 @@ fun DuotoneWorkoutIcon(
     modifier: Modifier = Modifier,
     size: Dp = 22.dp,
     outlineColor: Color = TextWhite,
-    accentColor: Color = VividOrange
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
 ) {
     Canvas(modifier = modifier.size(size)) {
         val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -85,7 +87,7 @@ fun DuotoneWorkoutIcon(
 
         // Trục tạ
         drawLine(
-            color = outlineColor,
+            color = primaryColor,
             start = Offset(w * 0.22f, h / 2),
             end = Offset(w * 0.78f, h / 2),
             strokeWidth = 2.dp.toPx(),
@@ -94,14 +96,14 @@ fun DuotoneWorkoutIcon(
 
         // Bánh tạ 2 bên
         drawRoundRect(
-            color = outlineColor,
+            color = primaryColor,
             topLeft = Offset(w * 0.12f, h * 0.28f),
             size = Size(w * 0.14f, h * 0.44f),
             cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx()),
             style = stroke
         )
         drawRoundRect(
-            color = outlineColor,
+            color = primaryColor,
             topLeft = Offset(w * 0.74f, h * 0.28f),
             size = Size(w * 0.14f, h * 0.44f),
             cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx()),
@@ -118,11 +120,23 @@ fun DuotoneWorkoutIcon(
 }
 
 @Composable
+fun DuotoneDumbbellIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
+) {
+    DuotoneWorkoutIcon(modifier, size, outlineColor, accentColor, primaryColor)
+}
+
+@Composable
 fun DuotoneCalendarIcon(
     modifier: Modifier = Modifier,
     size: Dp = 22.dp,
     outlineColor: Color = TextWhite,
-    accentColor: Color = LavenderGradientStart
+    accentColor: Color = LavenderGradientStart,
+    primaryColor: Color = outlineColor
 ) {
     Canvas(modifier = modifier.size(size)) {
         val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -131,7 +145,7 @@ fun DuotoneCalendarIcon(
 
         // Khung lịch
         drawRoundRect(
-            color = outlineColor,
+            color = primaryColor,
             topLeft = Offset(w * 0.12f, h * 0.18f),
             size = Size(w * 0.76f, h * 0.70f),
             cornerRadius = CornerRadius(5.dp.toPx(), 5.dp.toPx()),
@@ -140,7 +154,7 @@ fun DuotoneCalendarIcon(
 
         // Thanh ngang lịch
         drawLine(
-            color = outlineColor.copy(alpha = 0.5f),
+            color = primaryColor.copy(alpha = 0.5f),
             start = Offset(w * 0.12f, h * 0.38f),
             end = Offset(w * 0.88f, h * 0.38f),
             strokeWidth = 1.4.dp.toPx()
@@ -148,14 +162,14 @@ fun DuotoneCalendarIcon(
 
         // 2 móc treo
         drawLine(
-            color = outlineColor,
+            color = primaryColor,
             start = Offset(w * 0.32f, h * 0.08f),
             end = Offset(w * 0.32f, h * 0.22f),
             strokeWidth = 1.6.dp.toPx(),
             cap = StrokeCap.Round
         )
         drawLine(
-            color = outlineColor,
+            color = primaryColor,
             start = Offset(w * 0.68f, h * 0.08f),
             end = Offset(w * 0.68f, h * 0.22f),
             strokeWidth = 1.6.dp.toPx(),
@@ -176,7 +190,8 @@ fun DuotoneExerciseIcon(
     modifier: Modifier = Modifier,
     size: Dp = 22.dp,
     outlineColor: Color = TextWhite,
-    accentColor: Color = VividOrange
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
 ) {
     Canvas(modifier = modifier.size(size)) {
         val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -194,11 +209,44 @@ fun DuotoneExerciseIcon(
             close()
         }
 
-        drawPath(path = path, color = outlineColor, style = stroke)
+        drawPath(path = path, color = primaryColor, style = stroke)
         drawCircle(
             color = accentColor,
             radius = w * 0.11f,
             center = Offset(w * 0.48f, h * 0.48f)
         )
+    }
+}
+
+@Composable
+fun DuotoneEnergyIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
+) {
+    DuotoneExerciseIcon(modifier, size, outlineColor, accentColor, primaryColor)
+}
+
+@Composable
+fun DuotoneCheckmarkIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = PastelMint,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+
+        val path = Path().apply {
+            moveTo(w * 0.22f, h * 0.52f)
+            lineTo(w * 0.42f, h * 0.72f)
+            lineTo(w * 0.78f, h * 0.28f)
+        }
+        drawPath(path = path, color = primaryColor, style = stroke)
     }
 }
