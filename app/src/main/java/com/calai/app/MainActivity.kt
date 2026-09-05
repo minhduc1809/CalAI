@@ -80,24 +80,15 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
-                                },
-                                onOpenWorkoutHub = {
-                                    navController.navigate(Screen.WorkoutHub.route)
-                                },
-                                onOpenLogWorkout = {
-                                    navController.navigate(Screen.LogWorkout.route)
                                 }
                             )
                         }
 
-                        // 2b. Màn hình Gợi ý Thực đơn & Tập luyện (Suggestions)
+                        // 2b. Màn hình Gợi ý Thực đơn & Tập luyện (Suggestions - All in One)
                         composable(Screen.Suggestions.route) {
                             SuggestionsScreen(
                                 onBack = {
                                     navController.popBackStack()
-                                },
-                                onNavigateToWorkoutHub = {
-                                    navController.navigate(Screen.WorkoutHub.route)
                                 },
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
