@@ -45,6 +45,9 @@ class MainActivity : ComponentActivity() {
                                 onAddMealClick = {
                                     navController.navigate(Screen.AddMeal.route)
                                 },
+                                onCameraClick = {
+                                    navController.navigate(Screen.CameraScan.route)
+                                },
                                 onLogout = {
                                     navController.navigate(Screen.Login.route) {
                                         popUpTo(Screen.Home.route) { inclusive = true }
@@ -54,6 +57,11 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.AddMeal.route) {
                             AddMealScreen(onBack = {
+                                navController.popBackStack()
+                            })
+                        }
+                        composable(Screen.CameraScan.route) {
+                            com.calai.app.presentation.screens.CameraScanScreen(onBack = {
                                 navController.popBackStack()
                             })
                         }
