@@ -40,6 +40,7 @@ interface CalAIRepository {
     suspend fun fetchMealsFromRemote(date: String? = null): Result<List<MealResponseDto>>
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
     suspend fun deleteRemoteMeal(mealId: String): Result<Unit>
+    suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null): Result<NutritionStatisticsData>
 
     // --- Food Database & Recommendations ---
     suspend fun searchFoods(query: String? = null, category: String? = null): Result<List<FoodItemDto>>
@@ -48,6 +49,8 @@ interface CalAIRepository {
     // --- Weight Logs Remote ---
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>
     suspend fun fetchRemoteWeightLogs(limit: Int = 30): Result<List<WeightLogResponseDto>>
+    suspend fun fetchWeightTrend(limit: Int = 60): Result<List<WeightTrendPointDto>>
+    suspend fun fetchWeightProgress(): Result<WeightProgressDto>
 
     // --- AI Food Recognition & Chat Coach ---
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>

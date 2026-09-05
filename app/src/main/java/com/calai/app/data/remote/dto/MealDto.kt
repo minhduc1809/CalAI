@@ -121,3 +121,46 @@ data class DailyNutritionSummaryData(
     @SerializedName("meals")
     val meals: List<MealResponseDto> = emptyList()
 )
+
+data class StatisticsPeriodDto(
+    @SerializedName("start")
+    val start: String,
+    @SerializedName("end")
+    val end: String
+)
+
+data class StatisticsAveragesDto(
+    @SerializedName("dailyCalories")
+    val dailyCalories: Float,
+    @SerializedName("dailyProtein")
+    val dailyProtein: Float,
+    @SerializedName("dailyCarb")
+    val dailyCarb: Float,
+    @SerializedName("dailyFat")
+    val dailyFat: Float
+)
+
+data class DailyStatDto(
+    @SerializedName("date")
+    val date: String,
+    @SerializedName("calories")
+    val calories: Float,
+    @SerializedName("protein")
+    val protein: Float,
+    @SerializedName("carb")
+    val carb: Float,
+    @SerializedName("fat")
+    val fat: Float,
+    @SerializedName("mealsCount")
+    val mealsCount: Int
+)
+
+/** Thống kê dinh dưỡng theo dải ngày — trả về từ GET /meals/statistics. */
+data class NutritionStatisticsData(
+    @SerializedName("period")
+    val period: StatisticsPeriodDto,
+    @SerializedName("averages")
+    val averages: StatisticsAveragesDto,
+    @SerializedName("dailyStats")
+    val dailyStats: List<DailyStatDto>
+)
