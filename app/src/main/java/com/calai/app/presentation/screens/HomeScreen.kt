@@ -336,7 +336,9 @@ fun HomeScreen(
                     items(uiState.meals) { meal ->
                         MealItemRow(
                             meal = meal,
-                            onDelete = { viewModel.deleteMeal(meal.id) }
+                            onDelete = { viewModel.deleteMeal(meal.id) },
+                            onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
+                            onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) }
                         )
                     }
                 }
@@ -358,16 +360,38 @@ fun HomeScreen(
     }
 }
 
+private val MEAL_TYPE_LABELS = listOf(
+    "BREAKFAST" to "Bữa Sáng",
+    "LUNCH" to "Bữa Trưa",
+    "DINNER" to "Bữa Tối",
+    "SNACK" to "Bữa Phụ"
+)
+
 @Composable
 private fun MealItemRow(
     meal: MealResponseDto,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onChangeMealType: (String) -> Unit,
+    onCopy: (String) -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showCopyDialog by remember { mutableStateOf(false) }
+
     val mealTypeName = when (meal.mealType) {
         "BREAKFAST" -> "Bữa Sáng"
         "LUNCH" -> "Bữa Trưa"
         "DINNER" -> "Bữa Tối"
         else -> "Bữa Phụ"
+    }
+
+    if (showCopyDialog) {
+        CopyMealDialog(
+            onDismiss = { showCopyDialog = false },
+            onConfirm = { targetDate ->
+                onCopy(targetDate)
+                showCopyDialog = false
+            }
+        )
     }
 
     Box(
@@ -421,15 +445,104 @@ private fun MealItemRow(
                     fontWeight = FontWeight.ExtraBold,
                     color = TextWhite
                 )
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Xóa",
-                        tint = TextMuted.copy(alpha = 0.6f),
-                        modifier = Modifier.size(18.dp)
-                    )
+                Box {
+                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Thêm hành động",
+                            tint = TextMuted.copy(alpha = 0.6f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(CharcoalCard)
+                    ) {
+                        Text(
+                            "Chuyển thành",
+                            fontSize = 11.sp,
+                            color = TextMuted,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                        MEAL_TYPE_LABELS.filter { it.first != meal.mealType }.forEach { (type, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label, color = TextWhite, fontSize = 13.sp) },
+                                onClick = {
+                                    showMenu = false
+                                    onChangeMealType(type)
+                                }
+                            )
+                        }
+                        HorizontalDivider(color = CharcoalBorder)
+                        DropdownMenuItem(
+                            text = { Text("Sao chép sang ngày khác", color = TextWhite, fontSize = 13.sp) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                showCopyDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Xóa bữa ăn", color = CoralWarning, fontSize = 13.sp) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = CoralWarning, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun CopyMealDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (targetDate: String) -> Unit
+) {
+    val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = java.util.Calendar.getInstance()
+
+    fun dateAfter(days: Int): String {
+        calendar.time = Date()
+        calendar.add(java.util.Calendar.DAY_OF_YEAR, days)
+        return fmt.format(calendar.time)
+    }
+
+    val presets = listOf(
+        "Hôm nay" to dateAfter(0),
+        "Ngày mai" to dateAfter(1),
+        "Sau 2 ngày" to dateAfter(2)
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CharcoalSurface,
+        title = { Text("Sao chép bữa ăn sang ngày khác", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                presets.forEach { (label, dateStr) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CharcoalCard)
+                            .clickable { onConfirm(dateStr) }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(label, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(dateStr, color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Hủy", color = TextMuted) }
+        }
+    )
 }

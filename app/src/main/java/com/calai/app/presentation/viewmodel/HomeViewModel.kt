@@ -77,6 +77,26 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun changeMealType(mealId: String, newMealType: String) {
+        viewModelScope.launch {
+            repository.updateRemoteMeal(mealId, mealType = newMealType).onSuccess {
+                loadData()
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Không thể đổi loại bữa ăn") }
+            }
+        }
+    }
+
+    fun copyMeal(mealId: String, targetDate: String) {
+        viewModelScope.launch {
+            repository.copyRemoteMeal(mealId, targetDate).onSuccess {
+                loadData()
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Không thể sao chép bữa ăn") }
+            }
+        }
+    }
+
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             repository.logout()
