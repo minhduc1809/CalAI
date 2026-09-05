@@ -1,5 +1,6 @@
 package com.calai.app.presentation.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,12 +38,10 @@ import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.SuggestionsViewModel
 
 /**
- * Màn hình Gợi Ý Cho Bạn (AI Recommendations) - Màn hình ưu tiên số 9 (CODING_RULES.md 10.2)
- * Tuân thủ quy tắc:
- * - Không dùng emoji làm icon UI
- * - Thẻ Thực đơn Bento Pastel gradient 2 tông dịu + Specular highlight góc trên-trái
- * - Tag pill dinh dưỡng dạng Glassmorphism
- * - Badge lộ trình tập dùng VividOrangeSoft alpha 15-20% + VividOrangeLight
+ * Màn hình Gợi Ý Cho Bạn (AI Recommendations) - Tuân thủ CODING_RULES.md 10.2 & 10.5
+ * - Chống nhồi chữ (Anti-crowding): Tab chọn bữa ăn trực quan, preview lịch tập gọn gàng
+ * - Quầng sáng mờ Ambient Glow nền phá vỡ khối đen đặc
+ * - Vector Duotone Icons rõ ràng, không emoji, không vỡ nét
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,138 +89,172 @@ fun SuggestionsScreen(
             return@Scaffold
         }
 
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
-            // 1. HEADER SECTION THỰC ĐƠN PHÙ HỢP
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    DuotoneDietIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
-                    Text(
-                        text = "Thực đơn phù hợp mục tiêu",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextWhite,
-                        letterSpacing = (-0.3).sp
-                    )
-                }
+            // Ambient glow nền góc trên-phải (Spec 10.5 - Chống bệt đen màn hình)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            ProteinGradientStart.copy(alpha = 0.08f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.85f, size.height * 0.15f),
+                        radius = size.width * 0.6f
+                    ),
+                    radius = size.width * 0.6f,
+                    center = Offset(size.width * 0.85f, size.height * 0.15f)
+                )
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            VividOrange.copy(alpha = 0.06f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.15f, size.height * 0.55f),
+                        radius = size.width * 0.5f
+                    ),
+                    radius = size.width * 0.5f,
+                    center = Offset(size.width * 0.15f, size.height * 0.55f)
+                )
             }
 
-            // Thẻ thực đơn Bento Pastel Đá Quý
-            uiState.diet?.let { item { DietCard(it) } }
-
-            // Lịch thực đơn nhiều ngày (Custom Duotone Calendar Icon)
-            uiState.monthlyDiet?.let { monthly ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp) // Khoảng thở rộng rãi (Spec 10.5)
+            ) {
+                // 1. SECTION THỰC ĐƠN PHÙ HỢP
                 item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(CharcoalSurface)
-                            .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
-                            .clickable { viewModel.toggleMonthlyView() }
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        DuotoneDietIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        Text(
+                            text = "Thực đơn phù hợp mục tiêu",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextWhite,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+                }
+
+                // Thẻ thực đơn Bento Pastel Đá Quý với tab bữa ăn gọn gàng (Anti-crowding)
+                uiState.diet?.let { item { DietCard(it) } }
+
+                // Lịch thực đơn nhiều ngày
+                uiState.monthlyDiet?.let { monthly ->
+                    item {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(CharcoalSurface)
+                                .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                                .clickable { viewModel.toggleMonthlyView() }
+                                .padding(horizontal = 18.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            DuotoneCalendarIcon(size = 20.dp, outlineColor = TextLightGrey, accentColor = LavenderGradientStart)
-                            Text(
-                                "Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextWhite
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DuotoneCalendarIcon(size = 20.dp, outlineColor = TextLightGrey, accentColor = LavenderGradientStart)
+                                Text(
+                                    "Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextWhite
+                                )
+                            }
+                            Icon(
+                                if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Icon(
-                            if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    }
+                    if (uiState.showMonthlyDiet) {
+                        item {
+                            MonthlyDietSection(
+                                data = monthly,
+                                selectedDay = uiState.selectedDayNumber,
+                                onSelectDay = viewModel::selectDay
+                            )
+                        }
                     }
                 }
-                if (uiState.showMonthlyDiet) {
-                    item {
-                        MonthlyDietSection(
-                            data = monthly,
-                            selectedDay = uiState.selectedDayNumber,
-                            onSelectDay = viewModel::selectDay
-                        )
-                    }
-                }
-            }
 
-            // 2. HEADER SECTION LỘ TRÌNH TẬP LUYỆN
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    DuotoneWorkoutIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
-                    Text(
-                        text = "Lộ trình tập luyện gợi ý",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextWhite,
-                        letterSpacing = (-0.3).sp
-                    )
-                }
-            }
-
-            uiState.workout?.let {
+                // 2. SECTION LỘ TRÌNH TẬP LUYỆN
                 item {
-                    WorkoutCard(
-                        data = it,
-                        expandedDayName = uiState.expandedDayName,
-                        onToggleDay = viewModel::toggleDayExpand
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DuotoneWorkoutIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        Text(
+                            text = "Lộ trình tập luyện gợi ý",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextWhite,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+                }
+
+                uiState.workout?.let {
+                    item {
+                        WorkoutCard(
+                            data = it,
+                            expandedDayName = uiState.expandedDayName,
+                            onToggleDay = viewModel::toggleDayExpand
+                        )
+                    }
+                }
+
+                // 3. SECTION KHO BÀI TẬP
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DuotoneExerciseIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                        Text(
+                            text = "Kho bài tập chuẩn",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextWhite,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+                }
+
+                item {
+                    ExerciseFilters(
+                        selectedGender = uiState.selectedGender,
+                        selectedLevel = uiState.selectedLevel,
+                        onGenderSelect = viewModel::selectGender,
+                        onLevelSelect = viewModel::selectLevel
                     )
                 }
-            }
 
-            // 3. HEADER SECTION KHO BÀI TẬP
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    DuotoneExerciseIcon(size = 24.dp, outlineColor = TextWhite, accentColor = VividOrange)
-                    Text(
-                        text = "Kho bài tập chuẩn",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextWhite,
-                        letterSpacing = (-0.3).sp
+                items(uiState.exercises) { exercise ->
+                    ExerciseCard(
+                        exercise = exercise,
+                        isExpanded = uiState.expandedExerciseId == exercise.id,
+                        onClick = { viewModel.toggleExerciseExpand(exercise.id) }
                     )
                 }
-            }
-
-            item {
-                ExerciseFilters(
-                    selectedGender = uiState.selectedGender,
-                    selectedLevel = uiState.selectedLevel,
-                    onGenderSelect = viewModel::selectGender,
-                    onLevelSelect = viewModel::selectLevel
-                )
-            }
-
-            items(uiState.exercises) { exercise ->
-                ExerciseCard(
-                    exercise = exercise,
-                    isExpanded = uiState.expandedExerciseId == exercise.id,
-                    onClick = { viewModel.toggleExerciseExpand(exercise.id) }
-                )
             }
         }
     }
@@ -230,6 +263,8 @@ fun SuggestionsScreen(
 @Composable
 private fun DietCard(data: DietRecommendationData) {
     val plan = data.recommendedPlan
+    var selectedMealType by remember { mutableStateOf("BREAKFAST") }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -282,12 +317,99 @@ private fun DietCard(data: DietRecommendationData) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            MealBlocksList(plan.meals)
+            // Tab chọn nhanh bữa ăn (Chống dồn text dày đặc - Spec 10.5)
+            val mealTabs = listOf(
+                "BREAKFAST" to "Sáng",
+                "LUNCH" to "Trưa",
+                "DINNER" to "Tối",
+                "SNACK" to "Phụ"
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(TextDeepInk.copy(alpha = 0.08f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                mealTabs.forEach { (type, label) ->
+                    val isTabActive = selectedMealType == type
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (isTabActive) Color.White else Color.Transparent)
+                            .clickable { selectedMealType = type }
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 12.sp,
+                            fontWeight = if (isTabActive) FontWeight.Black else FontWeight.SemiBold,
+                            color = TextDeepInk
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Chi tiết bữa ăn đang chọn
+            val activeMealBlock = when (selectedMealType) {
+                "BREAKFAST" -> plan.meals.breakfast
+                "LUNCH" -> plan.meals.lunch
+                "DINNER" -> plan.meals.dinner
+                else -> plan.meals.snack
+            }
+
+            activeMealBlock?.let { block ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.45f))
+                        .border(0.75.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .padding(14.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = block.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDeepInk
+                            )
+                            Text(
+                                text = "${block.totalCalories.toInt()} kcal",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TextDeepInk
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        block.items.forEach { food ->
+                            Text(
+                                text = "• ${food.name} (${food.serving})",
+                                fontSize = 12.5.sp,
+                                color = TextDeepInk.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(vertical = 1.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             if (data.availableOptions.size > 1) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Lựa chọn khác:",
+                    text = "Lựa chọn thực đơn khác:",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDeepInk.copy(alpha = 0.65f)
@@ -336,40 +458,6 @@ private fun GlassStatPill(text: String) {
             fontWeight = FontWeight.Bold,
             color = TextDeepInk
         )
-    }
-}
-
-@Composable
-private fun MealBlocksList(meals: DietMealsDto, textColor: Color = TextDeepInk) {
-    listOfNotNull(meals.breakfast, meals.lunch, meals.dinner, meals.snack).forEach { block ->
-        Column(modifier = Modifier.padding(bottom = 12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = block.title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-                Text(
-                    text = "${block.totalCalories.toInt()} kcal",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = textColor.copy(alpha = 0.8f)
-                )
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            block.items.forEach { food ->
-                Text(
-                    text = "• ${food.name} (${food.serving})",
-                    fontSize = 12.5.sp,
-                    color = textColor.copy(alpha = 0.75f)
-                )
-            }
-        }
     }
 }
 
@@ -438,8 +526,6 @@ private fun MonthlyDietSection(
                         MiniStatPillDark("C ${plan.macroSummary.carbGrams.toInt()}g")
                         MiniStatPillDark("F ${plan.macroSummary.fatGrams.toInt()}g")
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    MealBlocksList(plan.meals, textColor = TextLightGrey)
                 }
             }
         }
@@ -466,6 +552,8 @@ private fun WorkoutCard(
     onToggleDay: (String) -> Unit
 ) {
     val plan = data.recommendedWorkout
+    var showAllDays by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -504,12 +592,30 @@ private fun WorkoutCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            plan.weeklySchedule.forEach { day ->
+            // Chỉ hiển thị 2 ngày đầu làm preview, còn lại ẩn sau nút mở rộng (Spec 10.5)
+            val displayedDays = if (showAllDays) plan.weeklySchedule else plan.weeklySchedule.take(2)
+
+            displayedDays.forEach { day ->
                 DayRow(
                     day = day,
                     isExpanded = expandedDayName == day.dayName,
                     onClick = { onToggleDay(day.dayName) }
                 )
+            }
+
+            if (plan.weeklySchedule.size > 2) {
+                Spacer(modifier = Modifier.height(6.dp))
+                TextButton(
+                    onClick = { showAllDays = !showAllDays },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (showAllDays) "Thu gọn lịch tập" else "Xem đầy đủ (${plan.weeklySchedule.size} ngày)",
+                        color = VividOrange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
     }
@@ -525,7 +631,6 @@ private fun DayRow(day: DayWorkoutPlanDto, isExpanded: Boolean, onClick: () -> U
             .border(1.dp, CharcoalBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(14.dp)
-            .padding(bottom = if (isExpanded) 2.dp else 0.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -550,22 +655,25 @@ private fun DayRow(day: DayWorkoutPlanDto, isExpanded: Boolean, onClick: () -> U
             }
         }
 
-        if (isExpanded) {
-            Spacer(modifier = Modifier.height(12.dp))
-            day.exercises.forEach { ex ->
-                Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                    Text(
-                        text = "${ex.name} — ${ex.sets}x${ex.repsOrDuration}",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextLightGrey
-                    )
-                    Text(
-                        text = ex.instructions,
-                        fontSize = 11.5.sp,
-                        color = TextMuted,
-                        lineHeight = 16.sp
-                    )
+        AnimatedVisibility(visible = isExpanded) {
+            Column(modifier = Modifier.padding(top = 10.dp)) {
+                HorizontalDivider(color = CharcoalBorder, thickness = 0.75.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                day.exercises.forEach { ex ->
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        Text(
+                            text = "${ex.name} — ${ex.sets}x${ex.repsOrDuration}",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextLightGrey
+                        )
+                        Text(
+                            text = ex.instructions,
+                            fontSize = 11.5.sp,
+                            color = TextMuted,
+                            lineHeight = 16.sp
+                        )
+                    }
                 }
             }
         }
@@ -684,4 +792,5 @@ private fun ExerciseInstructionRow(label: String, content: String) {
         )
     }
 }
+
 
