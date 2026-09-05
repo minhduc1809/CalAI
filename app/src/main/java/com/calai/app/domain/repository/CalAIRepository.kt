@@ -49,7 +49,8 @@ interface CalAIRepository {
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>
     suspend fun fetchRemoteWeightLogs(limit: Int = 30): Result<List<WeightLogResponseDto>>
 
-    // --- AI Food Recognition ---
+    // --- AI Food Recognition & Chat Coach ---
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>
     suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto>
+    suspend fun chatAi(message: String): Result<ChatAiResponseDto>
 }
