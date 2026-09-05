@@ -74,6 +74,11 @@ interface CalAIApi {
         @Body request: RecognizeFoodBase64Request
     ): ApiResponse<FoodRecognitionResultDto>
 
+    @POST("ai/chat")
+    suspend fun chatAi(
+        @Body request: ChatAiRequest
+    ): ApiResponse<ChatAiResponseDto>
+
     companion object {
         // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)
         // Nếu dùng thiết bị thật qua Wi-Fi LAN, đổi thành IP máy tính (VD: http://192.168.1.x:3000/api/v1/)

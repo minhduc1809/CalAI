@@ -1,18 +1,33 @@
 package com.calai.app.presentation.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.AuthViewModel
 
 @Composable
@@ -21,6 +36,7 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -28,121 +44,237 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(ObsidianBackground)
     ) {
-        Text(
-            text = "CalAI Nutrition",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = if (uiState.isLoginMode) "Đăng nhập để theo dõi dinh dưỡng" else "Đăng ký tài khoản mới",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Username
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = { viewModel.onUsernameChange(it) },
-            label = { Text("Tên đăng nhập") },
-            supportingText = if (!uiState.isLoginMode) {
-                { Text("3-30 ký tự, chỉ gồm chữ cái, số và _", style = MaterialTheme.typography.bodySmall) }
-            } else null,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Fields for Register mode
-        if (!uiState.isLoginMode) {
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = uiState.name,
-                onValueChange = { viewModel.onNameChange(it) },
-                label = { Text("Họ và tên (tùy chọn)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = uiState.email,
-                onValueChange = { viewModel.onEmailChange(it) },
-                label = { Text("Email (tùy chọn)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Password
-        OutlinedTextField(
-            value = uiState.password,
-            onValueChange = { viewModel.onPasswordChange(it) },
-            label = { Text("Mật khẩu") },
-            supportingText = if (!uiState.isLoginMode) {
-                { Text("Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và số (VD: Admin@123)", style = MaterialTheme.typography.bodySmall) }
-            } else null,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Error message
-        if (uiState.errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = uiState.errorMessage ?: "",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Submit Button
-        Button(
-            onClick = { viewModel.submit() },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = !uiState.isLoading
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text(
-                    text = if (uiState.isLoginMode) "Đăng Nhập" else "Đăng Ký",
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Toggle between Login and Register
-        TextButton(onClick = { viewModel.toggleAuthMode() }) {
+            // Brand Header
             Text(
-                text = if (uiState.isLoginMode)
-                    "Chưa có tài khoản? Đăng ký ngay"
-                else
-                    "Đã có tài khoản? Đăng nhập"
+                text = "CalAI",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = TextWhite,
+                letterSpacing = (-1).sp
             )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Trợ lý dinh dưỡng cá nhân thông minh",
+                fontSize = 14.sp,
+                color = TextMuted
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            // Segmented Tab Toggle: Đăng Nhập / Đăng Ký
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(CharcoalSurface)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(if (uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .clickable { if (!uiState.isLoginMode) viewModel.toggleAuthMode() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Đăng Nhập",
+                        fontWeight = if (uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
+                        color = if (uiState.isLoginMode) TextWhite else TextMuted,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(if (!uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .clickable { if (uiState.isLoginMode) viewModel.toggleAuthMode() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Đăng Ký",
+                        fontWeight = if (!uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
+                        color = if (!uiState.isLoginMode) TextWhite else TextMuted,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Báo lỗi rõ ràng
+            AnimatedVisibility(visible = uiState.errorMessage != null) {
+                uiState.errorMessage?.let { errorMsg ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CrimsonError.copy(alpha = 0.15f)),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = CrimsonError)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = errorMsg,
+                                color = TextWhite,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Tên đăng nhập
+            OutlinedTextField(
+                value = uiState.username,
+                onValueChange = { viewModel.onUsernameChange(it) },
+                label = { Text("Tên đăng nhập", color = TextMuted) },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = TextMuted)
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = CharcoalSurface,
+                    unfocusedContainerColor = CharcoalSurface,
+                    focusedBorderColor = VividOrange,
+                    unfocusedBorderColor = CharcoalBorder,
+                    focusedTextColor = TextWhite,
+                    unfocusedTextColor = TextWhite
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nếu đang ở tab Đăng ký: thêm Email và Tên hiển thị
+            if (!uiState.isLoginMode) {
+                OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = { viewModel.onEmailChange(it) },
+                    label = { Text("Email (không bắt buộc)", color = TextMuted) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = CharcoalSurface,
+                        unfocusedContainerColor = CharcoalSurface,
+                        focusedBorderColor = VividOrange,
+                        unfocusedBorderColor = CharcoalBorder,
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = uiState.name,
+                    onValueChange = { viewModel.onNameChange(it) },
+                    label = { Text("Họ và tên", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = CharcoalSurface,
+                        unfocusedContainerColor = CharcoalSurface,
+                        focusedBorderColor = VividOrange,
+                        unfocusedBorderColor = CharcoalBorder,
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Mật khẩu
+            OutlinedTextField(
+                value = uiState.password,
+                onValueChange = { viewModel.onPasswordChange(it) },
+                label = { Text("Mật khẩu", color = TextMuted) },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted)
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = TextMuted
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = CharcoalSurface,
+                    unfocusedContainerColor = CharcoalSurface,
+                    focusedBorderColor = VividOrange,
+                    unfocusedBorderColor = CharcoalBorder,
+                    focusedTextColor = TextWhite,
+                    unfocusedTextColor = TextWhite
+                )
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Nút bấm CTA chính: Màu Cam Vivid
+            Button(
+                onClick = { viewModel.submit() },
+                enabled = !uiState.isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VividOrange,
+                    contentColor = TextWhite
+                )
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = TextWhite,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (uiState.isLoginMode) "Đăng Nhập" else "Tạo Tài Khoản",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
