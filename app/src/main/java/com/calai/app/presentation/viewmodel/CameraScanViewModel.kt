@@ -102,11 +102,11 @@ class CameraScanViewModel @Inject constructor(
                     CreateMealItemDto(
                         name = item.name,
                         servingSize = item.servingSize ?: result.servingSize,
-                        quantity = 1.0,
-                        calories = item.calories,
-                        protein = item.protein,
-                        carb = item.carb,
-                        fat = item.fat,
+                        quantity = 1.0f,
+                        calories = item.calories.toFloat(),
+                        protein = item.protein.toFloat(),
+                        carb = item.carb.toFloat(),
+                        fat = item.fat.toFloat(),
                         source = "ai_vision"
                     )
                 }
@@ -115,11 +115,11 @@ class CameraScanViewModel @Inject constructor(
                     CreateMealItemDto(
                         name = result.foodName,
                         servingSize = result.servingSize,
-                        quantity = 1.0,
-                        calories = result.totalCalories,
-                        protein = result.totalProtein,
-                        carb = result.totalCarb,
-                        fat = result.totalFat,
+                        quantity = 1.0f,
+                        calories = result.totalCalories.toFloat(),
+                        protein = result.totalProtein.toFloat(),
+                        carb = result.totalCarb.toFloat(),
+                        fat = result.totalFat.toFloat(),
                         source = "ai_vision"
                     )
                 )

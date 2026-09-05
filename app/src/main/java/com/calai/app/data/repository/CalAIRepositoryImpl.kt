@@ -337,4 +337,17 @@ class CalAIRepositoryImpl @Inject constructor(
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
+
+    override suspend fun chatAi(message: String): Result<ChatAiResponseDto> {
+        return try {
+            val response = api.chatAi(ChatAiRequest(message = message))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể nhận phản hồi từ AI Coach"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
 }
