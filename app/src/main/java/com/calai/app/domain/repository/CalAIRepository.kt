@@ -62,6 +62,10 @@ interface CalAIRepository {
     suspend fun fetchDietRecommendation(): Result<DietRecommendationData>
     suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
     suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
+    suspend fun fetchMonthlyDiet(goal: String? = null, level: String? = null): Result<MonthlyDietData>
+    suspend fun createCustomFood(name: String, servingSize: String?, calories: Float, protein: Float = 0f, carb: Float = 0f, fat: Float = 0f): Result<CustomFoodDto>
+    suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>>
+    suspend fun deleteCustomFood(id: String): Result<Unit>
 
     // --- Weight Logs Remote ---
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>

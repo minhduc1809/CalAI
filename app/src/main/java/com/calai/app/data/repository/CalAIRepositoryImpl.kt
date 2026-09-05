@@ -37,6 +37,9 @@ class CalAIRepositoryImpl @Inject constructor(
     // Bộ nhớ tạm cho Favorite Foods khi offline (không có bảng Room riêng cho favorites)
     private val mockFavoriteFoods = mutableSetOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
 
+    // Bộ nhớ tạm cho Custom Foods khi offline (không có bảng Room riêng cho custom foods)
+    private val mockCustomFoods = mutableListOf<CustomFoodDto>()
+
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
             val errorBody = e.response()?.errorBody()?.string()
@@ -786,6 +789,105 @@ class CalAIRepositoryImpl @Inject constructor(
                 exercises = exercises
             )
         )
+    }
+
+    override suspend fun fetchMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
+        return try {
+            val response = api.getMonthlyDiet(goal, level)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockMonthlyDiet(goal, level)
+            }
+        } catch (_: Exception) {
+            getMockMonthlyDiet(goal, level)
+        }
+    }
+
+    private fun getMockMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
+        val resolvedGoal = goal ?: "LOSE_WEIGHT"
+        val resolvedLevel = level ?: "BEGINNER"
+        val plans = (1..3).map { day ->
+            MonthDietPlanItemDto(
+                dayNumber = day,
+                dayTitle = "Ngày $day: Thực đơn cân bằng đạm - tinh bột - rau xanh",
+                goal = resolvedGoal,
+                experienceLevel = resolvedLevel,
+                suitableForWho = "Người mới bắt đầu, ưu tiên an toàn khớp gối",
+                phaseName = "Giai đoạn 1: Thích nghi & Giảm mỡ nền tảng",
+                focusMessage = "Ưu tiên đạm nạc và rau xanh để no lâu, hạn chế tinh bột tinh chế.",
+                targetCalories = 1500f,
+                macroSummary = MacroSummaryDto(proteinGrams = 135f, carbGrams = 150f, fatGrams = 42f, proteinRatio = 35, carbRatio = 40, fatRatio = 25),
+                meals = DietMealsDto(
+                    breakfast = MealBlockDto("Bữa sáng", listOf(VietnameseMealItemDto("Trứng luộc + Khoai lang", "1 phần", 300f, 15f, 35f, 8f)), 300f),
+                    lunch = MealBlockDto("Bữa trưa", listOf(VietnameseMealItemDto("Ức gà + Cơm gạo lứt + Rau luộc", "1 phần", 550f, 42f, 55f, 12f)), 550f),
+                    dinner = MealBlockDto("Bữa tối", listOf(VietnameseMealItemDto("Cá hấp + Salad", "1 phần", 450f, 32f, 30f, 18f)), 450f),
+                    snack = MealBlockDto("Bữa phụ", listOf(VietnameseMealItemDto("Sữa chua không đường", "1 hộp", 150f, 8f, 10f, 9f)), 150f)
+                )
+            )
+        }
+        return Result.success(
+            MonthlyDietData(goal = resolvedGoal, experienceLevel = resolvedLevel, totalDays = plans.size, monthlyPlans = plans)
+        )
+    }
+
+    override suspend fun createCustomFood(
+        name: String,
+        servingSize: String?,
+        calories: Float,
+        protein: Float,
+        carb: Float,
+        fat: Float
+    ): Result<CustomFoodDto> {
+        val request = CreateCustomFoodRequest(name = name, servingSize = servingSize, calories = calories, protein = protein, carb = carb, fat = fat)
+        return try {
+            val response = api.createCustomFood(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockCreatedCustomFood(request)
+            }
+        } catch (_: Exception) {
+            getMockCreatedCustomFood(request)
+        }
+    }
+
+    private fun getMockCreatedCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+        val food = CustomFoodDto(
+            id = UUID.randomUUID().toString(),
+            userId = "mock_user_01",
+            name = request.name,
+            servingSize = request.servingSize,
+            calories = request.calories,
+            protein = request.protein,
+            carb = request.carb,
+            fat = request.fat
+        )
+        mockCustomFoods.add(0, food)
+        return Result.success(food)
+    }
+
+    override suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>> {
+        return try {
+            val response = api.getCustomFoods()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(mockCustomFoods.toList())
+            }
+        } catch (_: Exception) {
+            Result.success(mockCustomFoods.toList())
+        }
+    }
+
+    override suspend fun deleteCustomFood(id: String): Result<Unit> {
+        mockCustomFoods.removeAll { it.id == id }
+        return try {
+            api.deleteCustomFood(id)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
     }
 
     // --- Weight Logs Remote ---

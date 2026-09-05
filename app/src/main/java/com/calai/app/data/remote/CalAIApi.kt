@@ -104,6 +104,21 @@ interface CalAIApi {
         @Query("level") level: String? = null
     ): ApiResponse<ExerciseListData>
 
+    @GET("recommendations/diet/monthly")
+    suspend fun getMonthlyDiet(
+        @Query("goal") goal: String? = null,
+        @Query("level") level: String? = null
+    ): ApiResponse<MonthlyDietData>
+
+    @POST("recommendations/custom-foods")
+    suspend fun createCustomFood(@Body request: CreateCustomFoodRequest): ApiResponse<CustomFoodDto>
+
+    @GET("recommendations/custom-foods")
+    suspend fun getCustomFoods(): ApiResponse<List<CustomFoodDto>>
+
+    @DELETE("recommendations/custom-foods/{id}")
+    suspend fun deleteCustomFood(@Path("id") id: String): ApiResponse<Any?>
+
     // --- AI ENGINE ---
     @Multipart
     @POST("ai/recognize-food")

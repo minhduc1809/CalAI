@@ -23,7 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
+import com.calai.app.data.remote.dto.toFoodItemDto
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.AddMealViewModel
 
@@ -36,6 +38,7 @@ fun AddMealScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showQuickAddDialog by remember { mutableStateOf(false) }
+    var showCreateCustomFoodDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaveSuccess) {
         if (uiState.isSaveSuccess) {
@@ -49,6 +52,16 @@ fun AddMealScreen(
             onDismiss = { showQuickAddDialog = false },
             onConfirm = { name, calories, protein, carb, fat ->
                 viewModel.quickAdd(name, calories, protein, carb, fat)
+            }
+        )
+    }
+
+    if (showCreateCustomFoodDialog) {
+        CreateCustomFoodDialog(
+            onDismiss = { showCreateCustomFoodDialog = false },
+            onConfirm = { name, servingSize, calories, protein, carb, fat ->
+                viewModel.createCustomFood(name, servingSize, calories, protein, carb, fat)
+                showCreateCustomFoodDialog = false
             }
         )
     }
@@ -243,6 +256,46 @@ fun AddMealScreen(
                 }
             }
 
+            // 2c. MÓN ĂN RIÊNG CỦA TÔI (Custom Foods)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Món của tôi",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
+                    )
+                    Text(
+                        text = "+ Tạo món riêng",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VividOrange,
+                        modifier = Modifier.clickable { showCreateCustomFoodDialog = true }
+                    )
+                }
+            }
+            if (uiState.customFoods.isEmpty()) {
+                item {
+                    Text(
+                        text = "Chưa có món ăn riêng nào — tạo món bạn hay ăn để lần sau thêm nhanh hơn.",
+                        fontSize = 12.5.sp,
+                        color = TextMuted
+                    )
+                }
+            } else {
+                items(uiState.customFoods) { food ->
+                    CustomFoodRow(
+                        food = food,
+                        onAdd = { viewModel.addFoodToMeal(food.toFoodItemDto()) },
+                        onDelete = { viewModel.deleteCustomFood(food.id) }
+                    )
+                }
+            }
+
             // 3. LỰA CHỌN 2: TÌM KIẾM THỦ CÔNG 120+ MÓN VIỆT
             item {
                 Text(
@@ -318,6 +371,57 @@ fun AddMealScreen(
                     onAdd = { viewModel.addFoodToMeal(food) },
                     onToggleFavorite = { viewModel.toggleFavorite(food.name) }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomFoodRow(
+    food: CustomFoodDto,
+    onAdd: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(CharcoalSurface)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(food.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                Text(
+                    text = "${food.servingSize?.ifEmpty { "1 phần" } ?: "1 phần"} • ${food.protein.toInt()}g P • ${food.carb.toInt()}g C • ${food.fat.toInt()}g F",
+                    fontSize = 12.sp,
+                    color = TextMuted
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${food.calories.toInt()} kcal",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = VividOrange,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Xóa món riêng", tint = TextMuted, modifier = Modifier.size(18.dp))
+                }
+                IconButton(
+                    onClick = onAdd,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(CharcoalCard)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Chọn món", tint = TextWhite, modifier = Modifier.size(20.dp))
+                }
             }
         }
     }
@@ -486,6 +590,114 @@ private fun QuickAddDialog(
                 }
             ) {
                 Text(if (isSaving) "Đang lưu..." else "Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy", color = TextMuted)
+            }
+        }
+    )
+}
+
+@Composable
+private fun CreateCustomFoodDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, servingSize: String, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var servingSize by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carb by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
+
+    @Composable
+    fun textFieldColors() = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = CharcoalCard,
+        unfocusedContainerColor = CharcoalCard,
+        focusedBorderColor = VividOrange,
+        unfocusedBorderColor = CharcoalBorder,
+        focusedTextColor = TextWhite,
+        unfocusedTextColor = TextWhite
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CharcoalSurface,
+        title = { Text("Tạo món ăn riêng", color = TextWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Tên món ăn", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors()
+                )
+                OutlinedTextField(
+                    value = servingSize,
+                    onValueChange = { servingSize = it },
+                    label = { Text("Khẩu phần (VD: 1 phần 300g)", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors()
+                )
+                OutlinedTextField(
+                    value = calories,
+                    onValueChange = { calories = it.filter { c -> c.isDigit() } },
+                    label = { Text("Calories (kcal)", color = TextMuted) },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = protein,
+                        onValueChange = { protein = it.filter { c -> c.isDigit() } },
+                        label = { Text("Protein (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                    OutlinedTextField(
+                        value = carb,
+                        onValueChange = { carb = it.filter { c -> c.isDigit() } },
+                        label = { Text("Carb (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                    OutlinedTextField(
+                        value = fat,
+                        onValueChange = { fat = it.filter { c -> c.isDigit() } },
+                        label = { Text("Fat (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        name,
+                        servingSize,
+                        calories.toFloatOrNull() ?: 0f,
+                        protein.toFloatOrNull() ?: 0f,
+                        carb.toFloatOrNull() ?: 0f,
+                        fat.toFloatOrNull() ?: 0f
+                    )
+                }
+            ) {
+                Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

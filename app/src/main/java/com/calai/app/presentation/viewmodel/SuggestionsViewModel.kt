@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.remote.dto.DietRecommendationData
 import com.calai.app.data.remote.dto.ExerciseGuideDto
+import com.calai.app.data.remote.dto.MonthlyDietData
 import com.calai.app.data.remote.dto.WorkoutRecommendationData
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,9 @@ import javax.inject.Inject
 data class SuggestionsUiState(
     val isLoading: Boolean = true,
     val diet: DietRecommendationData? = null,
+    val monthlyDiet: MonthlyDietData? = null,
+    val showMonthlyDiet: Boolean = false,
+    val selectedDayNumber: Int = 1,
     val workout: WorkoutRecommendationData? = null,
     val exercises: List<ExerciseGuideDto> = emptyList(),
     val selectedGender: String = "MALE",
@@ -48,6 +52,7 @@ class SuggestionsViewModel @Inject constructor(
             val dietResult = repository.fetchDietRecommendation()
             val workoutResult = repository.fetchWorkoutRecommendation()
             val exercisesResult = repository.fetchExercises(_uiState.value.selectedGender, _uiState.value.selectedLevel)
+            val monthlyResult = repository.fetchMonthlyDiet()
 
             _uiState.update {
                 it.copy(
@@ -55,10 +60,19 @@ class SuggestionsViewModel @Inject constructor(
                     diet = dietResult.getOrNull() ?: it.diet,
                     workout = workoutResult.getOrNull() ?: it.workout,
                     exercises = exercisesResult.getOrNull()?.exercises ?: it.exercises,
+                    monthlyDiet = monthlyResult.getOrNull() ?: it.monthlyDiet,
                     errorMessage = if (dietResult.isFailure && workoutResult.isFailure) "Không thể tải gợi ý, vui lòng thử lại" else null
                 )
             }
         }
+    }
+
+    fun toggleMonthlyView() {
+        _uiState.update { it.copy(showMonthlyDiet = !it.showMonthlyDiet) }
+    }
+
+    fun selectDay(dayNumber: Int) {
+        _uiState.update { it.copy(selectedDayNumber = dayNumber) }
     }
 
     fun selectGender(gender: String) {
