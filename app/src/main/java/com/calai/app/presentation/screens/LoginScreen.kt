@@ -60,7 +60,7 @@ fun LoginScreen(
 
             // Brand Header
             Text(
-                text = "CalAI",
+                text = "NutriWise",
                 fontSize = 38.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = TextWhite,

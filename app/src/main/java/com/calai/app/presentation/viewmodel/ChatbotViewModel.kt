@@ -23,7 +23,7 @@ data class ChatMessage(
 data class ChatbotUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
-            text = "Xin chào! Tôi là CalAI Nutrition Coach. Hãy chia sẻ về mục tiêu thể hình, chế độ ăn uống hoặc nhờ tôi gợi ý bữa ăn chuẩn calo & dinh dưỡng nhé! ✨",
+            text = "Xin chào! Tôi là NutriWise Nutrition Coach. Hãy chia sẻ về mục tiêu thể hình, chế độ ăn uống hoặc nhờ tôi gợi ý bữa ăn chuẩn calo & dinh dưỡng nhé! ✨",
             isUser = false
         )
     ),

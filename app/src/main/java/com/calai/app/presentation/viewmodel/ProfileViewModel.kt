@@ -46,7 +46,7 @@ class ProfileViewModel @Inject constructor(
                         // Cung cấp profile mặc định nếu offline / lỗi server
                         profile = it.profile ?: UserProfileDto(
                             id = "default_user",
-                            username = repository.getCurrentUsername() ?: "CalAI User",
+                            username = repository.getCurrentUsername() ?: "NutriWise User",
                             name = "Nguyễn Minh Đức",
                             heightCm = 175f,
                             weightKg = 68.5f,
