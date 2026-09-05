@@ -143,6 +143,38 @@ data class LevelsSummaryDto(
     @SerializedName("advanced") val advanced: Int = 0
 )
 
+// --- MONTHLY DIET (GET recommendations/diet/monthly) ---
+
+data class MacroSummaryDto(
+    @SerializedName("proteinGrams") val proteinGrams: Float,
+    @SerializedName("carbGrams") val carbGrams: Float,
+    @SerializedName("fatGrams") val fatGrams: Float,
+    @SerializedName("proteinRatio") val proteinRatio: Int,
+    @SerializedName("carbRatio") val carbRatio: Int,
+    @SerializedName("fatRatio") val fatRatio: Int
+)
+
+data class MonthDietPlanItemDto(
+    @SerializedName("dayNumber") val dayNumber: Int,
+    @SerializedName("dayTitle") val dayTitle: String,
+    @SerializedName("goal") val goal: String,
+    @SerializedName("experienceLevel") val experienceLevel: String,
+    @SerializedName("suitableForWho") val suitableForWho: String,
+    @SerializedName("phaseName") val phaseName: String,
+    @SerializedName("focusMessage") val focusMessage: String,
+    @SerializedName("targetCalories") val targetCalories: Float,
+    @SerializedName("macroSummary") val macroSummary: MacroSummaryDto,
+    @SerializedName("meals") val meals: DietMealsDto
+)
+
+data class MonthlyDietData(
+    @SerializedName("goal") val goal: String,
+    @SerializedName("experienceLevel") val experienceLevel: String,
+    @SerializedName("totalDays") val totalDays: Int? = null,
+    @SerializedName("monthlyPlans") val monthlyPlans: List<MonthDietPlanItemDto>? = null,
+    @SerializedName("dayPlan") val dayPlan: MonthDietPlanItemDto? = null
+)
+
 data class ExerciseListData(
     @SerializedName("gender") val gender: String,
     @SerializedName("totalCount") val totalCount: Int,

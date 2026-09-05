@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
+import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ data class AddMealUiState(
     val searchResults: List<FoodItemDto> = emptyList(),
     val selectedFoods: List<CreateMealItemDto> = emptyList(),
     val favoriteNames: Set<String> = emptySet(),
+    val customFoods: List<CustomFoodDto> = emptyList(),
     val isSearching: Boolean = false,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
@@ -41,7 +43,48 @@ class AddMealViewModel @Inject constructor(
     init {
         loadCategories()
         loadFavorites()
+        loadCustomFoods()
         searchFoods("")
+    }
+
+    private fun loadCustomFoods() {
+        viewModelScope.launch {
+            repository.fetchCustomFoods().onSuccess { foods ->
+                _uiState.value = _uiState.value.copy(customFoods = foods)
+            }
+        }
+    }
+
+    /** Tạo món ăn riêng mới, lưu vào kho món của người dùng để tái sử dụng về sau. */
+    fun createCustomFood(name: String, servingSize: String, calories: Float, protein: Float, carb: Float, fat: Float) {
+        if (name.isBlank() || calories <= 0f) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
+            return
+        }
+        viewModelScope.launch {
+            repository.createCustomFood(
+                name = name,
+                servingSize = servingSize.ifBlank { null },
+                calories = calories,
+                protein = protein,
+                carb = carb,
+                fat = fat
+            ).onSuccess {
+                loadCustomFoods()
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(errorMessage = e.message ?: "Không thể tạo món ăn riêng")
+            }
+        }
+    }
+
+    fun deleteCustomFood(id: String) {
+        viewModelScope.launch {
+            repository.deleteCustomFood(id).onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    customFoods = _uiState.value.customFoods.filterNot { it.id == id }
+                )
+            }
+        }
     }
 
     private fun loadCategories() {

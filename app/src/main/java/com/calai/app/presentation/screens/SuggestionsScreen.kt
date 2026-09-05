@@ -22,8 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.remote.dto.DayWorkoutPlanDto
+import com.calai.app.data.remote.dto.DietMealsDto
 import com.calai.app.data.remote.dto.DietRecommendationData
 import com.calai.app.data.remote.dto.ExerciseGuideDto
+import com.calai.app.data.remote.dto.MonthlyDietData
 import com.calai.app.data.remote.dto.WorkoutRecommendationData
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.SuggestionsViewModel
@@ -67,6 +69,43 @@ fun SuggestionsScreen(
         ) {
             item { SectionLabel("🍽️ Thực đơn phù hợp mục tiêu") }
             uiState.diet?.let { item { DietCard(it) } }
+
+            uiState.monthlyDiet?.let { monthly ->
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(CharcoalSurface)
+                            .clickable { viewModel.toggleMonthlyView() }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "📅 Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextWhite
+                        )
+                        Icon(
+                            if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = TextMuted,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                if (uiState.showMonthlyDiet) {
+                    item {
+                        MonthlyDietSection(
+                            data = monthly,
+                            selectedDay = uiState.selectedDayNumber,
+                            onSelectDay = viewModel::selectDay
+                        )
+                    }
+                }
+            }
 
             item { SectionLabel("🏋️ Lộ trình tập luyện gợi ý") }
             uiState.workout?.let {
@@ -129,24 +168,7 @@ private fun DietCard(data: DietRecommendationData) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            listOfNotNull(plan.meals.breakfast, plan.meals.lunch, plan.meals.dinner, plan.meals.snack).forEach { block ->
-                Column(modifier = Modifier.padding(bottom = 10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(block.title, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
-                        Text("${block.totalCalories.toInt()} kcal", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.7f))
-                    }
-                    block.items.forEach { food ->
-                        Text(
-                            "• ${food.name} (${food.serving})",
-                            fontSize = 12.sp,
-                            color = TextDeepInk.copy(alpha = 0.75f)
-                        )
-                    }
-                }
-            }
+            MealBlocksList(plan.meals)
 
             if (data.availableOptions.size > 1) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -171,6 +193,104 @@ private fun DietCard(data: DietRecommendationData) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MealBlocksList(meals: DietMealsDto, textColor: Color = TextDeepInk) {
+    listOfNotNull(meals.breakfast, meals.lunch, meals.dinner, meals.snack).forEach { block ->
+        Column(modifier = Modifier.padding(bottom = 10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(block.title, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text("${block.totalCalories.toInt()} kcal", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.7f))
+            }
+            block.items.forEach { food ->
+                Text(
+                    "• ${food.name} (${food.serving})",
+                    fontSize = 12.sp,
+                    color = textColor.copy(alpha = 0.75f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyDietSection(
+    data: MonthlyDietData,
+    selectedDay: Int,
+    onSelectDay: (Int) -> Unit
+) {
+    val plans = data.monthlyPlans ?: emptyList()
+    val currentPlan = plans.find { it.dayNumber == selectedDay } ?: plans.firstOrNull()
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            plans.forEach { day ->
+                val isSelected = day.dayNumber == (currentPlan?.dayNumber ?: -1)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isSelected) VividOrange else CharcoalSurface)
+                        .clickable { onSelectDay(day.dayNumber) }
+                        .padding(horizontal = 13.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        "Ngày ${day.dayNumber}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) TextWhite else TextMuted
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        currentPlan?.let { plan ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(CharcoalSurface)
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Text(plan.dayTitle, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(plan.focusMessage, fontSize = 12.sp, color = TextMuted, lineHeight = 16.sp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStatPillDark("${plan.targetCalories.toInt()} kcal")
+                        MiniStatPillDark("P ${plan.macroSummary.proteinGrams.toInt()}g")
+                        MiniStatPillDark("C ${plan.macroSummary.carbGrams.toInt()}g")
+                        MiniStatPillDark("F ${plan.macroSummary.fatGrams.toInt()}g")
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    MealBlocksList(plan.meals, textColor = TextLightGrey)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStatPillDark(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(CharcoalCard)
+            .padding(horizontal = 9.dp, vertical = 4.dp)
+    ) {
+        Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextWhite)
     }
 }
 
