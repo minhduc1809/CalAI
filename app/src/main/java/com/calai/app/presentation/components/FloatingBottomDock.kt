@@ -29,7 +29,11 @@ enum class DockTab {
 }
 
 /**
- * Thanh điều hướng nổi dạng đảo (Floating Island Dock) bám sát ảnh mẫu
+ * Thanh điều hướng nổi dạng đảo (Dark Luxury Floating Island Dock)
+ * Tuân thủ quy tắc 9.2:
+ * - Lớp CharcoalDock + viền CharcoalBorder + bo góc 32dp
+ * - Tab active với nền VividOrange
+ * - Icon Glassmorphism mờ nhẹ khi không active
  */
 @Composable
 fun FloatingBottomDock(
@@ -40,7 +44,7 @@ fun FloatingBottomDock(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -49,7 +53,7 @@ fun FloatingBottomDock(
                 .clip(RoundedCornerShape(32.dp))
                 .background(CharcoalDock)
                 .border(1.dp, CharcoalBorder, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -63,9 +67,11 @@ fun FloatingBottomDock(
                 isSelected = currentTab == DockTab.STATISTICS,
                 onClick = { onTabSelected(DockTab.STATISTICS) }
             )
+            // Tab quét AI ở chính giữa
             DockItem(
                 icon = Icons.Default.CameraAlt,
                 isSelected = currentTab == DockTab.SCAN,
+                isHero = true,
                 onClick = { onTabSelected(DockTab.SCAN) }
             )
             DockItem(
@@ -86,22 +92,37 @@ fun FloatingBottomDock(
 private fun DockItem(
     icon: ImageVector,
     isSelected: Boolean,
+    isHero: Boolean = false,
     onClick: () -> Unit
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (isSelected) VividOrange else Color.Transparent,
+        targetValue = when {
+            isSelected -> VividOrange
+            isHero -> CharcoalCardElevated
+            else -> Color.Transparent
+        },
         label = "dock_bg"
     )
+
     val iconColor by animateColorAsState(
-        targetValue = if (isSelected) TextWhite else TextMuted,
+        targetValue = when {
+            isSelected -> TextWhite
+            isHero -> VividOrange
+            else -> TextMuted
+        },
         label = "dock_icon"
     )
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(46.dp)
             .clip(CircleShape)
             .background(bgColor)
+            .then(
+                if (isHero && !isSelected) {
+                    Modifier.border(1.dp, VividOrange.copy(alpha = 0.4f), CircleShape)
+                } else Modifier
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -113,3 +134,4 @@ private fun DockItem(
         )
     }
 }
+
