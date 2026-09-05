@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -181,19 +182,35 @@ fun HomeScreen(
                     )
                 }
 
-                // 4. HERO CARD CALORIES — Nền CharcoalCardElevated / PearlCardElevated
+                // 4. HERO CARD CALORIES — Nền CharcoalCardElevated / PearlCard với Shadow nổi khối (Spec 10.6)
                 item {
                     val summary = uiState.dailySummary?.summary
                     val targetCal = (summary?.targetCalories ?: 2200.0).toInt()
                     val remainingCal = (summary?.remainingCalories ?: targetCal.toDouble()).toInt()
                     val consumedCal = (summary?.consumedCalories ?: 0.0).toInt()
+                    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .shadow(
+                                elevation = if (isDarkTheme) 6.dp else 12.dp,
+                                shape = RoundedCornerShape(28.dp),
+                                ambientColor = shadowColor,
+                                spotColor = shadowColor
+                            )
                             .clip(RoundedCornerShape(28.dp))
-                            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
-                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(28.dp))
+                            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
+                            .border(
+                                width = 1.dp,
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(
+                                        if (isDarkTheme) Color.White.copy(alpha = 0.16f) else Color.White,
+                                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                                    )
+                                ),
+                                shape = RoundedCornerShape(28.dp)
+                            )
                             .padding(22.dp)
                     ) {
                         Column {
@@ -267,7 +284,7 @@ fun HomeScreen(
                     }
                 }
 
-                // 5. THẺ BENTO MACRO ĐÁ QUÝ — 2 Cột + 1 Hàng Ngang (Spec 9.2 #2, #4)
+                // 5. THẺ BENTO MACRO ĐÁ QUÝ — 2 Cột + 1 Hàng Ngang (Spec 9.2 #2, #4 & 10.6)
                 item {
                     val macros = uiState.dailySummary?.summary?.macros
                     val proteinConsumed = (macros?.protein?.consumed ?: 0.0).toInt()
@@ -278,6 +295,7 @@ fun HomeScreen(
 
                     val fatConsumed = (macros?.fat?.consumed ?: 0.0).toInt()
                     val fatTarget = (macros?.fat?.target ?: 65.0).toInt()
+                    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Row(
@@ -289,9 +307,10 @@ fun HomeScreen(
                                 title = "Carbs",
                                 consumedGrams = carbConsumed,
                                 targetGrams = carbTarget,
-                                gradientColors = listOf(CarbGradientStart, CarbGradientEnd),
+                                gradientColors = if (isDarkTheme) listOf(CarbGradientStart, CarbGradientEnd) else listOf(Color(0xFFFDE68A), Color(0xFFFBBF24)),
                                 icon = Icons.Default.Grain,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                isDarkTheme = isDarkTheme
                             )
 
                             // Protein Xanh Ngọc Lục Bảo
@@ -299,9 +318,10 @@ fun HomeScreen(
                                 title = "Protein",
                                 consumedGrams = proteinConsumed,
                                 targetGrams = proteinTarget,
-                                gradientColors = listOf(ProteinGradientStart, ProteinGradientEnd),
+                                gradientColors = if (isDarkTheme) listOf(ProteinGradientStart, ProteinGradientEnd) else listOf(Color(0xFF6EE7B7), Color(0xFF34D399)),
                                 icon = Icons.Default.Egg,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -310,8 +330,25 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(86.dp)
+                                .shadow(
+                                    elevation = if (isDarkTheme) 6.dp else 10.dp,
+                                    shape = RoundedCornerShape(24.dp),
+                                    ambientColor = shadowColor,
+                                    spotColor = shadowColor
+                                )
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(FatBrush)
+                                .background(if (isDarkTheme) FatBrush else FatBrushLight)
+                                .border(
+                                    width = 1.dp,
+                                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = if (isDarkTheme) 0.35f else 0.65f),
+                                            Color.White.copy(alpha = 0.05f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
                                 .padding(horizontal = 20.dp, vertical = 14.dp)
                         ) {
                             Row(
@@ -389,8 +426,16 @@ fun HomeScreen(
                 // Danh sách bữa ăn hoặc Trạng thái rỗng
                 if (uiState.meals.isEmpty()) {
                     item {
+                        val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = if (isDarkTheme) 4.dp else 8.dp,
+                                    shape = RoundedCornerShape(24.dp),
+                                    ambientColor = shadowColor,
+                                    spotColor = shadowColor
+                                ),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isDarkTheme) CharcoalSurface else PearlCard
                             ),
@@ -486,6 +531,7 @@ private fun MealItemRow(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showCopyDialog by remember { mutableStateOf(false) }
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     val mealTypeName = when (meal.mealType) {
         "BREAKFAST" -> "Bữa Sáng"
@@ -508,9 +554,24 @@ private fun MealItemRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(22.dp))
             .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(22.dp)
+            )
             .padding(18.dp)
     ) {
         Row(

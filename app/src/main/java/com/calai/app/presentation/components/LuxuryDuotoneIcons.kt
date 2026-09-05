@@ -250,3 +250,130 @@ fun DuotoneCheckmarkIcon(
         drawPath(path = path, color = primaryColor, style = stroke)
     }
 }
+
+@Composable
+fun DuotoneSunIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = VividOrange,
+    accentColor: Color = CarbGradientStart,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+        val w = this.size.width
+        val h = this.size.height
+        val c = Offset(w / 2, h / 2)
+
+        // Tâm mặt trời
+        drawCircle(color = accentColor, radius = w * 0.22f, center = c)
+        drawCircle(color = primaryColor, radius = w * 0.22f, center = c, style = stroke)
+
+        // Các tia nắng tỏa 8 hướng
+        val rayInner = w * 0.32f
+        val rayOuter = w * 0.44f
+        val angles = listOf(0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0)
+        for (a in angles) {
+            val rad = Math.toRadians(a)
+            val cos = Math.cos(rad).toFloat()
+            val sin = Math.sin(rad).toFloat()
+            drawLine(
+                color = primaryColor,
+                start = Offset(c.x + rayInner * cos, c.y + rayInner * sin),
+                end = Offset(c.x + rayOuter * cos, c.y + rayOuter * sin),
+                strokeWidth = 1.6.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
+fun DuotoneMoonIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = PastelLavender,
+    accentColor: Color = LavenderGradientEnd,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+
+        val path = Path().apply {
+            moveTo(w * 0.65f, h * 0.15f)
+            cubicTo(w * 0.25f, h * 0.20f, w * 0.20f, h * 0.80f, w * 0.68f, h * 0.85f)
+            cubicTo(w * 0.42f, h * 0.72f, w * 0.42f, h * 0.28f, w * 0.65f, h * 0.15f)
+            close()
+        }
+
+        drawPath(path = path, color = accentColor.copy(alpha = 0.35f))
+        drawPath(path = path, color = primaryColor, style = stroke)
+
+        // Ngôi sao nhỏ điểm nhấn
+        drawCircle(
+            color = primaryColor,
+            radius = 1.5.dp.toPx(),
+            center = Offset(w * 0.75f, h * 0.35f)
+        )
+    }
+}
+
+@Composable
+fun DuotoneFlameIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = VividOrange,
+    accentColor: Color = CarbGradientStart,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+
+        val outerPath = Path().apply {
+            moveTo(w * 0.50f, h * 0.10f)
+            cubicTo(w * 0.65f, h * 0.30f, w * 0.88f, h * 0.55f, w * 0.78f, h * 0.78f)
+            cubicTo(w * 0.70f, h * 0.92f, w * 0.30f, h * 0.92f, w * 0.22f, h * 0.78f)
+            cubicTo(w * 0.12f, h * 0.55f, w * 0.40f, h * 0.38f, w * 0.42f, h * 0.22f)
+            close()
+        }
+        drawPath(path = outerPath, color = primaryColor, style = stroke)
+
+        // Ngọn lửa lõi accent
+        val innerPath = Path().apply {
+            moveTo(w * 0.50f, h * 0.52f)
+            cubicTo(w * 0.60f, h * 0.62f, w * 0.62f, h * 0.78f, w * 0.50f, h * 0.84f)
+            cubicTo(w * 0.38f, h * 0.78f, w * 0.40f, h * 0.62f, w * 0.50f, h * 0.52f)
+            close()
+        }
+        drawPath(path = innerPath, color = accentColor)
+    }
+}
+
+@Composable
+fun DuotoneWaterIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = PastelLavenderLight,
+    accentColor: Color = LavenderGradientStart,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+
+        val path = Path().apply {
+            moveTo(w * 0.50f, h * 0.14f)
+            cubicTo(w * 0.68f, h * 0.42f, w * 0.82f, h * 0.62f, w * 0.76f, h * 0.78f)
+            cubicTo(w * 0.68f, h * 0.90f, w * 0.32f, h * 0.90f, w * 0.24f, h * 0.78f)
+            cubicTo(w * 0.18f, h * 0.62f, w * 0.32f, h * 0.42f, w * 0.50f, h * 0.14f)
+            close()
+        }
+        drawPath(path = path, color = accentColor.copy(alpha = 0.3f))
+        drawPath(path = path, color = primaryColor, style = stroke)
+    }
+}

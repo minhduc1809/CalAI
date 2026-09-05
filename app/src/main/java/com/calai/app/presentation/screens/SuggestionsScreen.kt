@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -152,14 +153,21 @@ fun SuggestionsScreen(
                 }
 
                 // Thẻ thực đơn Bento Pastel Đá Quý với tab bữa ăn gọn gàng (Anti-crowding)
-                uiState.diet?.let { item { DietCard(it) } }
+                uiState.diet?.let { item { DietCard(it, isDarkTheme = isDarkTheme) } }
 
                 // Lịch thực đơn nhiều ngày
                 uiState.monthlyDiet?.let { monthly ->
                     item {
+                        val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .shadow(
+                                    elevation = if (isDarkTheme) 3.dp else 6.dp,
+                                    shape = RoundedCornerShape(18.dp),
+                                    ambientColor = shadowColor,
+                                    spotColor = shadowColor
+                                )
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(if (isDarkTheme) CharcoalSurface else PearlCard)
                                 .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
@@ -270,16 +278,33 @@ fun SuggestionsScreen(
 }
 
 @Composable
-private fun DietCard(data: DietRecommendationData) {
+private fun DietCard(data: DietRecommendationData, isDarkTheme: Boolean = true) {
     val plan = data.recommendedPlan
     var selectedMealType by remember { mutableStateOf("BREAKFAST") }
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 12.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(28.dp))
-            .background(ProteinBrush)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(28.dp))
+            .background(if (isDarkTheme) ProteinBrush else ProteinBrushLight)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDarkTheme) 0.35f else 0.65f),
+                        Color.White.copy(alpha = 0.05f),
+                        Color.Transparent
+                    )
+                ),
+                shape = RoundedCornerShape(28.dp)
+            )
             .padding(20.dp)
     ) {
         Column {
@@ -547,13 +572,29 @@ private fun WorkoutCard(
 ) {
     val plan = data.recommendedWorkout
     var showAllDays by remember { mutableStateOf(false) }
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 12.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(20.dp)
     ) {
         Column {
@@ -625,12 +666,28 @@ private fun DayRow(
     onClick: () -> Unit,
     onStartWorkout: () -> Unit = {}
 ) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 3.dp else 6.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(16.dp))
             .background(if (isDarkTheme) CharcoalCard else PearlCard)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
             .clickable { onClick() }
             .padding(14.dp)
     ) {
@@ -732,8 +789,15 @@ private fun ExerciseFilters(
 
 @Composable
 private fun FilterPill(label: String, isSelected: Boolean, isDarkTheme: Boolean = true, onClick: () -> Unit) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
+            .shadow(
+                elevation = if (isSelected) 4.dp else 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(12.dp))
             .background(if (isSelected) VividOrange else if (isDarkTheme) CharcoalCard else PearlCard)
             .border(
@@ -761,12 +825,28 @@ private fun ExerciseCard(
     onClick: () -> Unit,
     onLogWorkout: () -> Unit = {}
 ) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isDarkTheme) CharcoalCardElevated else PearlCardElevated)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(18.dp)
+            )
             .clickable { onClick() }
             .padding(16.dp)
     ) {

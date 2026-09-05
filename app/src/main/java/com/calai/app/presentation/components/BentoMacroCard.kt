@@ -24,14 +24,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.shadow
+import com.calai.app.presentation.theme.DarkShadow
 import com.calai.app.presentation.theme.TextDeepInk
+import com.calai.app.presentation.theme.WarmShadow
 
 /**
  * Thẻ Bento Macro dạng Đá Quý (Gemstone Pastel Bento Card)
- * Tuân thủ quy tắc 9.2:
- * 4. Gradient 2 tông cùng họ màu + Specular light highlight góc trên-trái
- * 6. Icon glassmorphism nhẹ
- * 9. Chi tiết vi mô sang trọng: Bo góc 24-28dp, tỉ lệ phân cấp chữ
+ * Tuân thủ quy tắc 9.2 & 10.6:
+ * - Shadow nổi khối vật lý rõ ràng cho Light & Dark Mode
+ * - Gradient 2 tông cùng họ màu + Specular light highlight góc trên-trái
+ * - Icon glassmorphism nhẹ
+ * - Chi tiết vi mô sang trọng: Bo góc 24-28dp, tỉ lệ phân cấp chữ
  */
 @Composable
 fun BentoMacroCard(
@@ -40,7 +44,8 @@ fun BentoMacroCard(
     targetGrams: Int,
     gradientColors: List<Color>,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = true
 ) {
     val rawProgress = if (targetGrams > 0) {
         (consumedGrams.toFloat() / targetGrams.toFloat()).coerceIn(0f, 1f)
@@ -53,12 +58,30 @@ fun BentoMacroCard(
     )
 
     val cardBrush = Brush.verticalGradient(gradientColors)
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     Box(
         modifier = modifier
             .height(138.dp)
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(26.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(26.dp))
             .background(cardBrush)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDarkTheme) 0.35f else 0.6f),
+                        Color.White.copy(alpha = 0.05f),
+                        Color.Transparent
+                    )
+                ),
+                shape = RoundedCornerShape(26.dp)
+            )
             .padding(16.dp)
     ) {
         // 1. Giả lập hiệu ứng highlight phản chiếu ánh sáng bề mặt đá quý (Spec 9.2 #4)
