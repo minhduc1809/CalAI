@@ -34,6 +34,9 @@ class CalAIRepositoryImpl @Inject constructor(
     private val tokenManager: TokenManager
 ) : CalAIRepository {
 
+    // Bộ nhớ tạm cho Favorite Foods khi offline (không có bảng Room riêng cho favorites)
+    private val mockFavoriteFoods = mutableSetOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
+
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
             val errorBody = e.response()?.errorBody()?.string()
@@ -430,6 +433,66 @@ class CalAIRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun quickAddMeal(
+        name: String,
+        mealType: String,
+        date: String,
+        calories: Float,
+        protein: Float,
+        carb: Float,
+        fat: Float
+    ): Result<MealResponseDto> {
+        val request = QuickAddMealRequest(
+            name = name,
+            mealType = mealType,
+            date = date,
+            calories = calories,
+            protein = protein,
+            carb = carb,
+            fat = fat
+        )
+        return try {
+            val response = api.quickAddMeal(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockQuickAddMeal(request)
+            }
+        } catch (_: Exception) {
+            getMockQuickAddMeal(request)
+        }
+    }
+
+    private fun getMockQuickAddMeal(request: QuickAddMealRequest): Result<MealResponseDto> {
+        val mealId = UUID.randomUUID().toString()
+        return Result.success(
+            MealResponseDto(
+                id = mealId,
+                userId = "mock_user_01",
+                mealType = request.mealType,
+                date = request.date,
+                totalCalories = request.calories,
+                totalProtein = request.protein,
+                totalCarb = request.carb,
+                totalFat = request.fat,
+                items = listOf(
+                    MealItemResponseDto(
+                        id = "item_${UUID.randomUUID()}",
+                        mealId = mealId,
+                        name = request.name,
+                        servingSize = "1 phần",
+                        quantity = 1f,
+                        calories = request.calories,
+                        protein = request.protein,
+                        carb = request.carb,
+                        fat = request.fat,
+                        source = "quick_add"
+                    )
+                )
+            )
+        )
+    }
+
     // --- Recommendations & Foods (với Mock Offline Fallback) ---
     override suspend fun searchFoods(query: String?, category: String?): Result<List<FoodItemDto>> {
         return try {
@@ -483,6 +546,39 @@ class CalAIRepositoryImpl @Inject constructor(
 
     private fun getMockCategories(): Result<List<String>> {
         return Result.success(listOf("Tất cả", "Cơm / Bún / Phở", "Thịt / Trứng", "Rau / Củ", "Đồ uống"))
+    }
+
+    override suspend fun fetchFavoriteFoods(): Result<List<String>> {
+        return try {
+            val response = api.getFavoriteFoods()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(mockFavoriteFoods.toList())
+            }
+        } catch (_: Exception) {
+            Result.success(mockFavoriteFoods.toList())
+        }
+    }
+
+    override suspend fun addFavoriteFood(foodName: String): Result<Unit> {
+        mockFavoriteFoods.add(foodName)
+        return try {
+            api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
+
+    override suspend fun removeFavoriteFood(foodName: String): Result<Unit> {
+        mockFavoriteFoods.remove(foodName)
+        return try {
+            api.removeFavoriteFood(foodName)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
     }
 
     // --- Weight Logs Remote ---

@@ -23,6 +23,7 @@ data class AddMealUiState(
     val selectedCategory: String? = null,
     val searchResults: List<FoodItemDto> = emptyList(),
     val selectedFoods: List<CreateMealItemDto> = emptyList(),
+    val favoriteNames: Set<String> = emptySet(),
     val isSearching: Boolean = false,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
@@ -39,6 +40,7 @@ class AddMealViewModel @Inject constructor(
 
     init {
         loadCategories()
+        loadFavorites()
         searchFoods("")
     }
 
@@ -46,6 +48,59 @@ class AddMealViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getFoodCategories().onSuccess { cats ->
                 _uiState.value = _uiState.value.copy(categories = cats)
+            }
+        }
+    }
+
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            repository.fetchFavoriteFoods().onSuccess { names ->
+                _uiState.value = _uiState.value.copy(favoriteNames = names.toSet())
+            }
+        }
+    }
+
+    fun toggleFavorite(foodName: String) {
+        val isCurrentlyFavorite = foodName in _uiState.value.favoriteNames
+        val updated = _uiState.value.favoriteNames.toMutableSet()
+        if (isCurrentlyFavorite) updated.remove(foodName) else updated.add(foodName)
+        _uiState.value = _uiState.value.copy(favoriteNames = updated)
+
+        viewModelScope.launch {
+            if (isCurrentlyFavorite) {
+                repository.removeFavoriteFood(foodName)
+            } else {
+                repository.addFavoriteFood(foodName)
+            }
+        }
+    }
+
+    /** Ghi nhận calo/macro nhanh mà không cần chọn từng món từ kho món ăn. */
+    fun quickAdd(name: String, calories: Float, protein: Float, carb: Float, fat: Float) {
+        if (name.isBlank() || calories <= 0f) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+            repository.quickAddMeal(
+                name = name,
+                mealType = _uiState.value.mealType,
+                date = dateStr,
+                calories = calories,
+                protein = protein,
+                carb = carb,
+                fat = fat
+            ).onSuccess {
+                _uiState.value = _uiState.value.copy(isSaving = false, isSaveSuccess = true)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    errorMessage = e.message ?: "Lỗi khi ghi nhận calo nhanh"
+                )
             }
         }
     }

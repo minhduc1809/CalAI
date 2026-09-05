@@ -36,6 +36,9 @@ interface CalAIApi {
     @GET("meals")
     suspend fun getMeals(@Query("date") date: String? = null): ApiResponse<List<MealResponseDto>>
 
+    @POST("meals/quick-add")
+    suspend fun quickAddMeal(@Body request: QuickAddMealRequest): ApiResponse<MealResponseDto>
+
     @GET("meals/summary")
     suspend fun getDailySummary(@Query("date") date: String? = null): ApiResponse<DailyNutritionSummaryData>
 
@@ -73,6 +76,15 @@ interface CalAIApi {
 
     @GET("recommendations/foods/categories")
     suspend fun getFoodCategories(): ApiResponse<List<String>>
+
+    @POST("recommendations/favorites")
+    suspend fun addFavoriteFood(@Body request: AddFavoriteFoodRequest): ApiResponse<Any?>
+
+    @GET("recommendations/favorites")
+    suspend fun getFavoriteFoods(): ApiResponse<List<String>>
+
+    @DELETE("recommendations/favorites/{foodName}")
+    suspend fun removeFavoriteFood(@Path("foodName") foodName: String): ApiResponse<Any?>
 
     // --- AI ENGINE ---
     @Multipart

@@ -35,11 +35,22 @@ fun AddMealScreen(
     viewModel: AddMealViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showQuickAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaveSuccess) {
         if (uiState.isSaveSuccess) {
             onBack()
         }
+    }
+
+    if (showQuickAddDialog) {
+        QuickAddDialog(
+            isSaving = uiState.isSaving,
+            onDismiss = { showQuickAddDialog = false },
+            onConfirm = { name, calories, protein, carb, fat ->
+                viewModel.quickAdd(name, calories, protein, carb, fat)
+            }
+        )
     }
 
     Scaffold(
@@ -208,6 +219,30 @@ fun AddMealScreen(
                 }
             }
 
+            // 2b. LỰA CHỌN 1b: NHẬP NHANH CALO/MACRO (Quick Add — không cần chọn món)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CharcoalSurface)
+                        .clickable { showQuickAddDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Bolt, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = "Nhập nhanh Calo/Macro (không cần chọn món)",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextWhite,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                }
+            }
+
             // 3. LỰA CHỌN 2: TÌM KIẾM THỦ CÔNG 120+ MÓN VIỆT
             item {
                 Text(
@@ -279,7 +314,9 @@ fun AddMealScreen(
             items(uiState.searchResults) { food ->
                 FoodSearchResultCard(
                     food = food,
-                    onAdd = { viewModel.addFoodToMeal(food) }
+                    isFavorite = food.name in uiState.favoriteNames,
+                    onAdd = { viewModel.addFoodToMeal(food) },
+                    onToggleFavorite = { viewModel.toggleFavorite(food.name) }
                 )
             }
         }
@@ -289,7 +326,9 @@ fun AddMealScreen(
 @Composable
 private fun FoodSearchResultCard(
     food: FoodItemDto,
-    onAdd: () -> Unit
+    isFavorite: Boolean,
+    onAdd: () -> Unit,
+    onToggleFavorite: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -323,8 +362,20 @@ private fun FoodSearchResultCard(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = VividOrange,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 4.dp)
                 )
+
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Bỏ yêu thích" else "Đánh dấu yêu thích",
+                        tint = if (isFavorite) VividOrange else TextMuted,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
 
                 IconButton(
                     onClick = onAdd,
@@ -343,4 +394,104 @@ private fun FoodSearchResultCard(
             }
         }
     }
+}
+
+@Composable
+private fun QuickAddDialog(
+    isSaving: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carb by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
+
+    @Composable
+    fun textFieldColors() = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = CharcoalCard,
+        unfocusedContainerColor = CharcoalCard,
+        focusedBorderColor = VividOrange,
+        unfocusedBorderColor = CharcoalBorder,
+        focusedTextColor = TextWhite,
+        unfocusedTextColor = TextWhite
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CharcoalSurface,
+        title = { Text("Nhập nhanh Calo/Macro", color = TextWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Tên món / ghi chú", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors()
+                )
+                OutlinedTextField(
+                    value = calories,
+                    onValueChange = { calories = it.filter { c -> c.isDigit() } },
+                    label = { Text("Calories (kcal)", color = TextMuted) },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = protein,
+                        onValueChange = { protein = it.filter { c -> c.isDigit() } },
+                        label = { Text("Protein (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                    OutlinedTextField(
+                        value = carb,
+                        onValueChange = { carb = it.filter { c -> c.isDigit() } },
+                        label = { Text("Carb (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                    OutlinedTextField(
+                        value = fat,
+                        onValueChange = { fat = it.filter { c -> c.isDigit() } },
+                        label = { Text("Fat (g)", color = TextMuted, fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !isSaving,
+                onClick = {
+                    onConfirm(
+                        name,
+                        calories.toFloatOrNull() ?: 0f,
+                        protein.toFloatOrNull() ?: 0f,
+                        carb.toFloatOrNull() ?: 0f,
+                        fat.toFloatOrNull() ?: 0f
+                    )
+                }
+            ) {
+                Text(if (isSaving) "Đang lưu..." else "Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy", color = TextMuted)
+            }
+        }
+    )
 }

@@ -41,10 +41,22 @@ interface CalAIRepository {
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
     suspend fun deleteRemoteMeal(mealId: String): Result<Unit>
     suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null): Result<NutritionStatisticsData>
+    suspend fun quickAddMeal(
+        name: String,
+        mealType: String,
+        date: String,
+        calories: Float,
+        protein: Float = 0f,
+        carb: Float = 0f,
+        fat: Float = 0f
+    ): Result<MealResponseDto>
 
     // --- Food Database & Recommendations ---
     suspend fun searchFoods(query: String? = null, category: String? = null): Result<List<FoodItemDto>>
     suspend fun getFoodCategories(): Result<List<String>>
+    suspend fun fetchFavoriteFoods(): Result<List<String>>
+    suspend fun addFavoriteFood(foodName: String): Result<Unit>
+    suspend fun removeFavoriteFood(foodName: String): Result<Unit>
 
     // --- Weight Logs Remote ---
     suspend fun createRemoteWeightLog(weightKg: Float, note: String? = null): Result<WeightLogResponseDto>
