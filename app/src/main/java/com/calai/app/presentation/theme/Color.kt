@@ -68,29 +68,39 @@ val CoralWarning = Color(0xFFF59E0B)
 val CrimsonError = Color(0xFFEF4444)
 
 // ==========================================
-// IVORY LUXURY CANVAS (LIGHT MODE) - SPEC 9.4
+// IVORY LUXURY CANVAS (LIGHT MODE) - SPEC 9.4 & 10.6
 // ==========================================
 
-val IvoryBackground = Color(0xFFFAF8F5)          // Nền gốc — trắng ngà ấm
-val PearlSurface = Color(0xFFFFFFFF)             // Surface
-val PearlCard = Color(0xFFF3F1EC)                // Nền card
-val PearlCardElevated = Color(0xFFFFFFFF)        // Card nổi
-val PearlBorder = Color(0xFFE4E1D9)              // Viền
-val PearlDock = Color(0xFFFFFFFF)                // Dock
+val IvoryBackground = Color(0xFFF5F1E8)          // Nền gốc — trắng ngà ấm tạo độ tương phản rõ với card #FFFFFF
+val PearlSurface = Color(0xFFFFFFFF)             // Surface — trắng tinh khiết
+val PearlCard = Color(0xFFFFFFFF)                // Nền card trắng tinh nổi bật trên nền Ivory
+val PearlCardElevated = Color(0xFFFFFFFF)        // Card nổi cao hơn
+val PearlBorder = Color(0xFFE8E2D6)              // Viền card ấm 1px
+val PearlDock = Color(0xFFFFFFFF)                // Floating bottom dock trắng sáng
 
-// Bento Pastel trên nền sáng (Đậm hơn để không bị chìm)
-val PastelProteinLight = Color(0xFF34D399)
-val PastelProteinTrackLight = Color(0xFFA9EAC9)
-val PastelCarbLight = Color(0xFFE0B93A)
-val PastelCarbTrackLight = Color(0xFFF5DD6B)
-val PastelFatLight = Color(0xFFEC7FA6)
-val PastelFatTrackLight = Color(0xFFF5B8CE)
-val PastelLavenderLight = Color(0xFFA78BFA)
-val PastelLavenderTrackLight = Color(0xFFD9CBFA)
+// Màu bóng đổ (Elevation Shadow) chuẩn Spec 10.6
+val WarmShadow = Color(0x22423320)               // Bóng nâu xám ấm mềm cho Light Mode (14% alpha)
+val DarkShadow = Color(0x75000000)               // Bóng đen sâu cho Dark Mode (46% alpha)
 
-val TextInkPrimary = Color(0xFF14151C)
-val TextInkSecondary = Color(0xFF5B5D6B)
-val TextInkMuted = Color(0xFF9596A2)
+// Bento Pastel trên nền sáng — Độ bão hòa tươi 55-70% (Spec 10.6 - Không xỉn màu)
+val PastelProteinLight = Color(0xFF10B981)       // Xanh ngọc lục bảo tươi
+val PastelProteinTrackLight = Color(0xFFD1FAE5)
+val PastelCarbLight = Color(0xFFF59E0B)          // Vàng hổ phách mật ong tươi
+val PastelCarbTrackLight = Color(0xFFFEF3C7)
+val PastelFatLight = Color(0xFFF43F5E)           // Hồng san hô đậm tươi
+val PastelFatTrackLight = Color(0xFFFFE4E6)
+val PastelLavenderLight = Color(0xFF8B5CF6)      // Tím oải hương tươi
+val PastelLavenderTrackLight = Color(0xFFEDE9FE)
+
+// Brushes cho Bento Macro Light Mode (Tươi tắn, sắc nét)
+val ProteinBrushLight = Brush.verticalGradient(listOf(Color(0xFF6EE7B7), Color(0xFF34D399)))
+val CarbBrushLight = Brush.verticalGradient(listOf(Color(0xFFFDE68A), Color(0xFFFBBF24)))
+val FatBrushLight = Brush.horizontalGradient(listOf(Color(0xFFFDA4AF), Color(0xFFFB7185)))
+val LavenderBrushLight = Brush.verticalGradient(listOf(Color(0xFFDDD6FE), Color(0xFFA78BFA)))
+
+val TextInkPrimary = Color(0xFF14151C)           // Chữ chính đậm rõ nét
+val TextInkSecondary = Color(0xFF5B5D6B)         // Chữ phụ
+val TextInkMuted = Color(0xFF888A98)             // Chữ mờ, placeholder
 
 // Semantic text-on-light
 val SuccessTextLight = Color(0xFF047857)

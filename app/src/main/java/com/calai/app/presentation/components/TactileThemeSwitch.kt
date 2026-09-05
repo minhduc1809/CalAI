@@ -92,12 +92,19 @@ fun TactileThemeSwitch(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
-                contentDescription = null,
-                tint = if (isDarkTheme) TextWhite else TextInkPrimary,
-                modifier = Modifier.size(15.dp)
-            )
+            if (isDarkTheme) {
+                DuotoneMoonIcon(
+                    size = 15.dp,
+                    outlineColor = TextWhite,
+                    accentColor = VividOrangeLight
+                )
+            } else {
+                DuotoneSunIcon(
+                    size = 15.dp,
+                    outlineColor = TextInkPrimary,
+                    accentColor = VividOrange
+                )
+            }
         }
     }
 }

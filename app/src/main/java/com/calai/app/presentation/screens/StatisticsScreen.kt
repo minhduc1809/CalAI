@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -60,12 +61,26 @@ fun StatisticsScreen(
                 letterSpacing = (-0.5).sp
             )
 
-            // Card Xanh Mint Banner (Đúng góc trên ảnh mẫu)
+            // Card Xanh Mint Banner với Shadow nổi khối
+            val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(
+                        elevation = if (isDarkTheme) 4.dp else 8.dp,
+                        shape = RoundedCornerShape(22.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(PastelMint)
+                    .background(if (isDarkTheme) PastelMint else Color(0xFF6EE7B7))
+                    .border(
+                        width = 1.dp,
+                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.6f), Color.Transparent)
+                        ),
+                        shape = RoundedCornerShape(22.dp)
+                    )
                     .padding(18.dp)
             ) {
                 Column {
@@ -90,6 +105,12 @@ fun StatisticsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                    .shadow(
+                        elevation = if (isDarkTheme) 2.dp else 4.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
                     .clip(RoundedCornerShape(24.dp))
                     .background(if (isDarkTheme) CharcoalSurface else PearlCard)
                     .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
@@ -132,7 +153,7 @@ fun StatisticsScreen(
             }
 
             // Thẻ Calorie Trends (Màu Pastel Lavender chuẩn ảnh mẫu)
-            CalorieTrendsCard(uiState = uiState)
+            CalorieTrendsCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
             // Thẻ Macro Distribution
             MacroDistributionCard(uiState = uiState, isDarkTheme = isDarkTheme)
@@ -152,12 +173,26 @@ fun StatisticsScreen(
 }
 
 @Composable
-private fun CalorieTrendsCard(uiState: StatisticsUiState) {
+private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
-            .background(PastelLavender)
+            .background(if (isDarkTheme) PastelLavender else Color(0xFFDDD6FE))
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.65f), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
@@ -274,12 +309,28 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
 
 @Composable
 private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
             .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
@@ -302,9 +353,9 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", PastelMint, Modifier.weight(1f))
-                MacroSharePill("Carb", "${uiState.carbPercent}%", PastelButtercup, Modifier.weight(1f))
-                MacroSharePill("Chất béo", "${uiState.fatPercent}%", PastelRose, Modifier.weight(1f))
+                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else Color(0xFF6EE7B7), Modifier.weight(1f))
+                MacroSharePill("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else Color(0xFFFDE68A), Modifier.weight(1f))
+                MacroSharePill("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else Color(0xFFFDA4AF), Modifier.weight(1f))
             }
         }
     }
@@ -331,13 +382,29 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
     val diff = uiState.weightChangedKg
     val diffSign = if (diff <= 0) "" else "+"
     val diffFormatted = String.format("%.1f", diff)
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
             .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
