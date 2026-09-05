@@ -36,6 +36,7 @@ data class DayItem(
 fun WeeklyCalendarStrip(
     selectedDateIso: String,
     onDateSelected: (String) -> Unit,
+    isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val days = remember(selectedDateIso) {
@@ -46,8 +47,8 @@ fun WeeklyCalendarStrip(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(CharcoalSurface)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(22.dp))
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
             .padding(horizontal = 8.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -55,6 +56,7 @@ fun WeeklyCalendarStrip(
         days.forEach { day ->
             DayPill(
                 day = day,
+                isDarkTheme = isDarkTheme,
                 onClick = { onDateSelected(day.dateIso) }
             )
         }
@@ -64,6 +66,7 @@ fun WeeklyCalendarStrip(
 @Composable
 private fun DayPill(
     day: DayItem,
+    isDarkTheme: Boolean = true,
     onClick: () -> Unit
 ) {
     val isSelected = day.isSelected
@@ -97,14 +100,14 @@ private fun DayPill(
                 text = day.dayOfWeek,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TextDeepInk else TextMuted
+                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextMuted else TextInkMuted
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = day.dayOfMonth,
                 fontSize = 15.sp,
                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                color = if (isSelected) TextDeepInk else TextWhite
+                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextWhite else TextInkPrimary
             )
         }
     }

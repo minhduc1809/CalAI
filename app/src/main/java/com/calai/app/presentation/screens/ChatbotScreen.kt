@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatbotScreen(
     onNavigateTab: (DockTab) -> Unit,
+    isDarkTheme: Boolean = true,
     viewModel: ChatbotViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -54,7 +55,7 @@ fun ChatbotScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         Column(
             modifier = Modifier
@@ -90,7 +91,7 @@ fun ChatbotScreen(
                         text = "NutriWise Nutrition Coach",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -105,7 +106,7 @@ fun ChatbotScreen(
                         Text(
                             text = "Trợ lý dinh dưỡng AI • Trực tuyến",
                             fontSize = 12.sp,
-                            color = TextMuted
+                            color = if (isDarkTheme) TextMuted else TextInkMuted
                         )
                     }
                 }
@@ -126,15 +127,18 @@ fun ChatbotScreen(
                             .clickable {
                                 viewModel.sendMessage(prompt)
                             },
-                        color = CharcoalSurface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                        color = if (isDarkTheme) CharcoalSurface else PearlCard,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isDarkTheme) CharcoalBorder else PearlBorder
+                        ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
                             text = prompt,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = PastelLavender,
+                            color = if (isDarkTheme) PastelLavender else VividOrange,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         )
                     }
@@ -152,7 +156,7 @@ fun ChatbotScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(uiState.messages, key = { it.id }) { msg ->
-                    ChatBubble(message = msg)
+                    ChatBubble(message = msg, isDarkTheme = isDarkTheme)
                 }
 
                 if (uiState.isTyping) {
@@ -168,8 +172,8 @@ fun ChatbotScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(28.dp))
-                    .background(CharcoalSurface)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(28.dp))
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(28.dp))
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -180,7 +184,7 @@ fun ChatbotScreen(
                     modifier = Modifier.weight(1f),
                     textStyle = TextStyle(
                         fontSize = 14.sp,
-                        color = TextWhite
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                     ),
                     cursorBrush = SolidColor(VividOrange),
                     decorationBox = { innerTextField ->
@@ -188,7 +192,7 @@ fun ChatbotScreen(
                             Text(
                                 text = "Hỏi chuyên gia dinh dưỡng AI...",
                                 fontSize = 14.sp,
-                                color = TextMuted
+                                color = if (isDarkTheme) TextMuted else TextInkMuted
                             )
                         }
                         innerTextField()
@@ -199,7 +203,10 @@ fun ChatbotScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (inputText.isNotBlank()) VividOrange else CharcoalDock)
+                        .background(
+                            if (inputText.isNotBlank()) VividOrange
+                            else if (isDarkTheme) CharcoalDock else PearlBorder
+                        )
                         .clickable(enabled = inputText.isNotBlank()) {
                             val text = inputText
                             inputText = ""
@@ -210,7 +217,7 @@ fun ChatbotScreen(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Gửi",
-                        tint = if (inputText.isNotBlank()) TextWhite else TextMuted,
+                        tint = if (inputText.isNotBlank()) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -221,13 +228,14 @@ fun ChatbotScreen(
         FloatingBottomDock(
             currentTab = DockTab.CHAT,
             onTabSelected = onNavigateTab,
+            isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage) {
+private fun ChatBubble(message: ChatMessage, isDarkTheme: Boolean = true) {
     val isUser = message.isUser
 
     Row(
@@ -264,10 +272,10 @@ private fun ChatBubble(message: ChatMessage) {
                         bottomEnd = if (isUser) 4.dp else 18.dp
                     )
                 )
-                .background(if (isUser) VividOrange else CharcoalSurface)
+                .background(if (isUser) VividOrange else if (isDarkTheme) CharcoalSurface else PearlCard)
                 .border(
                     1.dp,
-                    if (isUser) VividOrange else CharcoalBorder,
+                    if (isUser) VividOrange else if (isDarkTheme) CharcoalBorder else PearlBorder,
                     RoundedCornerShape(
                         topStart = 18.dp,
                         topEnd = 18.dp,
@@ -282,14 +290,14 @@ private fun ChatBubble(message: ChatMessage) {
                     text = message.text,
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
-                    color = if (isUser) TextWhite else TextLightGray
+                    color = if (isUser) TextWhite else if (isDarkTheme) TextLightGray else TextInkPrimary
                 )
                 if (message.isFallback) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "💡 Chế độ offline / Smart Coach",
                         fontSize = 10.sp,
-                        color = PastelLavender.copy(alpha = 0.8f)
+                        color = if (isDarkTheme) PastelLavender.copy(alpha = 0.8f) else VividOrange.copy(alpha = 0.8f)
                     )
                 }
             }

@@ -94,7 +94,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
-                                }
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -141,7 +142,8 @@ class MainActivity : ComponentActivity() {
                             StatisticsScreen(
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
-                                }
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -150,7 +152,8 @@ class MainActivity : ComponentActivity() {
                             ChatbotScreen(
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
-                                }
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 

@@ -39,6 +39,7 @@ enum class DockTab {
 fun FloatingBottomDock(
     currentTab: DockTab,
     onTabSelected: (DockTab) -> Unit,
+    isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -51,8 +52,8 @@ fun FloatingBottomDock(
             modifier = Modifier
                 .height(64.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(CharcoalDock)
-                .border(1.dp, CharcoalBorder, RoundedCornerShape(32.dp))
+                .background(if (isDarkTheme) CharcoalDock else PearlDock)
+                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(32.dp))
                 .padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -60,11 +61,13 @@ fun FloatingBottomDock(
             DockItem(
                 icon = Icons.Default.Home,
                 isSelected = currentTab == DockTab.HOME,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.HOME) }
             )
             DockItem(
                 icon = Icons.Default.AutoGraph,
                 isSelected = currentTab == DockTab.STATISTICS,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.STATISTICS) }
             )
             // Tab quét AI ở chính giữa
@@ -72,16 +75,19 @@ fun FloatingBottomDock(
                 icon = Icons.Default.CameraAlt,
                 isSelected = currentTab == DockTab.SCAN,
                 isHero = true,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.SCAN) }
             )
             DockItem(
                 icon = Icons.Default.AutoAwesome,
                 isSelected = currentTab == DockTab.CHAT,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.CHAT) }
             )
             DockItem(
                 icon = Icons.Default.Person,
                 isSelected = currentTab == DockTab.PROFILE,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.PROFILE) }
             )
         }
@@ -93,12 +99,13 @@ private fun DockItem(
     icon: ImageVector,
     isSelected: Boolean,
     isHero: Boolean = false,
+    isDarkTheme: Boolean = true,
     onClick: () -> Unit
 ) {
     val bgColor by animateColorAsState(
         targetValue = when {
             isSelected -> VividOrange
-            isHero -> CharcoalCardElevated
+            isHero -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
             else -> Color.Transparent
         },
         label = "dock_bg"
@@ -108,7 +115,7 @@ private fun DockItem(
         targetValue = when {
             isSelected -> TextWhite
             isHero -> VividOrange
-            else -> TextMuted
+            else -> if (isDarkTheme) TextMuted else TextInkMuted
         },
         label = "dock_icon"
     )
