@@ -1,6 +1,7 @@
 package com.calai.app.presentation.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Màn hình Home Dashboard - Hero Screen theo chuẩn Dark Luxury Canvas (CODING_RULES.md 9.2 & 9.6 #1)
+ */
 @Composable
 fun HomeScreen(
     onAddMealClick: () -> Unit,
@@ -59,7 +63,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(top = 24.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // 1. TOP HEADER: Avatar + Chào buổi sáng + Icons
+                // 1. TOP HEADER: Avatar + Chào buổi sáng + Glassmorphic Icons (Spec 9.2 #6)
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -72,14 +76,15 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(46.dp)
                                     .clip(CircleShape)
-                                    .background(VividOrange),
+                                    .background(VividOrange)
+                                    .border(1.5.dp, VividOrangeLight.copy(alpha = 0.5f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = uiState.username.take(1).uppercase(),
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Black,
                                     fontSize = 18.sp,
                                     color = TextWhite
                                 )
@@ -88,30 +93,27 @@ fun HomeScreen(
                                 Text(
                                     text = "Chào buổi sáng,",
                                     fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
                                     color = TextMuted
                                 )
                                 Text(
                                     text = uiState.username.ifEmpty { "Bạn" },
-                                    fontSize = 17.sp,
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite
+                                    color = TextWhite,
+                                    letterSpacing = (-0.3).sp
                                 )
                             }
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            IconButton(onClick = onLogout) {
-                                Icon(
-                                    Icons.Default.ExitToApp,
-                                    contentDescription = "Đăng xuất",
-                                    tint = TextMuted
-                                )
-                            }
+                            // Nút Gợi ý món thông minh
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(42.dp)
                                     .clip(CircleShape)
                                     .background(CharcoalSurface)
+                                    .border(1.dp, CharcoalBorder, CircleShape)
                                     .clickable { onOpenSuggestions() },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -122,18 +124,22 @@ fun HomeScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
+
+                            // Nút Đăng xuất
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(42.dp)
                                     .clip(CircleShape)
-                                    .background(CharcoalSurface),
+                                    .background(CharcoalSurface)
+                                    .border(1.dp, CharcoalBorder, CircleShape)
+                                    .clickable { onLogout() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.Notifications,
-                                    contentDescription = null,
-                                    tint = TextWhite,
-                                    modifier = Modifier.size(20.dp)
+                                    Icons.Default.ExitToApp,
+                                    contentDescription = "Đăng xuất",
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -158,22 +164,24 @@ fun HomeScreen(
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextWhite,
-                        letterSpacing = (-0.3).sp
+                        letterSpacing = (-0.4).sp
                     )
                 }
 
-                // 4. THẺ CALO LỚN MÀU PASTEL LAVENDER (Chuẩn ảnh mẫu)
+                // 4. HERO CARD CALORIES — Nền CharcoalCardElevated + Viền CharcoalBorder + Arc Gauge Gradient (Spec 9.2 #1, #3, #7)
                 item {
                     val summary = uiState.dailySummary?.summary
                     val targetCal = (summary?.targetCalories ?: 2200.0).toInt()
                     val remainingCal = (summary?.remainingCalories ?: targetCal.toDouble()).toInt()
+                    val consumedCal = (summary?.consumedCalories ?: 0.0).toInt()
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(28.dp))
-                            .background(PastelLavender)
-                            .padding(20.dp)
+                            .background(CharcoalCardElevated)
+                            .border(1.dp, CharcoalBorder, RoundedCornerShape(28.dp))
+                            .padding(22.dp)
                     ) {
                         Column {
                             Row(
@@ -181,29 +189,45 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Calories",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDeepInk
-                                )
-
-                                summary?.let {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(VividOrange)
+                                    )
                                     Text(
-                                        text = "Đã nạp: ${it.consumedCalories.toInt()} kcal",
+                                        text = "Calories",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextWhite
+                                    )
+                                }
+
+                                Surface(
+                                    color = VividOrangeSoft,
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Đã nạp: $consumedCal kcal",
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextDeepInk.copy(alpha = 0.65f)
+                                        fontWeight = FontWeight.Bold,
+                                        color = VividOrange,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            // Thước đo bán nguyệt Arc Gauge
+                            // Thước đo bán nguyệt Arc Gauge với Gradient & Ambient Glow
                             ArcCaloriesGauge(
                                 remainingCalories = remainingCal,
-                                targetCalories = targetCal
+                                targetCalories = targetCal,
+                                isDarkTheme = true
                             )
 
                             // Tỉ lệ scale ở dưới đáy card
@@ -213,14 +237,24 @@ fun HomeScreen(
                                     .padding(horizontal = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("0", fontSize = 12.sp, color = TextDeepInk.copy(alpha = 0.5f))
-                                Text("Mục tiêu: $targetCal", fontSize = 12.sp, color = TextDeepInk.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "0 kcal",
+                                    fontSize = 12.sp,
+                                    color = TextMuted,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Mục tiêu: $targetCal kcal",
+                                    fontSize = 12.sp,
+                                    color = TextLightGrey,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
 
-                // 5. THẺ BENTO MACRO (Carbs Vàng + Protein Xanh Ngọc)
+                // 5. THẺ BENTO MACRO ĐÁ QUÝ — 2 Cột + 1 Hàng Ngang (Spec 9.2 #2, #4)
                 item {
                     val macros = uiState.dailySummary?.summary?.macros
                     val proteinConsumed = (macros?.protein?.consumed ?: 0.0).toInt()
@@ -237,58 +271,79 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
+                            // Carbs Vàng Hổ Phách
                             BentoMacroCard(
                                 title = "Carbs",
                                 consumedGrams = carbConsumed,
                                 targetGrams = carbTarget,
-                                containerColor = PastelButtercup,
+                                gradientColors = listOf(CarbGradientStart, CarbGradientEnd),
                                 icon = Icons.Default.Grain,
                                 modifier = Modifier.weight(1f)
                             )
 
+                            // Protein Xanh Ngọc Lục Bảo
                             BentoMacroCard(
                                 title = "Protein",
                                 consumedGrams = proteinConsumed,
                                 targetGrams = proteinTarget,
-                                containerColor = PastelMint,
+                                gradientColors = listOf(ProteinGradientStart, ProteinGradientEnd),
                                 icon = Icons.Default.Egg,
                                 modifier = Modifier.weight(1f)
                             )
                         }
 
-                        // Thẻ Fat thứ 3 (Trải dài thanh lịch)
+                        // Thẻ Fat Hồng Ngọc Ngang (Horizontal Gem Card)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(80.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(PastelRose)
-                                .padding(horizontal = 18.dp, vertical = 14.dp)
+                                .height(86.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(FatBrush)
+                                .padding(horizontal = 20.dp, vertical = 14.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text("Chất béo (Fat)", fontWeight = FontWeight.Bold, color = TextDeepInk, fontSize = 15.sp)
-                                    Text("${fatConsumed}g / ${fatTarget}g", fontSize = 12.sp, color = TextDeepInk.copy(alpha = 0.6f))
+                                Column(verticalArrangement = Arrangement.Center) {
+                                    Text(
+                                        text = "Chất béo (Fat)",
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDeepInk,
+                                        fontSize = 15.sp,
+                                        letterSpacing = (-0.2).sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${fatConsumed}g / ${fatTarget}g mục tiêu",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextDeepInk.copy(alpha = 0.65f)
+                                    )
                                 }
+
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(38.dp)
                                         .clip(CircleShape)
-                                        .background(TextDeepInk.copy(alpha = 0.08f)),
+                                        .background(TextDeepInk.copy(alpha = 0.09f))
+                                        .border(0.75.dp, Color.White.copy(alpha = 0.35f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Opacity, contentDescription = null, tint = TextDeepInk, modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.Opacity,
+                                        contentDescription = null,
+                                        tint = TextDeepInk,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }
                     }
                 }
 
-                // 6. SECTION KẾ HOẠCH BỮA ĂN (Diet Plan)
+                // 6. SECTION NHẬT KÝ BỮA ĂN (Diet Plan)
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -299,15 +354,22 @@ fun HomeScreen(
                             text = "Nhật ký bữa ăn",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = TextWhite,
+                            letterSpacing = (-0.3).sp
                         )
-                        Text(
-                            text = "+ Thêm món",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = VividOrange,
+                        Surface(
+                            color = VividOrangeSoft,
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.clickable { onAddMealClick() }
-                        )
+                        ) {
+                            Text(
+                                text = "+ Thêm món",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = VividOrange,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
                     }
                 }
 
@@ -317,33 +379,44 @@ fun HomeScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = CharcoalSurface),
-                            shape = RoundedCornerShape(22.dp)
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                            shape = RoundedCornerShape(24.dp)
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(24.dp),
+                                    .padding(28.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    Icons.Default.Restaurant,
-                                    contentDescription = null,
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(54.dp)
+                                        .clip(CircleShape)
+                                        .background(CharcoalCardElevated)
+                                        .border(1.dp, CharcoalBorder, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Restaurant,
+                                        contentDescription = null,
+                                        tint = VividOrange,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
                                 Text(
                                     text = "Chưa có bữa ăn nào hôm nay",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = TextWhite
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "Nhấn nút Quét AI bên dưới để chụp đĩa thức ăn và tính calo ngay lập tức.",
+                                    text = "Nhấn nút Camera Quét AI bên dưới để chụp món ăn và tính calo tức thì.",
                                     fontSize = 13.sp,
                                     color = TextMuted,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 18.sp
                                 )
                             }
                         }
@@ -413,9 +486,10 @@ private fun MealItemRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(CharcoalSurface)
-            .padding(16.dp)
+            .border(1.dp, CharcoalBorder, RoundedCornerShape(22.dp))
+            .padding(18.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -424,7 +498,7 @@ private fun MealItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Surface(
-                    color = VividOrange.copy(alpha = 0.15f),
+                    color = VividOrangeSoft,
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
@@ -444,6 +518,7 @@ private fun MealItemRow(
                     color = TextWhite,
                     maxLines = 1
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${meal.totalProtein.toInt()}g P • ${meal.totalCarb.toInt()}g C • ${meal.totalFat.toInt()}g F",
                     fontSize = 12.sp,
@@ -466,14 +541,16 @@ private fun MealItemRow(
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = "Thêm hành động",
-                            tint = TextMuted.copy(alpha = 0.6f),
+                            tint = TextMuted.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
-                        modifier = Modifier.background(CharcoalCard)
+                        modifier = Modifier
+                            .background(CharcoalCardElevated)
+                            .border(1.dp, CharcoalBorder, RoundedCornerShape(8.dp))
                     ) {
                         Text(
                             "Chuyển thành",
@@ -546,6 +623,7 @@ private fun CopyMealDialog(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(CharcoalCard)
+                            .border(1.dp, CharcoalBorder, RoundedCornerShape(12.dp))
                             .clickable { onConfirm(dateStr) }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -562,3 +640,4 @@ private fun CopyMealDialog(
         }
     )
 }
+
