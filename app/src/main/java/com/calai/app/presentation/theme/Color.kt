@@ -7,13 +7,13 @@ import androidx.compose.ui.graphics.Color
 // CALAI DARK LUXURY CANVAS (THEME CHÍNH) - SPEC 9.3
 // ==========================================
 
-// 1. Nền & Bề mặt — 5 lớp độ sâu
+// 1. Nền & Bề mặt — 5 lớp độ sâu (Spec 10.5 - Tinh chỉnh chống bệt đen)
 val ObsidianBackground = Color(0xFF0D0E12)       // Nền gốc toàn app
-val CharcoalSurface = Color(0xFF171920)          // Surface — nền màn hình/section
-val CharcoalCard = Color(0xFF20232B)             // Nền card thường
-val CharcoalCardElevated = Color(0xFF262A34)     // Card/modal nổi cao hơn (bottom sheet, hero card, overlay)
-val CharcoalBorder = Color(0xFF2B2E3A)           // Viền 1px, divider
-val CharcoalDock = Color(0xFF242630)             // Floating bottom dock
+val CharcoalSurface = Color(0xFF1B1E26)          // Surface — nền section (thoáng hơn #171920)
+val CharcoalCard = Color(0xFF242833)             // Nền card chuẩn (tách lớp rõ ràng)
+val CharcoalCardElevated = Color(0xFF2D3240)     // Card nổi cao hơn (hero card, overlay, toggle track)
+val CharcoalBorder = Color(0xFF383D4D)           // Viền 1px sắc nét tách bạch
+val CharcoalDock = Color(0xFF242833)             // Floating bottom dock (đồng bộ layer)
 
 // 2. Bento Pastel — Gradient 2 tông Đã Hiệu Chỉnh Hài Hòa (Spec 10.4)
 // Độ sáng 68-80%, Độ bão hòa 45-60%, êm dịu như bộ macaron cao cấp
