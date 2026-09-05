@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,7 @@ import com.calai.app.presentation.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     onAddMealClick: () -> Unit,
+    onCameraClick: () -> Unit = {},
     onLogout: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -52,8 +54,21 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddMealClick) {
-                Icon(Icons.Default.Add, contentDescription = "Thêm bữa ăn")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ExtendedFloatingActionButton(
+                    onClick = onCameraClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    icon = { Icon(Icons.Default.PhotoCamera, contentDescription = "Quét ảnh AI") },
+                    text = { Text("Quét AI", fontWeight = FontWeight.Bold) }
+                )
+                FloatingActionButton(
+                    onClick = onAddMealClick,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Thêm món thủ công")
+                }
             }
         }
     ) { padding ->
