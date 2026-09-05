@@ -47,7 +47,6 @@ import com.calai.app.presentation.viewmodel.SuggestionsViewModel
 @Composable
 fun SuggestionsScreen(
     onBack: () -> Unit,
-    onNavigateToWorkoutHub: () -> Unit = {},
     onNavigateToLogWorkout: () -> Unit = {},
     viewModel: SuggestionsViewModel = hiltViewModel()
 ) {
@@ -219,34 +218,9 @@ fun SuggestionsScreen(
                         WorkoutCard(
                             data = it,
                             expandedDayName = uiState.expandedDayName,
-                            onToggleDay = viewModel::toggleDayExpand
+                            onToggleDay = viewModel::toggleDayExpand,
+                            onStartWorkout = onNavigateToLogWorkout
                         )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Nút mở Trung Tâm Tập Luyện
-                        Button(
-                            onClick = onNavigateToWorkoutHub,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CharcoalSurface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, VividOrange.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                DuotoneDumbbellIcon(size = 18.dp, primaryColor = VividOrange)
-                                Text(
-                                    text = "Mở Trung Tâm Tập Luyện & Lịch Sử",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = VividOrange
-                                )
-                            }
-                        }
                     }
                 }
 
@@ -280,7 +254,8 @@ fun SuggestionsScreen(
                     ExerciseCard(
                         exercise = exercise,
                         isExpanded = uiState.expandedExerciseId == exercise.id,
-                        onClick = { viewModel.toggleExerciseExpand(exercise.id) }
+                        onClick = { viewModel.toggleExerciseExpand(exercise.id) },
+                        onLogWorkout = onNavigateToLogWorkout
                     )
                 }
             }
@@ -560,7 +535,8 @@ private fun MiniStatPillDark(text: String) {
 private fun WorkoutCard(
     data: WorkoutRecommendationData,
     expandedDayName: String?,
-    onToggleDay: (String) -> Unit
+    onToggleDay: (String) -> Unit,
+    onStartWorkout: () -> Unit
 ) {
     val plan = data.recommendedWorkout
     var showAllDays by remember { mutableStateOf(false) }
@@ -610,7 +586,8 @@ private fun WorkoutCard(
                 DayRow(
                     day = day,
                     isExpanded = expandedDayName == day.dayName,
-                    onClick = { onToggleDay(day.dayName) }
+                    onClick = { onToggleDay(day.dayName) },
+                    onStartWorkout = onStartWorkout
                 )
             }
 
@@ -633,7 +610,12 @@ private fun WorkoutCard(
 }
 
 @Composable
-private fun DayRow(day: DayWorkoutPlanDto, isExpanded: Boolean, onClick: () -> Unit) {
+private fun DayRow(
+    day: DayWorkoutPlanDto,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    onStartWorkout: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -684,6 +666,26 @@ private fun DayRow(day: DayWorkoutPlanDto, isExpanded: Boolean, onClick: () -> U
                             color = TextMuted,
                             lineHeight = 16.sp
                         )
+                    }
+                }
+
+                if (day.exercises.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = onStartWorkout,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                            Text("Bắt đầu & Ghi buổi tập này", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -738,7 +740,12 @@ private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) 
 }
 
 @Composable
-private fun ExerciseCard(exercise: ExerciseGuideDto, isExpanded: Boolean, onClick: () -> Unit) {
+private fun ExerciseCard(
+    exercise: ExerciseGuideDto,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    onLogWorkout: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -781,6 +788,24 @@ private fun ExerciseCard(exercise: ExerciseGuideDto, isExpanded: Boolean, onClic
                 ExerciseInstructionRow("Thực hiện", exercise.instructions.execution)
                 ExerciseInstructionRow("Lỗi thường gặp", exercise.instructions.commonMistakes)
                 ExerciseInstructionRow("Hít thở", exercise.instructions.breathing)
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Button(
+                    onClick = onLogWorkout,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                        Text("+ Ghi bài tập này vào buổi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
