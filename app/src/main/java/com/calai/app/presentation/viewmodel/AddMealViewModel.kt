@@ -12,13 +12,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.calai.app.domain.util.MealTimeHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
 data class AddMealUiState(
-    val mealType: String = "LUNCH", // BREAKFAST, LUNCH, DINNER, SNACK
+    val mealType: String = MealTimeHelper.detectMealType(), // Tự động chọn theo giờ thực tế
     val searchQuery: String = "",
     val categories: List<String> = emptyList(),
     val selectedCategory: String? = null,

@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.calai.app.domain.util.MealTimeHelper
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.CameraScanViewModel
 import java.io.File
@@ -434,6 +435,32 @@ fun CameraScanScreen(
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
+
+                            // Gợi ý bữa ăn theo giờ chụp
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    tint = VividOrange,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (uiState.detectedTimeStr != null) {
+                                        "Đề xuất theo giờ chụp (${uiState.detectedTimeStr} • ${MealTimeHelper.getMealTypeLabel(uiState.mealType)}):"
+                                    } else {
+                                        "Bữa ăn:"
+                                    },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextMuted
+                                )
+                            }
 
                             // Chọn bữa ăn
                             Row(
