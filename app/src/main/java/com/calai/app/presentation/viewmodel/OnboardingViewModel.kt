@@ -13,43 +13,44 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Tổng số bước của Onboarding Wizard (chưa tính bước Hoàn tất). */
+/** Tổng số bước của Onboarding (5 bước). */
 const val ONBOARDING_STEP_COUNT = 5
 
 data class OnboardingUiState(
-    val currentStep: Int = 0, // 0..ONBOARDING_STEP_COUNT-1, sau đó sang màn Hoàn tất
+    val currentStep: Int = 0, // 0: WELCOME, 1: HEIGHT, 2: WEIGHT, 3: BIRTH_DATE, 4: GOAL
     val isCompleted: Boolean = false,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val savedProfile: UserProfileDto? = null,
 
-    // Bước 1 — User Profile
-    val gender: String? = null, // MALE, FEMALE
-    val dateOfBirth: String = "", // YYYY-MM-DD
+    // 1. HEIGHT (cm)
+    val heightCm: Float = 170f,
 
-    // Bước 2 — Body Metrics
-    val heightCm: String = "",
-    val weightKg: String = "",
-    val bodyFatPercent: String = "", // tuỳ chọn
+    // 2. WEIGHT (kg)
+    val weightKg: Float = 65f,
 
-    // Bước 3 — Activity Info
-    val activityLevel: String = "MODERATELY_ACTIVE",
+    // 3. BIRTH_DATE (day, month, year)
+    val birthDay: Int = 15,
+    val birthMonth: Int = 5,
+    val birthYear: Int = 1998,
 
-    // Bước 4 — Goal Selection
+    // 4. GOAL: LOSE_WEIGHT, MAINTAIN, GAIN_WEIGHT
     val goal: String = "MAINTAIN",
-    val targetWeightKg: String = "",
-    val weightRateKgPerWeek: Float = 0.5f,
 
-    // Bước 5 — Program Setup
-    val macroStyle: String = "BALANCED"
+    // Mặc định hỗ trợ tính toán BMR/TDEE
+    val gender: String = "MALE",
+    val activityLevel: String = "MODERATELY_ACTIVE"
 ) {
-    /** Từng bước cho phép Next hay chưa (validate tối thiểu). */
-    fun canProceedFromCurrentStep(): Boolean = when (currentStep) {
-        0 -> gender != null && dateOfBirth.isNotBlank()
-        1 -> heightCm.toFloatOrNull() != null && weightKg.toFloatOrNull() != null
-        2 -> true
-        3 -> goal == "MAINTAIN" || targetWeightKg.toFloatOrNull() != null
-        4 -> true
+    val dateOfBirth: String
+        get() = "%04d-%02d-%02d".format(birthYear, birthMonth, birthDay)
+
+    /** Kiểm tra xem bước hiện tại đã hợp lệ để tiếp tục hay chưa. */
+    fun canProceed(step: Int): Boolean = when (step) {
+        0 -> true // Welcome
+        1 -> heightCm in 50f..250f
+        2 -> weightKg in 20f..300f
+        3 -> birthYear in 1920..2020 && birthMonth in 1..12 && birthDay in 1..31
+        4 -> goal.isNotBlank()
         else -> true
     }
 }
@@ -62,56 +63,64 @@ class OnboardingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
-    fun selectGender(gender: String) = _uiState.update { it.copy(gender = gender, errorMessage = null) }
-    fun setDateOfBirth(value: String) = _uiState.update { it.copy(dateOfBirth = value, errorMessage = null) }
-    fun setHeightCm(value: String) = _uiState.update { it.copy(heightCm = value.filter { c -> c.isDigit() }, errorMessage = null) }
-    fun setWeightKg(value: String) = _uiState.update { it.copy(weightKg = value.filter { c -> c.isDigit() || c == '.' }, errorMessage = null) }
-    fun setBodyFatPercent(value: String) = _uiState.update { it.copy(bodyFatPercent = value.filter { c -> c.isDigit() || c == '.' }) }
-    fun selectActivityLevel(level: String) = _uiState.update { it.copy(activityLevel = level) }
-    fun selectGoal(goal: String) = _uiState.update { it.copy(goal = goal, errorMessage = null) }
-    fun setTargetWeightKg(value: String) = _uiState.update { it.copy(targetWeightKg = value.filter { c -> c.isDigit() || c == '.' }, errorMessage = null) }
-    fun selectRate(rate: Float) = _uiState.update { it.copy(weightRateKgPerWeek = rate) }
-    fun selectMacroStyle(style: String) = _uiState.update { it.copy(macroStyle = style) }
-
-    fun nextStep() {
-        val state = _uiState.value
-        if (!state.canProceedFromCurrentStep()) {
-            _uiState.update { it.copy(errorMessage = "Vui lòng nhập đầy đủ thông tin trước khi tiếp tục") }
-            return
-        }
-        if (state.currentStep >= ONBOARDING_STEP_COUNT - 1) {
-            submit()
-        } else {
-            _uiState.update { it.copy(currentStep = it.currentStep + 1, errorMessage = null) }
-        }
+    fun setHeightCm(value: Float) {
+        _uiState.update { it.copy(heightCm = value, errorMessage = null) }
     }
 
-    fun previousStep() {
+    fun setWeightKg(value: Float) {
+        _uiState.update { it.copy(weightKg = value, errorMessage = null) }
+    }
+
+    fun setDateOfBirth(day: Int, month: Int, year: Int) {
         _uiState.update {
-            if (it.currentStep > 0) it.copy(currentStep = it.currentStep - 1, errorMessage = null) else it
+            it.copy(
+                birthDay = day,
+                birthMonth = month,
+                birthYear = year,
+                errorMessage = null
+            )
         }
     }
 
-    private fun submit() {
+    fun selectGoal(goal: String) {
+        _uiState.update { it.copy(goal = goal, errorMessage = null) }
+    }
+
+    fun setCurrentStep(step: Int) {
+        _uiState.update { it.copy(currentStep = step.coerceIn(0, ONBOARDING_STEP_COUNT - 1)) }
+    }
+
+    /**
+     * Gửi toàn bộ dữ liệu lên backend (PATCH /users/me) sau khi hoàn tất bước GOAL.
+     */
+    fun submit(onSuccess: (() -> Unit)? = null) {
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
             val request = UpdateProfileRequest(
                 gender = state.gender,
-                dateOfBirth = state.dateOfBirth.ifBlank { null },
-                heightCm = state.heightCm.toFloatOrNull(),
-                weightKg = state.weightKg.toFloatOrNull(),
+                dateOfBirth = state.dateOfBirth,
+                heightCm = state.heightCm,
+                weightKg = state.weightKg,
                 activityLevel = state.activityLevel,
-                goal = state.goal,
-                targetWeightKg = if (state.goal == "MAINTAIN") null else state.targetWeightKg.toFloatOrNull(),
-                weightRateKgPerWeek = state.weightRateKgPerWeek,
-                bodyFatPercent = state.bodyFatPercent.toFloatOrNull(),
-                macroStyle = state.macroStyle
+                goal = state.goal
             )
             repository.updateProfile(request).onSuccess { profile ->
-                _uiState.update { it.copy(isSaving = false, isCompleted = true, savedProfile = profile) }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        isCompleted = true,
+                        savedProfile = profile
+                    )
+                }
+                onSuccess?.invoke()
             }.onFailure { e ->
-                _uiState.update { it.copy(isSaving = false, errorMessage = e.message ?: "Không thể lưu hồ sơ, vui lòng thử lại") }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = e.message ?: "Không thể lưu thông tin, vui lòng thử lại"
+                    )
+                }
             }
         }
     }
