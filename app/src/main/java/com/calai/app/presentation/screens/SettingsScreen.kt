@@ -48,6 +48,7 @@ fun SettingsScreen(
     var showUnitDialog by remember { mutableStateOf(false) }
     var showMealStructureDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showEmailVerifySheet by remember { mutableStateOf(false) }
 
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
@@ -95,6 +96,38 @@ fun SettingsScreen(
                     }
                 )
             }
+        )
+    }
+
+    if (showEmailVerifySheet) {
+        EmailVerificationModalSheet(
+            isDarkTheme = isDarkTheme,
+            email = uiState.profile?.email,
+            isSending = uiState.isSendingVerificationEmail,
+            isVerifying = uiState.isVerifyingEmail,
+            onSendCode = {
+                viewModel.sendVerificationEmail(
+                    onSuccess = {
+                        Toast.makeText(context, "Đã gửi mã xác thực tới email của bạn", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            },
+            onConfirmCode = { code ->
+                viewModel.verifyEmail(
+                    code = code,
+                    onSuccess = {
+                        showEmailVerifySheet = false
+                        Toast.makeText(context, "Xác thực email thành công!", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            },
+            onDismiss = { showEmailVerifySheet = false }
         )
     }
 
@@ -320,6 +353,16 @@ fun SettingsScreen(
             SettingsSectionHeader(title = "Tài khoản & Bảo mật", isDark = isDarkTheme)
 
             SettingsGroupCard(isDark = isDarkTheme) {
+                if (uiState.profile?.email != null) {
+                    SettingsActionRow(
+                        icon = if (uiState.profile?.isEmailVerified == true) Icons.Default.VerifiedUser else Icons.Default.MarkEmailUnread,
+                        title = "Xác thực Email",
+                        subtitle = if (uiState.profile?.isEmailVerified == true) "Email đã được xác thực" else "Chưa xác thực — nhấn để xác thực ngay",
+                        isDark = isDarkTheme,
+                        isLast = false,
+                        onClick = { showEmailVerifySheet = true }
+                    )
+                }
                 SettingsActionRow(
                     icon = Icons.Default.LockReset,
                     title = "Đổi mật khẩu tài khoản",
@@ -601,6 +644,95 @@ fun ChangePasswordModalSheet(
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
                 } else {
                     Text("Cập Nhật Mật Khẩu", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EmailVerificationModalSheet(
+    isDarkTheme: Boolean,
+    email: String?,
+    isSending: Boolean,
+    isVerifying: Boolean,
+    onSendCode: () -> Unit,
+    onConfirmCode: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var code by remember { mutableStateOf("") }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Xác Thực Email",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
+            )
+
+            Text(
+                text = "Nhấn \"Gửi mã\" để nhận mã OTP 6 chữ số tới ${email ?: "email của bạn"}, sau đó nhập mã vào ô bên dưới.",
+                fontSize = 12.5.sp,
+                color = if (isDarkTheme) TextMuted else TextInkMuted
+            )
+
+            OutlinedButton(
+                onClick = onSendCode,
+                enabled = !isSending,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder)
+            ) {
+                if (isSending) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = VividOrange, strokeWidth = 2.dp)
+                } else {
+                    Text("Gửi mã xác thực", color = if (isDarkTheme) TextWhite else TextInkPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            OutlinedTextField(
+                value = code,
+                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) code = it },
+                label = { Text("Mã OTP (6 chữ số)") },
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    unfocusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    focusedBorderColor = VividOrange,
+                    unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
+                    focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
+                    unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                )
+            )
+
+            Button(
+                onClick = { onConfirmCode(code) },
+                enabled = !isVerifying && code.length == 6,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
+            ) {
+                if (isVerifying) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
+                } else {
+                    Text("Xác Nhận Mã", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }

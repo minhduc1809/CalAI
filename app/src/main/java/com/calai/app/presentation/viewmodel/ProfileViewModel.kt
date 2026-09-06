@@ -31,6 +31,8 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val isChangingPassword: Boolean = false,
     val isUpdatingBiometrics: Boolean = false,
+    val isSendingVerificationEmail: Boolean = false,
+    val isVerifyingEmail: Boolean = false,
     val profile: UserProfileDto? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -209,6 +211,33 @@ class ProfileViewModel @Inject constructor(
                 onSuccess()
             }.onFailure { err ->
                 onError(err.message ?: "Cập nhật cân nặng thất bại")
+            }
+        }
+    }
+
+    fun sendVerificationEmail(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        _uiState.update { it.copy(isSendingVerificationEmail = true) }
+        viewModelScope.launch {
+            val result = repository.sendVerificationEmail()
+            _uiState.update { it.copy(isSendingVerificationEmail = false) }
+            result.onSuccess {
+                onSuccess()
+            }.onFailure { err ->
+                onError(err.message ?: "Gửi mã xác thực thất bại")
+            }
+        }
+    }
+
+    fun verifyEmail(code: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        _uiState.update { it.copy(isVerifyingEmail = true) }
+        viewModelScope.launch {
+            val result = repository.verifyEmail(code)
+            _uiState.update { it.copy(isVerifyingEmail = false) }
+            result.onSuccess {
+                loadProfile()
+                onSuccess()
+            }.onFailure { err ->
+                onError(err.message ?: "Mã xác thực không chính xác")
             }
         }
     }

@@ -25,6 +25,15 @@ interface CalAIApi {
     @PATCH("auth/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): ApiResponse<Any?>
 
+    @POST("auth/google")
+    suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): ApiResponse<AuthResponseData>
+
+    @POST("auth/send-verification-email")
+    suspend fun sendVerificationEmail(): ApiResponse<Any?>
+
+    @POST("auth/verify-email")
+    suspend fun verifyEmail(@Body request: VerifyEmailRequest): ApiResponse<Any?>
+
     // --- USERS ---
     @GET("users/me")
     suspend fun getProfile(): ApiResponse<UserProfileDto>

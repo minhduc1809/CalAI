@@ -28,6 +28,9 @@ interface CalAIRepository {
     suspend fun register(username: String, email: String?, password: String, name: String?): Result<AuthResponseData>
     suspend fun logout(): Result<Unit>
     suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit>
+    suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData>
+    suspend fun sendVerificationEmail(): Result<Unit>
+    suspend fun verifyEmail(code: String): Result<Unit>
     fun isLoggedIn(): Boolean
     fun getCurrentUserId(): String?
     fun getCurrentUsername(): String?
