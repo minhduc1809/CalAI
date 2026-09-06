@@ -50,6 +50,19 @@ fun SettingsScreen(
 
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
+    if (showUnitDialog) {
+        UnitSelectionModalSheet(
+            isDarkTheme = isDarkTheme,
+            currentWeightUnit = uiState.weightUnit,
+            onSelectWeightUnit = { unit ->
+                viewModel.setWeightUnit(unit)
+                val unitLabel = if (unit == "lb") "Pounds (lbs)" else "Kilograms (kg)"
+                Toast.makeText(context, "Đã đổi đơn vị cân nặng sang $unitLabel", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showUnitDialog = false }
+        )
+    }
+
     if (showChangePasswordSheet) {
         ChangePasswordModalSheet(
             isDarkTheme = isDarkTheme,
@@ -266,17 +279,19 @@ fun SettingsScreen(
                     isLast = false,
                     onClick = onOpenGoalSetup
                 )
+                val weightLabel = if (uiState.weightUnit == "lb") "Pound (lb)" else "Kilogram (kg)"
                 SettingsActionRow(
                     icon = Icons.Default.Straighten,
                     title = "Đơn vị đo lường (Units)",
-                    subtitle = "Kilogram (kg) • Centimeter (cm) • Calo (kcal)",
+                    subtitle = "$weightLabel • Centimeter (cm) • Calo (kcal)",
                     isDark = isDarkTheme,
                     isLast = true,
                     onClick = {
-                        Toast.makeText(context, "Đã chọn hệ Mét tiêu chuẩn (kg / cm / kcal)", Toast.LENGTH_SHORT).show()
+                        showUnitDialog = true
                     }
                 )
             }
+
 
             // 5. BẢO MẬT & TÀI KHOẢN (Spec 1–4)
             SettingsSectionHeader(title = "Tài khoản & Bảo mật", isDark = isDarkTheme)
@@ -698,3 +713,129 @@ private fun ReminderToggleRow(
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UnitSelectionModalSheet(
+    isDarkTheme: Boolean,
+    currentWeightUnit: String,
+    onSelectWeightUnit: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Text(
+                text = "Đơn Vị Đo Lường (Units)",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
+            )
+
+            Text(
+                text = "Chọn đơn vị cân nặng mong muốn để hiển thị trên toàn bộ ứng dụng:",
+                fontSize = 13.sp,
+                color = if (isDarkTheme) TextMuted else TextInkMuted
+            )
+
+            // Tùy chọn 1: Kilogram (kg)
+            UnitOptionCard(
+                title = "Kilogram (kg)",
+                description = "Hệ mét tiêu chuẩn (1 kg = 1000g)",
+                isSelected = currentWeightUnit == "kg",
+                isDark = isDarkTheme,
+                onClick = {
+                    onSelectWeightUnit("kg")
+                    onDismiss()
+                }
+            )
+
+            // Tùy chọn 2: Pound (lb)
+            UnitOptionCard(
+                title = "Pound (lb / lbs)",
+                description = "Hệ đo lường Anh-Mỹ (1 kg ≈ 2.205 lbs)",
+                isSelected = currentWeightUnit == "lb",
+                isDark = isDarkTheme,
+                onClick = {
+                    onSelectWeightUnit("lb")
+                    onDismiss()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
+            ) {
+                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnitOptionCard(
+    title: String,
+    description: String,
+    isSelected: Boolean,
+    isDark: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isSelected) VividOrange.copy(alpha = 0.12f) else if (isDark) CharcoalDock else PearlDock)
+            .border(
+                width = if (isSelected) 1.5.dp else 1.dp,
+                color = if (isSelected) VividOrange else if (isDark) CharcoalBorder else PearlBorder,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable { onClick() }
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) VividOrange else if (isDark) TextWhite else TextInkPrimary
+                )
+                Text(
+                    text = description,
+                    fontSize = 12.sp,
+                    color = if (isDark) TextMuted else TextInkMuted
+                )
+            }
+
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = VividOrange,
+                    unselectedColor = if (isDark) TextMuted else TextInkMuted
+                )
+            )
+        }
+    }
+}
+

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.presentation.components.*
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.ProfileViewModel
@@ -222,10 +223,13 @@ fun ProfileScreen(
                     isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)
                 )
+                val rawWeight = profile?.weightKg ?: 68.5f
+                val displayWeight = UserPreferencesManager.formatWeightValueOnly(rawWeight, uiState.weightUnit)
+
                 BioMetricCard(
                     title = "Cân nặng",
-                    value = "${profile?.weightKg ?: 68.5f}",
-                    unit = "kg",
+                    value = displayWeight,
+                    unit = if (uiState.weightUnit == "lb") "lbs" else "kg",
                     color = if (isDarkTheme) ProteinGradientStart else PastelProteinLight,
                     isDark = isDarkTheme,
                     modifier = Modifier.weight(1f)

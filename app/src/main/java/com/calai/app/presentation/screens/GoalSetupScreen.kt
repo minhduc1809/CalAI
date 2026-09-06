@@ -2,6 +2,7 @@ package com.calai.app.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,7 +34,8 @@ import com.calai.app.presentation.viewmodel.GoalSetupViewModel
 @Composable
 fun GoalSetupScreen(
     onBack: () -> Unit,
-    isDarkTheme: Boolean = true
+    isDarkTheme: Boolean = true,
+    onOpenExpenditureDetail: () -> Unit = {}
 ) {
     val viewModel: GoalSetupViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -54,17 +56,26 @@ fun GoalSetupScreen(
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             containerColor = surface,
-            title = { Text("Bạn có chắc muốn thay đổi mục tiêu?", color = textPrimary, fontWeight = FontWeight.Bold) },
+            title = {
+                Text("Xác nhận đổi mục tiêu?", fontWeight = FontWeight.Bold, color = textPrimary)
+            },
             text = {
                 Text(
-                    "Calo & macro mục tiêu hàng ngày sẽ được tính lại ngay theo lựa chọn mới.",
+                    "Đổi loại mục tiêu sẽ đặt lại lộ trình hiện tại. Hệ thống sẽ tính lại calo và macro mục tiêu phù hợp với bạn.",
                     color = textSecondary,
-                    fontSize = 13.sp
+                    fontSize = 13.5.sp,
+                    lineHeight = 18.sp
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showConfirmDialog = false; viewModel.save() }) {
-                    Text("Xác nhận", color = VividOrange, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        viewModel.save()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
+                ) {
+                    Text("Đồng ý", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -129,6 +140,7 @@ fun GoalSetupScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(badgeColor.copy(alpha = 0.15f))
+                                .clickable { onOpenExpenditureDetail() }
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -140,7 +152,7 @@ fun GoalSetupScreen(
                                     .background(badgeColor)
                             )
                             Text(
-                                if (isHolding) "Expenditure đã ổn định (Adaptive)" else "Đang cập nhật Expenditure",
+                                if (isHolding) "Expenditure đã ổn định (Adaptive) ➔" else "Đang cập nhật Expenditure ➔",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = badgeColor

@@ -15,15 +15,15 @@ import javax.inject.Inject
 
 data class ReminderSettingsState(
     val breakfastEnabled: Boolean = true,
-    val breakfastTime: String = "07:30",
+    val breakfastTime: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME,
     val lunchEnabled: Boolean = true,
-    val lunchTime: String = "12:00",
+    val lunchTime: String = UserPreferencesManager.DEFAULT_LUNCH_TIME,
     val dinnerEnabled: Boolean = true,
-    val dinnerTime: String = "19:00",
+    val dinnerTime: String = UserPreferencesManager.DEFAULT_DINNER_TIME,
     val snackEnabled: Boolean = false,
-    val snackTime: String = "15:30",
+    val snackTime: String = UserPreferencesManager.DEFAULT_SNACK_TIME,
     val waterEnabled: Boolean = true,
-    val waterInterval: Int = 2
+    val waterInterval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS
 )
 
 data class ProfileUiState(
@@ -33,6 +33,7 @@ data class ProfileUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isLoggedOut: Boolean = false,
+    val weightUnit: String = "kg",
     val reminderSettings: ReminderSettingsState = ReminderSettingsState()
 )
 
@@ -42,13 +43,27 @@ class ProfileViewModel @Inject constructor(
     private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
+    private val _uiState = MutableStateFlow(ProfileUiState(weightUnit = preferencesManager.getWeightUnit()))
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
         loadProfile()
         loadReminderSettings()
+        observePreferences()
     }
+
+    private fun observePreferences() {
+        viewModelScope.launch {
+            preferencesManager.weightUnit.collect { unit ->
+                _uiState.update { it.copy(weightUnit = unit) }
+            }
+        }
+    }
+
+    fun setWeightUnit(unit: String) {
+        preferencesManager.setWeightUnit(unit)
+    }
+
 
     fun loadReminderSettings() {
         _uiState.update {
@@ -69,27 +84,27 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateBreakfastReminder(enabled: Boolean, time: String = "07:30") {
+    fun updateBreakfastReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME) {
         preferencesManager.setBreakfastReminder(enabled, time)
         loadReminderSettings()
     }
 
-    fun updateLunchReminder(enabled: Boolean, time: String = "12:00") {
+    fun updateLunchReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_LUNCH_TIME) {
         preferencesManager.setLunchReminder(enabled, time)
         loadReminderSettings()
     }
 
-    fun updateDinnerReminder(enabled: Boolean, time: String = "19:00") {
+    fun updateDinnerReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_DINNER_TIME) {
         preferencesManager.setDinnerReminder(enabled, time)
         loadReminderSettings()
     }
 
-    fun updateSnackReminder(enabled: Boolean, time: String = "15:30") {
+    fun updateSnackReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_SNACK_TIME) {
         preferencesManager.setSnackReminder(enabled, time)
         loadReminderSettings()
     }
 
-    fun updateWaterReminder(enabled: Boolean, interval: Int = 2) {
+    fun updateWaterReminder(enabled: Boolean, interval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS) {
         preferencesManager.setWaterReminder(enabled, interval)
         loadReminderSettings()
     }
