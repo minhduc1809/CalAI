@@ -180,6 +180,19 @@ class CalAIRepositoryImpl @Inject constructor(
         return Result.success(Unit)
     }
 
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val response = api.changePassword(ChangePasswordRequest(oldPassword = oldPassword, newPassword = newPassword))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Đổi mật khẩu thất bại"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
     override fun getCurrentUserId(): String = tokenManager.getUserId() ?: "mock_user_01"
@@ -1006,6 +1019,28 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {
             getMockWeightProgress()
+        }
+    }
+
+    override suspend fun updateRemoteWeightLog(logId: String, weightKg: Float?, note: String?, date: String?): Result<WeightLogResponseDto> {
+        return try {
+            val response = api.updateWeightLog(logId, UpdateWeightLogRequest(weightKg = weightKg, note = note, date = date))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWeightLog(weightKg ?: 0f, note)
+            }
+        } catch (_: Exception) {
+            getMockWeightLog(weightKg ?: 0f, note)
+        }
+    }
+
+    override suspend fun deleteRemoteWeightLog(logId: String): Result<Unit> {
+        return try {
+            api.deleteWeightLog(logId)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
         }
     }
 

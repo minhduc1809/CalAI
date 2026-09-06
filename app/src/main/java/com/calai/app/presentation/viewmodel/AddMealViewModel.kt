@@ -206,6 +206,19 @@ class AddMealViewModel @Inject constructor(
         }
     }
 
+    fun updateFoodQuantity(index: Int, newQuantity: Float) {
+        if (newQuantity <= 0f) {
+            removeFoodFromMeal(index)
+            return
+        }
+        val currentList = _uiState.value.selectedFoods.toMutableList()
+        if (index in currentList.indices) {
+            val item = currentList[index]
+            currentList[index] = item.copy(quantity = newQuantity)
+            _uiState.value = _uiState.value.copy(selectedFoods = currentList)
+        }
+    }
+
     fun saveMeal() {
         val state = _uiState.value
         if (state.selectedFoods.isEmpty()) {

@@ -11,18 +11,30 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.navigation.Screen
 import com.calai.app.presentation.screens.*
 import com.calai.app.presentation.theme.CalAITheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var preferencesManager: UserPreferencesManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var isDarkTheme by remember { mutableStateOf(true) }
+            val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
+            var isDarkTheme by remember(isDarkThemePref) { mutableStateOf(isDarkThemePref) }
+
+            fun onThemeChanged(newTheme: Boolean) {
+                isDarkTheme = newTheme
+                preferencesManager.toggleTheme(newTheme)
+            }
 
             CalAITheme(darkTheme = isDarkTheme) {
                 Surface(
@@ -95,7 +107,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.Suggestions.route)
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onThemeChanged = { isDarkTheme = it }
+                                onThemeChanged = { onThemeChanged(it) }
                             )
                         }
 
@@ -123,7 +135,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
-                                }
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -135,15 +148,22 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onSaveSuccess = {
                                     navController.popBackStack()
-                                }
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
                         // 3. Màn hình Thêm bữa ăn (Add Meal)
                         composable(Screen.AddMeal.route) {
-                            AddMealScreen(onBack = {
-                                navController.popBackStack()
-                            })
+                            AddMealScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onCameraClick = {
+                                    navController.navigate(Screen.CameraScan.route)
+                                },
+                                isDarkTheme = isDarkTheme
+                            )
                         }
 
                         // 4. Màn hình Quét Camera AI (AI Camera Scan)
@@ -159,6 +179,19 @@ class MainActivity : ComponentActivity() {
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
                                 },
+                                onNavigateToWeightHistory = {
+                                    navController.navigate(Screen.WeightHistory.route)
+                                },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
+
+                        // 5b. Màn hình Lịch sử cân nặng đầy đủ (xem/sửa/xóa từng bản ghi)
+                        composable(Screen.WeightHistory.route) {
+                            WeightHistoryScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -173,7 +206,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 7. Màn hình Hồ sơ & Mục tiêu (Profile & Settings)
+                        // 7. Màn hình Hồ sơ & Mục tiêu (Profile)
                         composable(Screen.Profile.route) {
                             ProfileScreen(
                                 onNavigateTab = { tab ->
@@ -185,22 +218,37 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { newTheme ->
-                                    isDarkTheme = newTheme
-                                },
+                                onToggleTheme = { onThemeChanged(it) },
                                 onOpenGoalSetup = {
                                     navController.navigate(Screen.GoalSetup.route)
+                                },
+                                onOpenSettings = {
+                                    navController.navigate(Screen.Settings.route)
                                 }
                             )
                         }
 
-                        // 8. Màn hình Mục tiêu & Chương trình (Goal Selection/Change, Program Setup)
+                        // 8. Màn hình Mục tiêu & Chương trình (Goal Setup)
                         composable(Screen.GoalSetup.route) {
                             GoalSetupScreen(
                                 onBack = {
                                     navController.popBackStack()
                                 },
                                 isDarkTheme = isDarkTheme
+                            )
+                        }
+
+                        // 9. Màn hình Cài đặt Hệ thống & Giao diện (Settings Screen - Spec STT 132-134)
+                        composable(Screen.Settings.route) {
+                            SettingsScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                isDarkTheme = isDarkTheme,
+                                onToggleTheme = { onThemeChanged(it) },
+                                onOpenGoalSetup = {
+                                    navController.navigate(Screen.GoalSetup.route)
+                                }
                             )
                         }
                     }

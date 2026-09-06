@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +46,7 @@ enum class TrainingHubTab(val title: String) {
 fun WorkoutHubScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit,
+    isDarkTheme: Boolean = true,
     workoutViewModel: WorkoutViewModel = hiltViewModel(),
     suggestionsViewModel: SuggestionsViewModel = hiltViewModel()
 ) {
@@ -55,6 +57,8 @@ fun WorkoutHubScreen(
     var selectedWorkoutForDetail by remember { mutableStateOf<WorkoutLogDto?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+
     LaunchedEffect(Unit) {
         workoutViewModel.loadData()
     }
@@ -62,7 +66,7 @@ fun WorkoutHubScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         // Quầng ambient glow loang mờ đa tầng chống bệt đen
         Box(
@@ -71,7 +75,7 @@ fun WorkoutHubScreen(
                 .align(Alignment.TopEnd)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(PastelLavender.copy(alpha = 0.08f), Color.Transparent)
+                        colors = listOf(PastelLavender.copy(alpha = if (isDarkTheme) 0.08f else 0.15f), Color.Transparent)
                     )
                 )
         )
@@ -81,7 +85,7 @@ fun WorkoutHubScreen(
                 .align(Alignment.BottomStart)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(VividOrange.copy(alpha = 0.07f), Color.Transparent)
+                        colors = listOf(VividOrange.copy(alpha = if (isDarkTheme) 0.07f else 0.12f), Color.Transparent)
                     )
                 )
         )
@@ -108,15 +112,15 @@ fun WorkoutHubScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(CharcoalSurface)
-                            .border(1.dp, CharcoalBorder, CircleShape)
+                            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = TextWhite,
+                            tint = if (isDarkTheme) TextWhite else TextInkPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -126,13 +130,13 @@ fun WorkoutHubScreen(
                             text = "Trung Tâm Tập Luyện",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "Lộ trình, Lịch sử & Volume Load",
                             fontSize = 12.sp,
-                            color = TextMuted
+                            color = if (isDarkTheme) TextMuted else TextInkMuted
                         )
                     }
                 }
@@ -140,6 +144,7 @@ fun WorkoutHubScreen(
                 // Nút CTA nhanh "Ghi buổi tập"
                 Box(
                     modifier = Modifier
+                        .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = VividOrange.copy(alpha = 0.3f), spotColor = VividOrange.copy(alpha = 0.3f))
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.horizontalGradient(listOf(VividOrange, VividOrangeLight)))
                         .clickable {
@@ -163,9 +168,15 @@ fun WorkoutHubScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
+                    .shadow(
+                        elevation = if (isDarkTheme) 2.dp else 4.dp,
+                        shape = RoundedCornerShape(22.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(CharcoalSurface)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(22.dp))
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
                     .padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -190,7 +201,7 @@ fun WorkoutHubScreen(
                             text = tab.title,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) TextWhite else TextMuted
+                            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
                         )
                     }
                 }
@@ -203,6 +214,7 @@ fun WorkoutHubScreen(
                 TrainingHubTab.PROGRAM -> {
                     ProgramTabContent(
                         workoutData = suggestionsUiState.workout,
+                        isDark = isDarkTheme,
                         onStartWorkoutDay = { dayTitle, exerciseNames ->
                             workoutViewModel.prefillFromProgram(dayTitle, exerciseNames)
                             onNavigateToLogWorkout()
@@ -214,6 +226,7 @@ fun WorkoutHubScreen(
                     HistoryTabContent(
                         workoutList = workoutUiState.history,
                         summary = workoutUiState.summary,
+                        isDark = isDarkTheme,
                         onSelectDetail = { selectedWorkoutForDetail = it },
                         onDelete = { workoutViewModel.deleteWorkout(it.id) }
                     )
@@ -222,6 +235,7 @@ fun WorkoutHubScreen(
                 TrainingHubTab.LIBRARY -> {
                     LibraryTabContent(
                         exercises = suggestionsUiState.exercises,
+                        isDark = isDarkTheme,
                         onLogExercise = { ex ->
                             workoutViewModel.resetForm()
                             workoutViewModel.setWorkoutName("Buổi tập ${ex.name}")
@@ -238,11 +252,12 @@ fun WorkoutHubScreen(
             ModalBottomSheet(
                 onDismissRequest = { selectedWorkoutForDetail = null },
                 sheetState = sheetState,
-                containerColor = CharcoalCardElevated,
-                contentColor = TextWhite
+                containerColor = if (isDarkTheme) CharcoalCardElevated else PearlCard,
+                contentColor = if (isDarkTheme) TextWhite else TextInkPrimary
             ) {
                 WorkoutDetailSheetContent(
                     workout = workout,
+                    isDark = isDarkTheme,
                     onClose = { selectedWorkoutForDetail = null }
                 )
             }
@@ -250,12 +265,14 @@ fun WorkoutHubScreen(
     }
 }
 
+
 /**
  * TAB 1: LỘ TRÌNH TẬP LUYỆN 4 TUẦN
  */
 @Composable
 fun ProgramTabContent(
     workoutData: WorkoutRecommendationData?,
+    isDark: Boolean = true,
     onStartWorkoutDay: (dayTitle: String, exerciseNames: List<String>) -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -455,6 +472,7 @@ fun ProgramTabContent(
 fun HistoryTabContent(
     workoutList: List<WorkoutLogDto>,
     summary: com.calai.app.data.remote.dto.WorkoutSummaryDto?,
+    isDark: Boolean = true,
     onSelectDetail: (WorkoutLogDto) -> Unit,
     onDelete: (WorkoutLogDto) -> Unit
 ) {
@@ -663,6 +681,7 @@ fun HistoryTabContent(
 @Composable
 fun LibraryTabContent(
     exercises: List<ExerciseGuideDto>,
+    isDark: Boolean = true,
     onLogExercise: (ExerciseGuideDto) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -681,18 +700,18 @@ fun LibraryTabContent(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Tìm bài tập theo tên hoặc nhóm cơ...", color = TextMuted, fontSize = 13.sp) },
+            placeholder = { Text("Tìm bài tập theo tên hoặc nhóm cơ...", color = if (isDark) TextMuted else TextInkMuted, fontSize = 13.sp) },
             leadingIcon = {
-                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = if (isDark) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            textStyle = LocalTextStyle.current.copy(color = TextWhite, fontSize = 14.sp),
+            textStyle = LocalTextStyle.current.copy(color = if (isDark) TextWhite else TextInkPrimary, fontSize = 14.sp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = VividOrange,
-                unfocusedBorderColor = CharcoalBorder,
-                focusedContainerColor = CharcoalCard,
-                unfocusedContainerColor = CharcoalCard
+                unfocusedBorderColor = if (isDark) CharcoalBorder else PearlBorder,
+                focusedContainerColor = if (isDark) CharcoalCard else PearlCard,
+                unfocusedContainerColor = if (isDark) CharcoalCard else PearlCard
             ),
             shape = RoundedCornerShape(16.dp)
         )
@@ -706,8 +725,8 @@ fun LibraryTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(CharcoalCard)
-                        .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                        .background(if (isDark) CharcoalCard else PearlCard)
+                        .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -727,7 +746,7 @@ fun LibraryTabContent(
                                         .background(PastelMint.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = TextWhite, accentColor = PastelMint)
+                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = if (isDark) TextWhite else TextInkPrimary, accentColor = PastelMint)
                                 }
 
                                 Column {
@@ -735,12 +754,12 @@ fun LibraryTabContent(
                                         text = ex.name,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite
+                                        color = if (isDark) TextWhite else TextInkPrimary
                                     )
                                     Text(
                                         text = "${ex.targetMuscle} • ${ex.equipment}",
                                         fontSize = 11.sp,
-                                        color = TextMuted
+                                        color = if (isDark) TextMuted else TextInkMuted
                                     )
                                 }
                             }
@@ -748,8 +767,8 @@ fun LibraryTabContent(
                             Button(
                                 onClick = { onLogExercise(ex) },
                                 colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(text = "+ Ghi tập", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
@@ -758,7 +777,7 @@ fun LibraryTabContent(
                         Text(
                             text = ex.instructions.execution,
                             fontSize = 12.sp,
-                            color = TextWhite.copy(alpha = 0.8f),
+                            color = (if (isDark) TextWhite else TextInkPrimary).copy(alpha = 0.8f),
                             lineHeight = 16.sp
                         )
                     }
@@ -774,6 +793,7 @@ fun LibraryTabContent(
 @Composable
 fun WorkoutDetailSheetContent(
     workout: WorkoutLogDto,
+    isDark: Boolean = true,
     onClose: () -> Unit
 ) {
     Column(

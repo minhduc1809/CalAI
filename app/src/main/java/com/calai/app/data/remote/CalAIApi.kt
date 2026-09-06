@@ -22,6 +22,9 @@ interface CalAIApi {
     @POST("auth/logout")
     suspend fun logout(): ApiResponse<Any?>
 
+    @PATCH("auth/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): ApiResponse<Any?>
+
     // --- USERS ---
     @GET("users/me")
     suspend fun getProfile(): ApiResponse<UserProfileDto>
@@ -72,6 +75,9 @@ interface CalAIApi {
 
     @GET("weight-logs/progress")
     suspend fun getWeightProgress(): ApiResponse<WeightProgressDto>
+
+    @PATCH("weight-logs/{id}")
+    suspend fun updateWeightLog(@Path("id") logId: String, @Body request: UpdateWeightLogRequest): ApiResponse<WeightLogResponseDto>
 
     @DELETE("weight-logs/{id}")
     suspend fun deleteWeightLog(@Path("id") logId: String): ApiResponse<Any?>

@@ -11,6 +11,15 @@ data class CreateWeightLogRequest(
     val date: String? = null
 )
 
+data class UpdateWeightLogRequest(
+    @SerializedName("weightKg")
+    val weightKg: Float? = null,
+    @SerializedName("note")
+    val note: String? = null,
+    @SerializedName("date")
+    val date: String? = null
+)
+
 data class WeightLogResponseDto(
     @SerializedName("id")
     val id: String,
