@@ -29,53 +29,65 @@ enum class DockTab {
 }
 
 /**
- * Thanh điều hướng nổi dạng đảo (Floating Island Dock) bám sát ảnh mẫu
+ * Thanh điều hướng nổi dạng đảo (Dark Luxury Floating Island Dock)
+ * Tuân thủ quy tắc 9.2:
+ * - Lớp CharcoalDock + viền CharcoalBorder + bo góc 32dp
+ * - Tab active với nền VividOrange
+ * - Icon Glassmorphism mờ nhẹ khi không active
  */
 @Composable
 fun FloatingBottomDock(
     currentTab: DockTab,
     onTabSelected: (DockTab) -> Unit,
+    isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier
                 .height(64.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(CharcoalDock)
-                .border(1.dp, CharcoalBorder, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp),
+                .background(if (isDarkTheme) CharcoalDock else PearlDock)
+                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(32.dp))
+                .padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             DockItem(
                 icon = Icons.Default.Home,
                 isSelected = currentTab == DockTab.HOME,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.HOME) }
             )
             DockItem(
                 icon = Icons.Default.AutoGraph,
                 isSelected = currentTab == DockTab.STATISTICS,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.STATISTICS) }
             )
+            // Tab quét AI ở chính giữa
             DockItem(
                 icon = Icons.Default.CameraAlt,
                 isSelected = currentTab == DockTab.SCAN,
+                isHero = true,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.SCAN) }
             )
             DockItem(
                 icon = Icons.Default.AutoAwesome,
                 isSelected = currentTab == DockTab.CHAT,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.CHAT) }
             )
             DockItem(
                 icon = Icons.Default.Person,
                 isSelected = currentTab == DockTab.PROFILE,
+                isDarkTheme = isDarkTheme,
                 onClick = { onTabSelected(DockTab.PROFILE) }
             )
         }
@@ -86,22 +98,38 @@ fun FloatingBottomDock(
 private fun DockItem(
     icon: ImageVector,
     isSelected: Boolean,
+    isHero: Boolean = false,
+    isDarkTheme: Boolean = true,
     onClick: () -> Unit
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (isSelected) VividOrange else Color.Transparent,
+        targetValue = when {
+            isSelected -> VividOrange
+            isHero -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
+            else -> Color.Transparent
+        },
         label = "dock_bg"
     )
+
     val iconColor by animateColorAsState(
-        targetValue = if (isSelected) TextWhite else TextMuted,
+        targetValue = when {
+            isSelected -> TextWhite
+            isHero -> VividOrange
+            else -> if (isDarkTheme) TextMuted else TextInkMuted
+        },
         label = "dock_icon"
     )
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(46.dp)
             .clip(CircleShape)
             .background(bgColor)
+            .then(
+                if (isHero && !isSelected) {
+                    Modifier.border(1.dp, VividOrange.copy(alpha = 0.4f), CircleShape)
+                } else Modifier
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -113,3 +141,4 @@ private fun DockItem(
         )
     }
 }
+

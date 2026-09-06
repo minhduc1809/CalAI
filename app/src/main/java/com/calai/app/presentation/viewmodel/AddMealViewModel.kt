@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
+import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,18 +12,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.calai.app.domain.util.MealTimeHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
 data class AddMealUiState(
-    val mealType: String = "LUNCH", // BREAKFAST, LUNCH, DINNER, SNACK
+    val mealType: String = MealTimeHelper.detectMealType(), // Tự động chọn theo giờ thực tế
     val searchQuery: String = "",
     val categories: List<String> = emptyList(),
     val selectedCategory: String? = null,
     val searchResults: List<FoodItemDto> = emptyList(),
     val selectedFoods: List<CreateMealItemDto> = emptyList(),
+    val favoriteNames: Set<String> = emptySet(),
+    val customFoods: List<CustomFoodDto> = emptyList(),
     val isSearching: Boolean = false,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
@@ -39,13 +43,108 @@ class AddMealViewModel @Inject constructor(
 
     init {
         loadCategories()
+        loadFavorites()
+        loadCustomFoods()
         searchFoods("")
+    }
+
+    private fun loadCustomFoods() {
+        viewModelScope.launch {
+            repository.fetchCustomFoods().onSuccess { foods ->
+                _uiState.value = _uiState.value.copy(customFoods = foods)
+            }
+        }
+    }
+
+    /** Tạo món ăn riêng mới, lưu vào kho món của người dùng để tái sử dụng về sau. */
+    fun createCustomFood(name: String, servingSize: String, calories: Float, protein: Float, carb: Float, fat: Float) {
+        if (name.isBlank() || calories <= 0f) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
+            return
+        }
+        viewModelScope.launch {
+            repository.createCustomFood(
+                name = name,
+                servingSize = servingSize.ifBlank { null },
+                calories = calories,
+                protein = protein,
+                carb = carb,
+                fat = fat
+            ).onSuccess {
+                loadCustomFoods()
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(errorMessage = e.message ?: "Không thể tạo món ăn riêng")
+            }
+        }
+    }
+
+    fun deleteCustomFood(id: String) {
+        viewModelScope.launch {
+            repository.deleteCustomFood(id).onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    customFoods = _uiState.value.customFoods.filterNot { it.id == id }
+                )
+            }
+        }
     }
 
     private fun loadCategories() {
         viewModelScope.launch {
             repository.getFoodCategories().onSuccess { cats ->
                 _uiState.value = _uiState.value.copy(categories = cats)
+            }
+        }
+    }
+
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            repository.fetchFavoriteFoods().onSuccess { names ->
+                _uiState.value = _uiState.value.copy(favoriteNames = names.toSet())
+            }
+        }
+    }
+
+    fun toggleFavorite(foodName: String) {
+        val isCurrentlyFavorite = foodName in _uiState.value.favoriteNames
+        val updated = _uiState.value.favoriteNames.toMutableSet()
+        if (isCurrentlyFavorite) updated.remove(foodName) else updated.add(foodName)
+        _uiState.value = _uiState.value.copy(favoriteNames = updated)
+
+        viewModelScope.launch {
+            if (isCurrentlyFavorite) {
+                repository.removeFavoriteFood(foodName)
+            } else {
+                repository.addFavoriteFood(foodName)
+            }
+        }
+    }
+
+    /** Ghi nhận calo/macro nhanh mà không cần chọn từng món từ kho món ăn. */
+    fun quickAdd(name: String, calories: Float, protein: Float, carb: Float, fat: Float) {
+        if (name.isBlank() || calories <= 0f) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+            repository.quickAddMeal(
+                name = name,
+                mealType = _uiState.value.mealType,
+                date = dateStr,
+                calories = calories,
+                protein = protein,
+                carb = carb,
+                fat = fat
+            ).onSuccess {
+                _uiState.value = _uiState.value.copy(isSaving = false, isSaveSuccess = true)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    errorMessage = e.message ?: "Lỗi khi ghi nhận calo nhanh"
+                )
             }
         }
     }
@@ -104,6 +203,19 @@ class AddMealViewModel @Inject constructor(
         val currentList = _uiState.value.selectedFoods.toMutableList()
         if (index in currentList.indices) {
             currentList.removeAt(index)
+            _uiState.value = _uiState.value.copy(selectedFoods = currentList)
+        }
+    }
+
+    fun updateFoodQuantity(index: Int, newQuantity: Float) {
+        if (newQuantity <= 0f) {
+            removeFoodFromMeal(index)
+            return
+        }
+        val currentList = _uiState.value.selectedFoods.toMutableList()
+        if (index in currentList.indices) {
+            val item = currentList[index]
+            currentList[index] = item.copy(quantity = newQuantity)
             _uiState.value = _uiState.value.copy(selectedFoods = currentList)
         }
     }

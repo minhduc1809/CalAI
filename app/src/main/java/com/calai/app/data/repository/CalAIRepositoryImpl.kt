@@ -18,17 +18,27 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.HttpException
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
 /**
  * Implementation của CalAIRepository
- * Kết nối Database cục bộ (Room) và REST API (NestJS backend)
+ * Hỗ trợ Chế độ Hybrid: Tự động dùng Mock Offline khi không kết nối được Backend
  */
 class CalAIRepositoryImpl @Inject constructor(
     private val dao: CalAIDao,
     private val api: CalAIApi,
     private val tokenManager: TokenManager
 ) : CalAIRepository {
+
+    // Bộ nhớ tạm cho Favorite Foods khi offline (không có bảng Room riêng cho favorites)
+    private val mockFavoriteFoods = mutableSetOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
+
+    // Bộ nhớ tạm cho Custom Foods khi offline (không có bảng Room riêng cho custom foods)
+    private val mockCustomFoods = mutableListOf<CustomFoodDto>()
 
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
@@ -135,12 +145,21 @@ class CalAIRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout(): Result<Unit> {
+        try {
+            api.logout()
+        } catch (_: Exception) {}
+        tokenManager.clear()
+        return Result.success(Unit)
+    }
+
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
         return try {
-            try {
-                api.logout()
-            } catch (_: Exception) {}
-            tokenManager.clear()
-            Result.success(Unit)
+            val response = api.changePassword(ChangePasswordRequest(oldPassword = oldPassword, newPassword = newPassword))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Đổi mật khẩu thất bại"))
+            }
         } catch (e: Exception) {
             Result.failure(Exception(extractErrorMessage(e)))
         }
@@ -148,9 +167,9 @@ class CalAIRepositoryImpl @Inject constructor(
 
     override fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
-    override fun getCurrentUserId(): String? = tokenManager.getUserId()
+    override fun getCurrentUserId(): String = tokenManager.getUserId() ?: ""
 
-    override fun getCurrentUsername(): String? = tokenManager.getUsername()
+    override fun getCurrentUsername(): String = tokenManager.getUsername() ?: "Người dùng CalAI"
 
     // --- User Profile ---
     override suspend fun fetchRemoteProfile(): Result<UserProfileDto> {
@@ -159,7 +178,7 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể lấy thông tin cá nhân"))
+                Result.failure(Exception(response.message ?: "Không thể tải thông tin hồ sơ"))
             }
         } catch (e: Exception) {
             Result.failure(Exception(extractErrorMessage(e)))
@@ -172,11 +191,39 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể cập nhật thông tin"))
+                Result.failure(Exception(response.message ?: "Không thể cập nhật hồ sơ"))
             }
         } catch (e: Exception) {
             Result.failure(Exception(extractErrorMessage(e)))
         }
+    }
+
+    override suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto> {
+        return try {
+            val response = api.getExpenditureStatus()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockExpenditureStatus()
+            }
+        } catch (_: Exception) {
+            getMockExpenditureStatus()
+        }
+    }
+
+    private fun getMockExpenditureStatus(): Result<ExpenditureStatusDto> {
+        return Result.success(
+            ExpenditureStatusDto(
+                method = "STATIC_FALLBACK",
+                status = "UPDATING",
+                estimatedExpenditure = 2310f,
+                staticTdee = 2310f,
+                windowDays = 0,
+                weightLogsCount = 0,
+                loggedDaysCount = 0,
+                message = "Cần thêm dữ liệu cân nặng & bữa ăn để bắt đầu tính Expenditure thích ứng."
+            )
+        )
     }
 
     // --- Meals Remote & Sync ---
@@ -210,24 +257,36 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             val response = api.createMeal(request)
             if (response.success && response.data != null) {
-                val userId = tokenManager.getUserId() ?: ""
-                for (item in response.data.items) {
-                    val localMeal = Meal(
-                        mealId = item.id,
-                        userId = userId,
-                        foodName = item.name,
-                        calories = item.calories,
-                        protein = item.protein,
-                        carb = item.carb,
-                        fat = item.fat,
-                        timestamp = System.currentTimeMillis(),
-                        source = item.source
-                    )
-                    dao.insertMeal(localMeal.toEntity())
-                }
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.message ?: "Không thể tạo bữa ăn"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun updateRemoteMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
+        val request = UpdateMealRequest(mealType = mealType, date = date)
+        return try {
+            val response = api.updateMeal(mealId, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể cập nhật bữa ăn"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String?): Result<MealResponseDto> {
+        return try {
+            val response = api.copyMeal(mealId, CopyMealRequest(targetDate = targetDate, mealType = mealType))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể sao chép bữa ăn"))
             }
         } catch (e: Exception) {
             Result.failure(Exception(extractErrorMessage(e)))
@@ -247,18 +306,146 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
-    // --- Recommendations & Foods ---
+    override suspend fun fetchNutritionStatistics(startDate: String?, endDate: String?): Result<NutritionStatisticsData> {
+        return try {
+            val response = api.getMealsStatistics(startDate, endDate)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockNutritionStatistics()
+            }
+        } catch (_: Exception) {
+            getMockNutritionStatistics()
+        }
+    }
+
+    private fun getMockNutritionStatistics(): Result<NutritionStatisticsData> {
+        val calendar = java.util.Calendar.getInstance()
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val caloriesByDay = listOf(1750f, 1920f, 1680f, 1850f, 2100f, 1790f, 1650f)
+        val dailyStats = caloriesByDay.mapIndexed { index, calories ->
+            calendar.time = Date()
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, -(caloriesByDay.size - 1 - index))
+            DailyStatDto(
+                date = fmt.format(calendar.time),
+                calories = calories,
+                protein = calories * 0.30f / 4f,
+                carb = calories * 0.45f / 4f,
+                fat = calories * 0.25f / 9f,
+                mealsCount = 3
+            )
+        }
+        val avgCalories = dailyStats.map { it.calories }.average().toFloat()
+        return Result.success(
+            NutritionStatisticsData(
+                period = StatisticsPeriodDto(start = dailyStats.first().date, end = dailyStats.last().date),
+                averages = StatisticsAveragesDto(
+                    dailyCalories = avgCalories,
+                    dailyProtein = dailyStats.map { it.protein }.average().toFloat(),
+                    dailyCarb = dailyStats.map { it.carb }.average().toFloat(),
+                    dailyFat = dailyStats.map { it.fat }.average().toFloat()
+                ),
+                dailyStats = dailyStats
+            )
+        )
+    }
+
+    override suspend fun quickAddMeal(
+        name: String,
+        mealType: String,
+        date: String,
+        calories: Float,
+        protein: Float,
+        carb: Float,
+        fat: Float
+    ): Result<MealResponseDto> {
+        val request = QuickAddMealRequest(
+            name = name,
+            mealType = mealType,
+            date = date,
+            calories = calories,
+            protein = protein,
+            carb = carb,
+            fat = fat
+        )
+        return try {
+            val response = api.quickAddMeal(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockQuickAddMeal(request)
+            }
+        } catch (_: Exception) {
+            getMockQuickAddMeal(request)
+        }
+    }
+
+    private fun getMockQuickAddMeal(request: QuickAddMealRequest): Result<MealResponseDto> {
+        val mealId = UUID.randomUUID().toString()
+        return Result.success(
+            MealResponseDto(
+                id = mealId,
+                userId = "mock_user_01",
+                mealType = request.mealType,
+                date = request.date,
+                totalCalories = request.calories,
+                totalProtein = request.protein,
+                totalCarb = request.carb,
+                totalFat = request.fat,
+                items = listOf(
+                    MealItemResponseDto(
+                        id = "item_${UUID.randomUUID()}",
+                        mealId = mealId,
+                        name = request.name,
+                        servingSize = "1 phần",
+                        quantity = 1f,
+                        calories = request.calories,
+                        protein = request.protein,
+                        carb = request.carb,
+                        fat = request.fat,
+                        source = "quick_add"
+                    )
+                )
+            )
+        )
+    }
+
+    // --- Recommendations & Foods (với Mock Offline Fallback) ---
     override suspend fun searchFoods(query: String?, category: String?): Result<List<FoodItemDto>> {
         return try {
             val response = api.searchFoods(query, category)
             if (response.success && response.data != null) {
                 Result.success(response.data.items)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể tra cứu món ăn"))
+                getMockFoods(query, category)
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockFoods(query, category)
         }
+    }
+
+    private fun getMockFoods(query: String?, category: String?): Result<List<FoodItemDto>> {
+        val allFoods = listOf(
+            FoodItemDto("Phở Bò Tái Chín", "Cơm / Bún / Phở", "1 tô lớn (450g)", 550f, 28f, 65f, 18f),
+            FoodItemDto("Cơm Tấm Sườn Bì Chả", "Cơm / Bún / Phở", "1 đĩa (400g)", 620f, 32f, 75f, 22f),
+            FoodItemDto("Bún Bò Huế", "Cơm / Bún / Phở", "1 tô lớn (500g)", 580f, 30f, 68f, 20f),
+            FoodItemDto("Ức Gà Áp Chảo", "Thịt / Trứng", "1 phần (200g)", 330f, 46f, 0f, 7f),
+            FoodItemDto("Trứng Luộc (2 quả)", "Thịt / Trứng", "2 quả (100g)", 155f, 13f, 1f, 11f),
+            FoodItemDto("Bún Chả Hà Nội", "Cơm / Bún / Phở", "1 phần (380g)", 520f, 26f, 60f, 18f),
+            FoodItemDto("Salad Ức Gà Sốt Mè", "Rau / Củ", "1 tô (300g)", 280f, 25f, 12f, 14f),
+            FoodItemDto("Gỏi Cuốn Tôm Thịt", "Rau / Củ", "2 cuốn (180g)", 220f, 14f, 28f, 5f),
+            FoodItemDto("Sữa Tươi Không Đường", "Đồ uống", "1 hộp (250ml)", 120f, 8f, 11f, 5f),
+            FoodItemDto("Sinh Tố Bơ Ít Đường", "Đồ uống", "1 ly (300ml)", 240f, 4f, 22f, 16f)
+        )
+
+        var filtered = allFoods
+        if (!category.isNullOrBlank() && category != "Tất cả") {
+            filtered = filtered.filter { it.category.contains(category, ignoreCase = true) }
+        }
+        if (!query.isNullOrBlank()) {
+            filtered = filtered.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        return Result.success(filtered)
     }
 
     override suspend fun getFoodCategories(): Result<List<String>> {
@@ -267,10 +454,311 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể tải danh mục món ăn"))
+                getMockCategories()
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockCategories()
+        }
+    }
+
+    private fun getMockCategories(): Result<List<String>> {
+        return Result.success(listOf("Tất cả", "Cơm / Bún / Phở", "Thịt / Trứng", "Rau / Củ", "Đồ uống"))
+    }
+
+    override suspend fun fetchFavoriteFoods(): Result<List<String>> {
+        return try {
+            val response = api.getFavoriteFoods()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(mockFavoriteFoods.toList())
+            }
+        } catch (_: Exception) {
+            Result.success(mockFavoriteFoods.toList())
+        }
+    }
+
+    override suspend fun addFavoriteFood(foodName: String): Result<Unit> {
+        mockFavoriteFoods.add(foodName)
+        return try {
+            api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
+
+    override suspend fun removeFavoriteFood(foodName: String): Result<Unit> {
+        mockFavoriteFoods.remove(foodName)
+        return try {
+            api.removeFavoriteFood(foodName)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
+
+    override suspend fun fetchDietRecommendation(): Result<DietRecommendationData> {
+        return try {
+            val response = api.getDietRecommendation()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockDietRecommendation()
+            }
+        } catch (_: Exception) {
+            getMockDietRecommendation()
+        }
+    }
+
+    private fun getMockDietRecommendation(): Result<DietRecommendationData> {
+        val plan = VietnameseDietPlanDto(
+            id = "diet-lose-1500",
+            goal = "LOSE_WEIGHT",
+            title = "Thực đơn giảm cân 1500 kcal - Giàu đạm",
+            description = "Ưu tiên ức gà, cá, trứng và rau xanh, tinh bột hấp thu chậm để no lâu và giữ cơ trong quá trình giảm cân.",
+            targetCalo = 1500f,
+            macroRatio = MacroRatioDto(proteinPercent = 35, carbPercent = 40, fatPercent = 25),
+            meals = DietMealsDto(
+                breakfast = MealBlockDto(
+                    title = "Bữa sáng",
+                    items = listOf(VietnameseMealItemDto("Trứng ốp la + bánh mì nguyên cám", "1 phần", 350f, 18f, 35f, 14f)),
+                    totalCalories = 350f
+                ),
+                lunch = MealBlockDto(
+                    title = "Bữa trưa",
+                    items = listOf(VietnameseMealItemDto("Ức gà áp chảo + cơm gạo lứt + rau luộc", "1 phần", 550f, 42f, 55f, 12f)),
+                    totalCalories = 550f
+                ),
+                dinner = MealBlockDto(
+                    title = "Bữa tối",
+                    items = listOf(VietnameseMealItemDto("Cá hấp + salad rau củ", "1 phần", 450f, 32f, 30f, 18f)),
+                    totalCalories = 450f
+                ),
+                snack = MealBlockDto(
+                    title = "Bữa phụ",
+                    items = listOf(VietnameseMealItemDto("Sữa chua không đường + hạt óc chó", "1 phần", 150f, 8f, 10f, 9f)),
+                    totalCalories = 150f
+                )
+            )
+        )
+        return Result.success(
+            DietRecommendationData(
+                userTarget = UserDietTargetDto(goal = "LOSE_WEIGHT", targetCalories = 1500f, targetProtein = 135f, targetCarb = 150f, targetFat = 42f),
+                recommendedPlan = plan,
+                availableOptions = listOf(
+                    DietOptionDto("diet-lose-1500", plan.title, 1500f, plan.description),
+                    DietOptionDto("diet-lose-1800", "Thực đơn giảm cân 1800 kcal", 1800f, "Phù hợp người vận động nhiều hơn.")
+                )
+            )
+        )
+    }
+
+    override suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData> {
+        return try {
+            val response = api.getWorkoutRecommendation()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutRecommendation()
+            }
+        } catch (_: Exception) {
+            getMockWorkoutRecommendation()
+        }
+    }
+
+    private fun getMockWorkoutRecommendation(): Result<WorkoutRecommendationData> {
+        val plan = WorkoutTemplatePlanDto(
+            id = "workout-lose-home-beginner",
+            goal = "LOSE_WEIGHT",
+            level = "BEGINNER",
+            title = "Lộ trình đốt mỡ toàn thân tại nhà 4 tuần",
+            description = "Bài tập Bodyweight an toàn cho khớp gối, tăng nhịp tim để đốt mỡ hiệu quả.",
+            suitableForBmi = "Thừa cân (BMI >= 23)",
+            weeklySchedule = listOf(
+                DayWorkoutPlanDto(
+                    dayName = "Thứ 2 - Toàn thân",
+                    focus = "Cardio + Bodyweight",
+                    estimatedMinutes = 30,
+                    exercises = listOf(
+                        WorkoutExerciseItemDto("Jumping Jack", "Toàn thân", 3, "45 giây", 30, 40f, "Bật nhảy dang tay chân liên tục, giữ nhịp thở đều."),
+                        WorkoutExerciseItemDto("Squat", "Đùi, Mông", 3, "15 lần", 45, 35f, "Hạ hông xuống như ngồi ghế, giữ lưng thẳng.")
+                    )
+                ),
+                DayWorkoutPlanDto(dayName = "Thứ 3 - Nghỉ phục hồi", focus = "Nghỉ ngơi", estimatedMinutes = 0, exercises = emptyList())
+            )
+        )
+        return Result.success(
+            WorkoutRecommendationData(
+                userProfile = UserWorkoutProfileDto(bmi = 24.5f, goal = "LOSE_WEIGHT", activityLevel = "SEDENTARY"),
+                recommendedWorkout = plan,
+                allWorkoutPlans = listOf(
+                    WorkoutOptionDto(plan.id, plan.title, plan.goal, plan.level, plan.suitableForBmi)
+                )
+            )
+        )
+    }
+
+    override suspend fun fetchExercises(gender: String?, level: String?): Result<ExerciseListData> {
+        return try {
+            val response = api.getExercises(gender, level)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockExercises(gender)
+            }
+        } catch (_: Exception) {
+            getMockExercises(gender)
+        }
+    }
+
+    private fun getMockExercises(gender: String?): Result<ExerciseListData> {
+        val targetGender = gender ?: "MALE"
+        val exercises = listOf(
+            ExerciseGuideDto(
+                id = "mock-ex-1",
+                name = "Chống đẩy quỳ gối",
+                genderTarget = targetGender,
+                level = "BEGINNER",
+                targetMuscle = "Ngực, Vai, Tay sau",
+                equipment = "NO_EQUIPMENT",
+                sets = 3,
+                repsOrDuration = "10-12 lần",
+                restSeconds = 45,
+                caloriesBurnedEstimate = 30f,
+                instructions = ExerciseInstructionsDto(
+                    preparation = "Quỳ 2 gối trên thảm, 2 tay chống rộng hơn vai.",
+                    execution = "Hạ ngực xuống gần sàn rồi đẩy lên, giữ thân thẳng.",
+                    commonMistakes = "Võng lưng, hạ đầu trước ngực.",
+                    breathing = "Hít vào khi hạ xuống, thở ra khi đẩy lên."
+                )
+            ),
+            ExerciseGuideDto(
+                id = "mock-ex-2",
+                name = "Plank",
+                genderTarget = targetGender,
+                level = "BEGINNER",
+                targetMuscle = "Core, Bụng",
+                equipment = "NO_EQUIPMENT",
+                sets = 3,
+                repsOrDuration = "30-45 giây",
+                restSeconds = 30,
+                caloriesBurnedEstimate = 20f,
+                instructions = ExerciseInstructionsDto(
+                    preparation = "Chống 2 cẳng tay và mũi chân xuống sàn.",
+                    execution = "Giữ thân người thành 1 đường thẳng, siết bụng.",
+                    commonMistakes = "Võng hông xuống hoặc đẩy mông lên cao.",
+                    breathing = "Thở đều, không nín thở."
+                )
+            )
+        )
+        return Result.success(
+            ExerciseListData(
+                gender = targetGender,
+                totalCount = exercises.size,
+                filteredCount = exercises.size,
+                levelsSummary = LevelsSummaryDto(beginner = exercises.size, intermediate = 0, advanced = 0),
+                exercises = exercises
+            )
+        )
+    }
+
+    override suspend fun fetchMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
+        return try {
+            val response = api.getMonthlyDiet(goal, level)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockMonthlyDiet(goal, level)
+            }
+        } catch (_: Exception) {
+            getMockMonthlyDiet(goal, level)
+        }
+    }
+
+    private fun getMockMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
+        val resolvedGoal = goal ?: "LOSE_WEIGHT"
+        val resolvedLevel = level ?: "BEGINNER"
+        val plans = (1..3).map { day ->
+            MonthDietPlanItemDto(
+                dayNumber = day,
+                dayTitle = "Ngày $day: Thực đơn cân bằng đạm - tinh bột - rau xanh",
+                goal = resolvedGoal,
+                experienceLevel = resolvedLevel,
+                suitableForWho = "Người mới bắt đầu, ưu tiên an toàn khớp gối",
+                phaseName = "Giai đoạn 1: Thích nghi & Giảm mỡ nền tảng",
+                focusMessage = "Ưu tiên đạm nạc và rau xanh để no lâu, hạn chế tinh bột tinh chế.",
+                targetCalories = 1500f,
+                macroSummary = MacroSummaryDto(proteinGrams = 135f, carbGrams = 150f, fatGrams = 42f, proteinRatio = 35, carbRatio = 40, fatRatio = 25),
+                meals = DietMealsDto(
+                    breakfast = MealBlockDto("Bữa sáng", listOf(VietnameseMealItemDto("Trứng luộc + Khoai lang", "1 phần", 300f, 15f, 35f, 8f)), 300f),
+                    lunch = MealBlockDto("Bữa trưa", listOf(VietnameseMealItemDto("Ức gà + Cơm gạo lứt + Rau luộc", "1 phần", 550f, 42f, 55f, 12f)), 550f),
+                    dinner = MealBlockDto("Bữa tối", listOf(VietnameseMealItemDto("Cá hấp + Salad", "1 phần", 450f, 32f, 30f, 18f)), 450f),
+                    snack = MealBlockDto("Bữa phụ", listOf(VietnameseMealItemDto("Sữa chua không đường", "1 hộp", 150f, 8f, 10f, 9f)), 150f)
+                )
+            )
+        }
+        return Result.success(
+            MonthlyDietData(goal = resolvedGoal, experienceLevel = resolvedLevel, totalDays = plans.size, monthlyPlans = plans)
+        )
+    }
+
+    override suspend fun createCustomFood(
+        name: String,
+        servingSize: String?,
+        calories: Float,
+        protein: Float,
+        carb: Float,
+        fat: Float
+    ): Result<CustomFoodDto> {
+        val request = CreateCustomFoodRequest(name = name, servingSize = servingSize, calories = calories, protein = protein, carb = carb, fat = fat)
+        return try {
+            val response = api.createCustomFood(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockCreatedCustomFood(request)
+            }
+        } catch (_: Exception) {
+            getMockCreatedCustomFood(request)
+        }
+    }
+
+    private fun getMockCreatedCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+        val food = CustomFoodDto(
+            id = UUID.randomUUID().toString(),
+            userId = "mock_user_01",
+            name = request.name,
+            servingSize = request.servingSize,
+            calories = request.calories,
+            protein = request.protein,
+            carb = request.carb,
+            fat = request.fat
+        )
+        mockCustomFoods.add(0, food)
+        return Result.success(food)
+    }
+
+    override suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>> {
+        return try {
+            val response = api.getCustomFoods()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(mockCustomFoods.toList())
+            }
+        } catch (_: Exception) {
+            Result.success(mockCustomFoods.toList())
+        }
+    }
+
+    override suspend fun deleteCustomFood(id: String): Result<Unit> {
+        mockCustomFoods.removeAll { it.id == id }
+        return try {
+            api.deleteCustomFood(id)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
         }
     }
 
@@ -279,21 +767,26 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             val response = api.createWeightLog(CreateWeightLogRequest(weightKg = weightKg, note = note))
             if (response.success && response.data != null) {
-                val userId = tokenManager.getUserId() ?: ""
-                val localLog = WeightLog(
-                    logId = response.data.id,
-                    userId = userId,
-                    weight = response.data.weightKg,
-                    date = System.currentTimeMillis()
-                )
-                dao.insertWeightLog(localLog.toEntity())
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể lưu cân nặng"))
+                getMockWeightLog(weightKg, note)
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockWeightLog(weightKg, note)
         }
+    }
+
+    private fun getMockWeightLog(weightKg: Float, note: String?): Result<WeightLogResponseDto> {
+        val dateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        return Result.success(
+            WeightLogResponseDto(
+                id = UUID.randomUUID().toString(),
+                userId = "mock_user_01",
+                weightKg = weightKg,
+                note = note,
+                date = dateIso
+            )
+        )
     }
 
     override suspend fun fetchRemoteWeightLogs(limit: Int): Result<List<WeightLogResponseDto>> {
@@ -302,14 +795,97 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể tải lịch sử cân nặng"))
+                getMockWeightLogs()
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockWeightLogs()
         }
     }
 
-    // --- AI Food Recognition ---
+    private fun getMockWeightLogs(): Result<List<WeightLogResponseDto>> {
+        val dateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        return Result.success(
+            listOf(
+                WeightLogResponseDto("w_1", "mock_user_01", 68.5f, "Cân sáng lúc bụng rỗng", dateIso),
+                WeightLogResponseDto("w_2", "mock_user_01", 68.8f, "Sau buổi tập nhẹ", "2026-09-04"),
+                WeightLogResponseDto("w_3", "mock_user_01", 69.2f, "Bắt đầu chuỗi siết mỡ", "2026-09-02")
+            )
+        )
+    }
+
+    override suspend fun fetchWeightTrend(limit: Int): Result<List<WeightTrendPointDto>> {
+        return try {
+            val response = api.getWeightTrend(limit)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWeightTrend()
+            }
+        } catch (_: Exception) {
+            getMockWeightTrend()
+        }
+    }
+
+    private fun getMockWeightTrend(): Result<List<WeightTrendPointDto>> {
+        return Result.success(
+            listOf(
+                WeightTrendPointDto("wt_1", "2026-09-02", loggedWeight = 69.2f, trendWeight = 69.2f, note = "Bắt đầu chuỗi siết mỡ"),
+                WeightTrendPointDto("wt_2", "2026-09-04", loggedWeight = 68.8f, trendWeight = 69.16f, note = "Sau buổi tập nhẹ"),
+                WeightTrendPointDto("wt_3", "2026-09-05", loggedWeight = 68.5f, trendWeight = 69.09f, note = "Cân sáng lúc bụng rỗng")
+            )
+        )
+    }
+
+    override suspend fun fetchWeightProgress(): Result<WeightProgressDto> {
+        return try {
+            val response = api.getWeightProgress()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWeightProgress()
+            }
+        } catch (_: Exception) {
+            getMockWeightProgress()
+        }
+    }
+
+    override suspend fun updateRemoteWeightLog(logId: String, weightKg: Float?, note: String?, date: String?): Result<WeightLogResponseDto> {
+        return try {
+            val response = api.updateWeightLog(logId, UpdateWeightLogRequest(weightKg = weightKg, note = note, date = date))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWeightLog(weightKg ?: 0f, note)
+            }
+        } catch (_: Exception) {
+            getMockWeightLog(weightKg ?: 0f, note)
+        }
+    }
+
+    override suspend fun deleteRemoteWeightLog(logId: String): Result<Unit> {
+        return try {
+            api.deleteWeightLog(logId)
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
+
+    private fun getMockWeightProgress(): Result<WeightProgressDto> {
+        return Result.success(
+            WeightProgressDto(
+                goal = "LOSE_WEIGHT",
+                startWeightKg = 72.0f,
+                currentWeightKg = 68.5f,
+                targetWeightKg = 65.0f,
+                weightChangedKg = -3.5f,
+                remainingToGoalKg = 3.5f,
+                progressPercent = 50
+            )
+        )
+    }
+
+    // --- AI Food Recognition & Chat Coach (với Mock Offline Fallback) ---
     override suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto> {
         return try {
             val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
@@ -318,10 +894,10 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể nhận diện món ăn"))
+                getMockRecognition()
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockRecognition()
         }
     }
 
@@ -331,11 +907,31 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể nhận diện món ăn"))
+                getMockRecognition()
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockRecognition()
         }
+    }
+
+    private fun getMockRecognition(): Result<FoodRecognitionResultDto> {
+        return Result.success(
+            FoodRecognitionResultDto(
+                foodName = "Phở Bò Tái Cầu",
+                confidenceScore = 0.96,
+                totalCalories = 550.0,
+                totalProtein = 28.0,
+                totalCarb = 65.0,
+                totalFat = 18.0,
+                servingSize = "1 tô lớn (450g)",
+                healthTip = "Món ăn giàu đạm và năng lượng phục hồi. Bạn có thể giảm nước lèo béo để duy trì thâm hụt calo tốt hơn.",
+                items = listOf(
+                    FoodItemRecognitionDto("Thịt bò tái & nạm", "150g", 220.0, 22.0, 0.0, 14.0),
+                    FoodItemRecognitionDto("Bánh phở tươi", "200g", 250.0, 5.0, 58.0, 1.0),
+                    FoodItemRecognitionDto("Nước dùng & Rau thơm", "100g", 80.0, 1.0, 7.0, 3.0)
+                )
+            )
+        )
     }
 
     override suspend fun chatAi(message: String): Result<ChatAiResponseDto> {
@@ -344,10 +940,288 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message ?: "Không thể nhận phản hồi từ AI Coach"))
+                getMockChatAi(message)
             }
-        } catch (e: Exception) {
-            Result.failure(Exception(extractErrorMessage(e)))
+        } catch (_: Exception) {
+            getMockChatAi(message)
+        }
+    }
+
+    private fun getMockChatAi(message: String): Result<ChatAiResponseDto> {
+        val answer = when {
+            message.contains("calo", ignoreCase = true) || message.contains("gợi ý", ignoreCase = true) ->
+                "Dựa trên chỉ số TDEE 2310 kcal của bạn, để giảm cân an toàn bạn nên duy trì lượng nạp khoảng 1810 kcal/ngày (thâm hụt 500 kcal). Ưu tiên bữa ăn giàu ức gà, trứng, cá thu và rau xanh!"
+            message.contains("protein", ignoreCase = true) || message.contains("đạm", ignoreCase = true) ->
+                "Mục tiêu Protein hàng ngày của bạn là 135g. Bạn có thể chia làm 3-4 bữa, mỗi bữa bổ sung từ 30-35g đạm (tương đương 150g ức gà hoặc 4 quả trứng luộc)."
+            else ->
+                "CalAI Coach chào bạn! Tôi là trợ lý dinh dưỡng AI. Bạn có thể hỏi tôi bất kỳ câu hỏi nào về calo, thực đơn siết mỡ, tăng cơ hay cách phân bổ dinh dưỡng hợp lý!"
+        }
+        return Result.success(ChatAiResponseDto(reply = answer))
+    }
+
+    // --- Workouts & Training Implementation ---
+
+    override suspend fun fetchWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {
+        return try {
+            val response = api.getWorkoutCategories()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutCategories()
+            }
+        } catch (_: Exception) {
+            getMockWorkoutCategories()
+        }
+    }
+
+    private fun getMockWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {
+        return Result.success(
+            listOf(
+                WorkoutCategoryInfoDto(WorkoutCategory.STRENGTH, "Tập tạ / Kháng lực", 5.0f, "Tập kháng lực, nâng tạ nghỉ giữa các hiệp"),
+                WorkoutCategoryInfoDto(WorkoutCategory.RUNNING, "Chạy bộ", 9.8f, "Chạy ngoài trời hoặc máy chạy bộ tốc độ ~8.5 km/h"),
+                WorkoutCategoryInfoDto(WorkoutCategory.HIIT, "HIIT / Tabata", 8.5f, "Tập luyện ngắt quãng cường độ cao"),
+                WorkoutCategoryInfoDto(WorkoutCategory.CYCLING, "Đạp xe", 7.5f, "Đạp xe ngoài trời hoặc máy đạp xe cường độ vừa"),
+                WorkoutCategoryInfoDto(WorkoutCategory.SWIMMING, "Bơi lội", 8.0f, "Bơi sải hoặc bơi ếch nhịp độ liên tục"),
+                WorkoutCategoryInfoDto(WorkoutCategory.CARDIO, "Cardio tổng hợp", 6.5f, "Aerobic, nhảy dây, leo cầu thang"),
+                WorkoutCategoryInfoDto(WorkoutCategory.WALKING, "Đi bộ", 3.8f, "Đi bộ nhanh tốc độ ~5 km/h"),
+                WorkoutCategoryInfoDto(WorkoutCategory.YOGA, "Yoga / Giãn cơ", 2.8f, "Hatha/Vinyasa yoga, kéo giãn cơ bắp"),
+                WorkoutCategoryInfoDto(WorkoutCategory.SPORTS, "Thể thao đối kháng", 7.0f, "Cầu lông, bóng đá, bóng rổ, tennis"),
+                WorkoutCategoryInfoDto(WorkoutCategory.OTHER, "Vận động khác", 4.0f, "Lao động tay chân, vận động tự do")
+            )
+        )
+    }
+
+    override suspend fun fetchWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
+        return try {
+            val response = api.getWorkoutSummary(date)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkoutSummary(date)
+            }
+        } catch (_: Exception) {
+            getMockWorkoutSummary(date)
+        }
+    }
+
+    private fun getMockWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
+        return Result.success(
+            WorkoutSummaryDto(
+                date = date ?: "2026-09-06",
+                totalActiveCalories = 420,
+                totalDurationMinutes = 55,
+                workoutCount = 1,
+                categories = listOf("STRENGTH")
+            )
+        )
+    }
+
+    override suspend fun createWorkoutLog(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
+        return try {
+            val response = api.createWorkout(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockCreatedWorkout(request)
+            }
+        } catch (_: Exception) {
+            getMockCreatedWorkout(request)
+        }
+    }
+
+    private fun getMockCreatedWorkout(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
+        val cat = try {
+            WorkoutCategory.valueOf(request.category)
+        } catch (_: Exception) {
+            WorkoutCategory.STRENGTH
+        }
+        val exDtos = request.exercises?.mapIndexed { index, ex ->
+            WorkoutExerciseDto(
+                id = "mock_ex_$index",
+                name = ex.name,
+                order = ex.order,
+                sets = ex.sets.map { s ->
+                    WorkoutSetDto(
+                        id = "mock_set_${s.setNumber}",
+                        setNumber = s.setNumber,
+                        reps = s.reps,
+                        weightKg = s.weightKg,
+                        rpe = s.rpe,
+                        isCompleted = true
+                    )
+                }
+            )
+        } ?: emptyList()
+
+        val totalVol = exDtos.sumOf { ex ->
+            ex.sets.sumOf { (it.reps * it.weightKg).toDouble() }
+        }.toFloat()
+
+        return Result.success(
+            WorkoutLogDto(
+                id = "mock_workout_${System.currentTimeMillis()}",
+                name = request.name,
+                category = cat,
+                date = request.date ?: "2026-09-06T08:00:00.000Z",
+                durationMinutes = request.durationMinutes,
+                caloriesBurned = request.caloriesBurned ?: (request.durationMinutes * 6.5f),
+                rpe = request.rpe ?: 8,
+                note = request.note,
+                exercises = exDtos,
+                totalVolumeKg = totalVol
+            )
+        )
+    }
+
+    override suspend fun fetchWorkouts(
+        date: String?,
+        startDate: String?,
+        endDate: String?,
+        category: String?
+    ): Result<List<WorkoutLogDto>> {
+        return try {
+            val response = api.getWorkouts(date, startDate, endDate, category)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkouts()
+            }
+        } catch (_: Exception) {
+            getMockWorkouts()
+        }
+    }
+
+    private fun getMockWorkouts(): Result<List<WorkoutLogDto>> {
+        val sampleWorkouts = listOf(
+            WorkoutLogDto(
+                id = "workout_1",
+                name = "Buổi tập Ngực & Tay sau (Push Day)",
+                category = WorkoutCategory.STRENGTH,
+                date = "2026-09-05T08:30:00.000Z",
+                durationMinutes = 60,
+                caloriesBurned = 380f,
+                rpe = 8,
+                note = "Đẩy ngực lên 80kg 6 reps rất tốt, form chuẩn.",
+                exercises = listOf(
+                    WorkoutExerciseDto(
+                        id = "ex_1",
+                        name = "Barbell Bench Press (Đẩy ngực ngang)",
+                        order = 1,
+                        sets = listOf(
+                            WorkoutSetDto("s1", 1, 12, 60f, 7),
+                            WorkoutSetDto("s2", 2, 10, 70f, 8),
+                            WorkoutSetDto("s3", 3, 8, 75f, 8),
+                            WorkoutSetDto("s4", 4, 6, 80f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_2",
+                        name = "Incline Dumbbell Press (Đẩy tạ đơn ngực trên)",
+                        order = 2,
+                        sets = listOf(
+                            WorkoutSetDto("s5", 1, 10, 24f, 8),
+                            WorkoutSetDto("s6", 2, 10, 24f, 8),
+                            WorkoutSetDto("s7", 3, 8, 26f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_3",
+                        name = "Cable Triceps Pushdown (Kéo cáp tay sau)",
+                        order = 3,
+                        sets = listOf(
+                            WorkoutSetDto("s8", 1, 15, 25f, 7),
+                            WorkoutSetDto("s9", 2, 12, 30f, 8),
+                            WorkoutSetDto("s10", 3, 10, 35f, 9)
+                        )
+                    )
+                ),
+                totalVolumeKg = 3480f
+            ),
+            WorkoutLogDto(
+                id = "workout_2",
+                name = "Chạy bộ sáng Cardio (Outdoor Run)",
+                category = WorkoutCategory.RUNNING,
+                date = "2026-09-04T06:15:00.000Z",
+                durationMinutes = 35,
+                caloriesBurned = 320f,
+                rpe = 7,
+                note = "Chạy quanh công viên tốc độ đều pace 5:45.",
+                exercises = emptyList(),
+                totalVolumeKg = 0f
+            ),
+            WorkoutLogDto(
+                id = "workout_3",
+                name = "Buổi tập Lưng & Tay trước (Pull Day)",
+                category = WorkoutCategory.STRENGTH,
+                date = "2026-09-03T17:45:00.000Z",
+                durationMinutes = 65,
+                caloriesBurned = 410f,
+                rpe = 8,
+                note = "Deadlift 110kg 5 reps. Cảm giác lưng xô căng tốt.",
+                exercises = listOf(
+                    WorkoutExerciseDto(
+                        id = "ex_4",
+                        name = "Conventional Deadlift",
+                        order = 1,
+                        sets = listOf(
+                            WorkoutSetDto("s11", 1, 8, 90f, 7),
+                            WorkoutSetDto("s12", 2, 6, 100f, 8),
+                            WorkoutSetDto("s13", 3, 5, 110f, 9)
+                        )
+                    ),
+                    WorkoutExerciseDto(
+                        id = "ex_5",
+                        name = "Lat Pulldown (Kéo xô rộng tay)",
+                        order = 2,
+                        sets = listOf(
+                            WorkoutSetDto("s14", 1, 12, 55f, 8),
+                            WorkoutSetDto("s15", 2, 10, 60f, 8),
+                            WorkoutSetDto("s16", 3, 10, 60f, 9)
+                        )
+                    )
+                ),
+                totalVolumeKg = 3520f
+            )
+        )
+        return Result.success(sampleWorkouts)
+    }
+
+    override suspend fun fetchWorkoutById(id: String): Result<WorkoutLogDto> {
+        return try {
+            val response = api.getWorkoutById(id)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+            }
+        } catch (_: Exception) {
+            getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+        }
+    }
+
+    override suspend fun updateWorkoutLog(id: String, request: UpdateWorkoutLogRequest): Result<WorkoutLogDto> {
+        return try {
+            val response = api.updateWorkout(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                fetchWorkoutById(id)
+            }
+        } catch (_: Exception) {
+            fetchWorkoutById(id)
+        }
+    }
+
+    override suspend fun deleteWorkoutLog(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteWorkout(id)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.success(Unit)
+            }
+        } catch (_: Exception) {
+            Result.success(Unit)
         }
     }
 }

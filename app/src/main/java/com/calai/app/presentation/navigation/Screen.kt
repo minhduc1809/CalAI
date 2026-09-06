@@ -8,4 +8,13 @@ sealed class Screen(val route: String) {
     object Statistics : Screen("statistics")
     object Chat : Screen("chat")
     object Profile : Screen("profile")
+    object Suggestions : Screen("suggestions")
+    object WorkoutHub : Screen("workout_hub")
+    object LogWorkout : Screen("log_workout")
+    object GoalSetup : Screen("goal_setup")
+    object Onboarding : Screen("onboarding")
+    object Settings : Screen("settings")
+    object WeightHistory : Screen("weight_history")
+    object ExpenditureDetail : Screen("expenditure_detail")
 }
+

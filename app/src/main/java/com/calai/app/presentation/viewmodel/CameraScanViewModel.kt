@@ -8,6 +8,7 @@ import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
 import com.calai.app.data.remote.dto.FoodRecognitionResultDto
 import com.calai.app.domain.repository.CalAIRepository
+import com.calai.app.domain.util.MealTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +27,8 @@ data class CameraScanUiState(
     val selectedImageUri: Uri? = null,
     val isAnalyzing: Boolean = false,
     val result: FoodRecognitionResultDto? = null,
-    val mealType: String = "LUNCH", // BREAKFAST, LUNCH, DINNER, SNACK
+    val mealType: String = MealTimeHelper.detectMealType(), // Tự động nhận diện theo giờ
+    val detectedTimeStr: String? = null,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
     val errorMessage: String? = null
@@ -45,10 +47,14 @@ class CameraScanViewModel @Inject constructor(
     }
 
     fun onImageCapturedOrSelected(uri: Uri, context: Context) {
+        val (autoMealType, timeStr) = MealTimeHelper.detectMealTypeFromImage(context, uri)
+
         _uiState.value = _uiState.value.copy(
             selectedImageUri = uri,
             isAnalyzing = true,
             result = null,
+            mealType = autoMealType,
+            detectedTimeStr = timeStr,
             errorMessage = null,
             isSaveSuccess = false
         )
@@ -150,6 +156,8 @@ class CameraScanViewModel @Inject constructor(
             selectedImageUri = null,
             isAnalyzing = false,
             result = null,
+            mealType = MealTimeHelper.detectMealType(),
+            detectedTimeStr = null,
             errorMessage = null,
             isSaveSuccess = false
         )
