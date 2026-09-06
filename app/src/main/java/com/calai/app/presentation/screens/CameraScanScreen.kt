@@ -1,7 +1,10 @@
 package com.calai.app.presentation.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
@@ -30,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -53,6 +57,26 @@ fun CameraScanScreen(
     ) { success ->
         if (success && tempPhotoUri != null) {
             viewModel.onImageCapturedOrSelected(tempPhotoUri!!, context)
+        }
+    }
+
+    val launchCamera = {
+        val uri = createTempPictureUri(context)
+        tempPhotoUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCamera()
+        } else {
+            Toast.makeText(
+                context,
+                "Vui lòng cấp quyền Camera để chụp ảnh nhận diện món ăn",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -173,9 +197,16 @@ fun CameraScanScreen(
                 ) {
                     Button(
                         onClick = {
-                            val uri = createTempPictureUri(context)
-                            tempPhotoUri = uri
-                            cameraLauncher.launch(uri)
+                            val hasCameraPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasCameraPermission) {
+                                launchCamera()
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
