@@ -12,4 +12,5 @@ sealed class Screen(val route: String) {
     object WorkoutHub : Screen("workout_hub")
     object LogWorkout : Screen("log_workout")
     object GoalSetup : Screen("goal_setup")
+    object Onboarding : Screen("onboarding")
 }

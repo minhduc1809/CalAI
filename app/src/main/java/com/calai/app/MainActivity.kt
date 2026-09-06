@@ -54,11 +54,24 @@ class MainActivity : ComponentActivity() {
                     ) {
                         // 1. Màn hình Đăng nhập / Đăng ký
                         composable(Screen.Login.route) {
-                            LoginScreen(onLoginSuccess = {
-                                navController.navigate(Screen.Home.route) {
+                            LoginScreen(onLoginSuccess = { isNewRegistration ->
+                                val destination = if (isNewRegistration) Screen.Onboarding.route else Screen.Home.route
+                                navController.navigate(destination) {
                                     popUpTo(Screen.Login.route) { inclusive = true }
                                 }
                             })
+                        }
+
+                        // 1b. Onboarding Wizard (chỉ hiện sau khi Đăng ký tài khoản mới)
+                        composable(Screen.Onboarding.route) {
+                            OnboardingScreen(
+                                onFinished = {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                                    }
+                                },
+                                isDarkTheme = isDarkTheme
+                            )
                         }
 
                         // 2. Màn hình Trang Chủ (Home Bento)
