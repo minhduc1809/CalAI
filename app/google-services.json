@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "calai-app-dev",
-    "storage_bucket": "calai-app-dev.appspot.com"
+    "project_number": "738359909294",
+    "project_id": "nutriwise-app-4b24b",
+    "storage_bucket": "nutriwise-app-4b24b.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef0123456789abcdef",
+        "mobilesdk_app_id": "1:738359909294:android:9b963a8241ece2ba16c63f",
         "android_client_info": {
           "package_name": "com.calai.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyMockKeyForDevelopmentBuildOnly1234"
+          "current_key": "AIzaSyBNpO4eZ-1i8i4HNAVMRDd-Ppy6hkLfCLs"
         }
       ],
       "services": {
