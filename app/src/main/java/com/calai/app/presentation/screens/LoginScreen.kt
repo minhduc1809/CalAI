@@ -40,7 +40,7 @@ fun LoginScreen(
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            onLoginSuccess(!uiState.isLoginMode)
+            onLoginSuccess(uiState.needsOnboarding)
         }
     }
 
