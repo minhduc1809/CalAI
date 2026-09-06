@@ -35,7 +35,19 @@ data class AuthUserDto(
     @SerializedName("name")
     val name: String? = null,
     @SerializedName("role")
-    val role: String? = null
+    val role: String? = null,
+    @SerializedName("isEmailVerified")
+    val isEmailVerified: Boolean = false
+)
+
+data class GoogleLoginRequest(
+    @SerializedName("idToken")
+    val idToken: String
+)
+
+data class VerifyEmailRequest(
+    @SerializedName("code")
+    val code: String
 )
 
 data class AuthResponseData(

@@ -144,6 +144,51 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData> {
+        return try {
+            val response = api.loginWithGoogle(GoogleLoginRequest(idToken = idToken))
+            if (response.success && response.data != null) {
+                tokenManager.saveTokens(response.data.accessToken, response.data.refreshToken)
+                tokenManager.saveUser(
+                    userId = response.data.user.id,
+                    username = response.data.user.username,
+                    name = response.data.user.name
+                )
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Đăng nhập Google thất bại"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun sendVerificationEmail(): Result<Unit> {
+        return try {
+            val response = api.sendVerificationEmail()
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Gửi mã xác thực thất bại"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun verifyEmail(code: String): Result<Unit> {
+        return try {
+            val response = api.verifyEmail(VerifyEmailRequest(code = code))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Xác thực email thất bại"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override suspend fun logout(): Result<Unit> {
         try {
             api.logout()

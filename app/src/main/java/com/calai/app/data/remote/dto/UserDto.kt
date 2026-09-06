@@ -15,6 +15,8 @@ data class UserProfileDto(
     val avatar: String? = null,
     @SerializedName("role")
     val role: String? = null,
+    @SerializedName("isEmailVerified")
+    val isEmailVerified: Boolean = false,
     @SerializedName("gender")
     val gender: String? = null,
     @SerializedName("dateOfBirth")

@@ -88,6 +88,33 @@ class AuthViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Đăng nhập/Đăng ký bằng Google Sign-In. idToken lấy từ Credential Manager phía UI.
+     */
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            val result = repository.loginWithGoogle(idToken)
+            result.onSuccess {
+                val needsOnboarding = checkProfileIncomplete()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isSuccess = true,
+                    needsOnboarding = needsOnboarding
+                )
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Đăng nhập Google thất bại"
+                )
+            }
+        }
+    }
+
+    fun onGoogleSignInError(message: String) {
+        _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = message)
+    }
+
     fun submit() {
         val state = _uiState.value
         if (state.username.isBlank() || state.password.isBlank()) {
