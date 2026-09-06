@@ -120,6 +120,27 @@ fun GoalSetupScreen(
                         fontSize = 12.5.sp,
                         color = textSecondary
                     )
+                    uiState.expenditure?.let { expenditure ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val isHolding = expenditure.status == "HOLDING"
+                        val badgeColor = if (isHolding) EmeraldSuccess else CoralWarning
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(badgeColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (isHolding) "🟢 Expenditure đã ổn định (Adaptive)" else "🟡 Đang cập nhật Expenditure",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = badgeColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(expenditure.message, fontSize = 11.sp, color = textSecondary)
+                    }
                 }
             }
 
