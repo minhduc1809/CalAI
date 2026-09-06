@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.presentation.components.MacroStyleOptionRow
+import com.calai.app.presentation.components.RateSelectionPill
 import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.components.WheelPicker3D
 import com.calai.app.presentation.theme.*
@@ -40,14 +41,19 @@ import com.calai.app.presentation.viewmodel.OnboardingViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Luồng Onboarding 7 bước (HorizontalPager, vuốt qua lại):
- * 0. WELCOME    — Chào mừng, giới thiệu app
- * 1. HEIGHT     — Chọn chiều cao bằng WheelPicker3D (100-220 cm)
- * 2. WEIGHT     — Chọn cân nặng bằng WheelPicker3D (30-180 kg)
- * 3. BIRTH_DATE — Chọn ngày sinh bằng 3 cột WheelPicker3D (ngày/tháng/năm)
- * 4. GOAL       — Chọn mục tiêu (3 card: Giảm cân / Duy trì / Tăng cân)
- * 5. LIFESTYLE  — Giờ ngủ, mức stress, supplements, mức vận động (Lifestyle Profile)
- * 6. NUTRITION  — Chế độ ăn, số bữa/ngày, thời gian nấu, ngân sách (Nutrition Profile)
+ * Luồng Onboarding 12 bước theo BRD mục 4.2.8 (HorizontalPager, vuốt qua lại, tuần tự bắt buộc):
+ * 0.  WELCOME             — Chào mừng, giới thiệu app
+ * 1.  GENDER              — Chọn giới tính (bắt buộc, chặn Next nếu bỏ qua)
+ * 2.  BIRTH_DATE          — Chọn ngày sinh bằng 3 cột WheelPicker3D (ngày/tháng/năm)
+ * 3.  HEIGHT              — Chọn chiều cao bằng WheelPicker3D (100-220 cm)
+ * 4.  WEIGHT              — Chọn cân nặng hiện tại bằng WheelPicker3D (30-180 kg)
+ * 5.  BODY_FAT            — Chọn khoảng % mỡ cơ thể (optional, có thể bỏ qua)
+ * 6.  GOAL                — Chọn mục tiêu (3 card: Giảm cân / Duy trì / Tăng cân)
+ * 7.  TARGET_WEIGHT_RATE  — Cân nặng mục tiêu + tốc độ thay đổi mong muốn
+ * 8.  LIFESTYLE           — Giờ ngủ, mức stress, supplements, mức vận động (Lifestyle Profile)
+ * 9.  NUTRITION           — Chế độ ăn, số bữa/ngày, thời gian nấu, ngân sách, Intermittent Fasting
+ * 10. TRAINING            — Kinh nghiệm, mục tiêu tập, buổi/tuần, thiết bị, chấn thương, 1RM (Training Profile)
+ * 11. PROGRAM_SETUP       — Program Type, Macro Style, Protein Preference
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -142,11 +148,21 @@ fun OnboardingScreen(
                     ) { page ->
                         when (page) {
                             0 -> WelcomePage(isDarkTheme)
-                            1 -> HeightPage(uiState.heightCm.toInt(), { viewModel.setHeightCm(it.toFloat()) }, isDarkTheme)
-                            2 -> WeightPage(uiState.weightKg.toInt(), { viewModel.setWeightKg(it.toFloat()) }, isDarkTheme)
-                            3 -> BirthDatePage(uiState.birthDay, uiState.birthMonth, uiState.birthYear, viewModel::setDateOfBirth, isDarkTheme)
-                            4 -> GoalPage(uiState.goal, viewModel::selectGoal, isDarkTheme)
-                            5 -> LifestylePage(
+                            1 -> GenderPage(uiState.gender, viewModel::selectGender, isDarkTheme)
+                            2 -> BirthDatePage(uiState.birthDay, uiState.birthMonth, uiState.birthYear, viewModel::setDateOfBirth, isDarkTheme)
+                            3 -> HeightPage(uiState.heightCm.toInt(), { viewModel.setHeightCm(it.toFloat()) }, isDarkTheme)
+                            4 -> WeightPage(uiState.weightKg.toInt(), { viewModel.setWeightKg(it.toFloat()) }, isDarkTheme)
+                            5 -> BodyFatPage(uiState.bodyFatPercent, viewModel::selectBodyFatPercent, isDarkTheme)
+                            6 -> GoalPage(uiState.goal, viewModel::selectGoal, isDarkTheme)
+                            7 -> TargetWeightRatePage(
+                                goal = uiState.goal,
+                                targetWeightKg = uiState.targetWeightKg,
+                                weightRateKgPerWeek = uiState.weightRateKgPerWeek,
+                                onTargetWeightChange = viewModel::setTargetWeightKg,
+                                onRateSelect = viewModel::selectWeightRate,
+                                isDarkTheme = isDarkTheme
+                            )
+                            8 -> LifestylePage(
                                 sleepHours = uiState.sleepHours,
                                 stressLevel = uiState.stressLevel,
                                 takesSupplements = uiState.takesSupplements,
@@ -157,15 +173,51 @@ fun OnboardingScreen(
                                 onActivitySelect = viewModel::selectActivityLevel,
                                 isDarkTheme = isDarkTheme
                             )
-                            6 -> NutritionPage(
+                            9 -> NutritionPage(
                                 dietType = uiState.dietType,
                                 mealsPerDay = uiState.mealsPerDay,
                                 cookTimeMinutes = uiState.cookTimeMinutes,
                                 foodBudgetLevel = uiState.foodBudgetLevel,
+                                isIntermittentFasting = uiState.isIntermittentFasting,
+                                ifWindowStart = uiState.ifWindowStart,
+                                ifWindowEnd = uiState.ifWindowEnd,
                                 onDietTypeSelect = viewModel::selectDietType,
                                 onMealsPerDayChange = viewModel::setMealsPerDay,
                                 onCookTimeChange = viewModel::setCookTimeMinutes,
                                 onFoodBudgetSelect = viewModel::selectFoodBudgetLevel,
+                                onIntermittentFastingChange = viewModel::setIntermittentFasting,
+                                onIfWindowChange = viewModel::setIfWindow,
+                                isDarkTheme = isDarkTheme
+                            )
+                            10 -> TrainingPage(
+                                trainingExperience = uiState.trainingExperience,
+                                trainingGoal = uiState.trainingGoal,
+                                sessionsPerWeek = uiState.sessionsPerWeek,
+                                equipmentAccess = uiState.equipmentAccess,
+                                injuries = uiState.injuries,
+                                injuriesOtherNote = uiState.injuriesOtherNote,
+                                oneRepMaxSquatKg = uiState.oneRepMaxSquatKg,
+                                oneRepMaxBenchKg = uiState.oneRepMaxBenchKg,
+                                oneRepMaxDeadliftKg = uiState.oneRepMaxDeadliftKg,
+                                onExperienceSelect = viewModel::selectTrainingExperience,
+                                onGoalSelect = viewModel::selectTrainingGoal,
+                                onSessionsSelect = viewModel::selectSessionsPerWeek,
+                                onEquipmentSelect = viewModel::selectEquipmentAccess,
+                                onInjuryToggle = viewModel::toggleInjury,
+                                onInjuriesOtherNoteChange = viewModel::setInjuriesOtherNote,
+                                onSquatChange = viewModel::setOneRepMaxSquat,
+                                onBenchChange = viewModel::setOneRepMaxBench,
+                                onDeadliftChange = viewModel::setOneRepMaxDeadlift,
+                                onClearOneRepMax = viewModel::clearOneRepMax,
+                                isDarkTheme = isDarkTheme
+                            )
+                            11 -> ProgramSetupPage(
+                                macroStyle = uiState.macroStyle,
+                                programType = uiState.programType,
+                                proteinPreference = uiState.proteinPreference,
+                                onMacroStyleSelect = viewModel::selectMacroStyle,
+                                onProgramTypeSelect = viewModel::selectProgramType,
+                                onProteinPreferenceSelect = viewModel::selectProteinPreference,
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -587,7 +639,224 @@ private fun GoalPage(
 }
 
 // ══════════════════════════════════════════════════════════════
-//  TRANG 5: LIFESTYLE (giờ ngủ, mức stress, supplements, mức vận động)
+//  TRANG 1: GENDER (bắt buộc chọn, chặn Next nếu bỏ qua)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun GenderPage(
+    selectedGender: String,
+    onSelect: (String) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    val options = listOf(
+        Triple("MALE", "Nam", "Dùng công thức tính BMR chuẩn Nam giới"),
+        Triple("FEMALE", "Nữ", "Dùng công thức tính BMR chuẩn Nữ giới"),
+        Triple("OTHER", "Khác", "Dùng công thức tính BMR trung bình")
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Giới tính của bạn?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Dùng để tính chính xác chỉ số trao đổi chất (BMR)",
+                fontSize = 14.sp,
+                color = textSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            options.forEach { (key, title, subtitle) ->
+                val isSelected = selectedGender == key
+                val cardBg = when {
+                    isSelected -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
+                    else -> if (isDarkTheme) CharcoalSurface else PearlSurface
+                }
+                val borderCol = if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(cardBg)
+                        .border(if (isSelected) 2.dp else 1.dp, borderCol, RoundedCornerShape(20.dp))
+                        .clickable { onSelect(key) }
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (isSelected) VividOrange else textPrimary)
+                        Spacer(Modifier.height(3.dp))
+                        Text(subtitle, fontSize = 12.5.sp, color = textSecondary, lineHeight = 16.sp)
+                    }
+                    if (isSelected) {
+                        Icon(Icons.Default.CheckCircle, null, tint = VividOrange, modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 5: BODY_FAT (9 khoảng %, optional)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun BodyFatPage(
+    bodyFatPercent: Float?,
+    onSelect: (Float?) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    val ranges = listOf(
+        "10–13%" to 11.5f, "14–17%" to 15.5f, "18–21%" to 19.5f,
+        "22–25%" to 23.5f, "26–29%" to 27.5f, "30–34%" to 32f,
+        "35–39%" to 37f, "40–49%" to 44.5f, "50%+" to 52f
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Tỷ lệ mỡ cơ thể (nếu biết)?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Giúp tính toán chính xác hơn — có thể bỏ qua nếu chưa biết",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        ranges.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (label, value) ->
+                    SelectionPill(
+                        label = label,
+                        isSelected = bodyFatPercent == value,
+                        isDarkTheme = isDarkTheme,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelect(value) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        TextButton(onClick = { onSelect(null) }) {
+            Text("Bỏ qua, tôi chưa biết", color = textSecondary, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 7: TARGET_WEIGHT_RATE (cân nặng mục tiêu + tốc độ thay đổi)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun TargetWeightRatePage(
+    goal: String,
+    targetWeightKg: Float,
+    weightRateKgPerWeek: Float,
+    onTargetWeightChange: (Float) -> Unit,
+    onRateSelect: (Float) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val surface = if (isDarkTheme) CharcoalSurface else PearlCard
+    val border = if (isDarkTheme) CharcoalBorder else PearlBorder
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Mục tiêu cân nặng?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "CalAI dùng thông tin này để tính lượng calo mục tiêu mỗi ngày",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        if (goal == "MAINTAIN") {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(surface)
+                    .border(1.dp, border, RoundedCornerShape(16.dp))
+                    .padding(18.dp)
+            ) {
+                Text(
+                    "Bạn chọn Duy trì vóc dáng — CalAI sẽ giữ cân nặng hiện tại làm mục tiêu.",
+                    fontSize = 14.sp,
+                    color = textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            SectionLabel("Cân nặng mục tiêu của bạn?", textPrimary)
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = if (targetWeightKg > 0f) targetWeightKg.toString() else "",
+                onValueChange = { text -> text.toFloatOrNull()?.let(onTargetWeightChange) },
+                placeholder = { Text("VD: 62", color = textSecondary) },
+                suffix = { Text("kg", color = textSecondary) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = surface,
+                    unfocusedContainerColor = surface,
+                    focusedBorderColor = VividOrange,
+                    unfocusedBorderColor = border,
+                    focusedTextColor = textPrimary,
+                    unfocusedTextColor = textPrimary
+                )
+            )
+
+            Spacer(Modifier.height(20.dp))
+            SectionLabel("Tốc độ thay đổi cân nặng mong muốn?", textPrimary)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0.25f, 0.5f, 0.75f, 1.0f).forEach { rate ->
+                    RateSelectionPill(rate, weightRateKgPerWeek == rate, isDarkTheme, Modifier.weight(1f)) { onRateSelect(rate) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "≈ ${(weightRateKgPerWeek * 7700 / 7).toInt()} kcal thâm hụt/thặng dư mỗi ngày",
+                fontSize = 11.5.sp,
+                color = textSecondary
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 8: LIFESTYLE (giờ ngủ, mức stress, supplements, mức vận động)
 // ══════════════════════════════════════════════════════════════
 @Composable
 private fun LifestylePage(
@@ -694,10 +963,15 @@ private fun NutritionPage(
     mealsPerDay: Int,
     cookTimeMinutes: Int,
     foodBudgetLevel: String,
+    isIntermittentFasting: Boolean,
+    ifWindowStart: String,
+    ifWindowEnd: String,
     onDietTypeSelect: (String) -> Unit,
     onMealsPerDayChange: (Int) -> Unit,
     onCookTimeChange: (Int) -> Unit,
     onFoodBudgetSelect: (String) -> Unit,
+    onIntermittentFastingChange: (Boolean) -> Unit,
+    onIfWindowChange: (String, String) -> Unit,
     isDarkTheme: Boolean
 ) {
     val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
@@ -771,6 +1045,255 @@ private fun NutritionPage(
             val (label, desc) = pair
             MacroStyleOptionRow(label, desc, foodBudgetLevel == key, isDarkTheme) { onFoodBudgetSelect(key) }
             Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Bạn có áp dụng nhịn ăn gián đoạn (Intermittent Fasting)?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectionPill("Có", isIntermittentFasting, isDarkTheme, Modifier.weight(1f)) { onIntermittentFastingChange(true) }
+            SelectionPill("Không", !isIntermittentFasting, isDarkTheme, Modifier.weight(1f)) { onIntermittentFastingChange(false) }
+        }
+        if (isIntermittentFasting) {
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = ifWindowStart,
+                    onValueChange = { onIfWindowChange(it, ifWindowEnd) },
+                    label = { Text("Bắt đầu (HH:mm)", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = ifWindowEnd,
+                    onValueChange = { onIfWindowChange(ifWindowStart, it) },
+                    label = { Text("Kết thúc (HH:mm)", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 10: TRAINING (kinh nghiệm, mục tiêu tập, buổi/tuần, thiết bị, chấn thương, 1RM)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun TrainingPage(
+    trainingExperience: String,
+    trainingGoal: String,
+    sessionsPerWeek: String,
+    equipmentAccess: String,
+    injuries: List<String>,
+    injuriesOtherNote: String,
+    oneRepMaxSquatKg: Float?,
+    oneRepMaxBenchKg: Float?,
+    oneRepMaxDeadliftKg: Float?,
+    onExperienceSelect: (String) -> Unit,
+    onGoalSelect: (String) -> Unit,
+    onSessionsSelect: (String) -> Unit,
+    onEquipmentSelect: (String) -> Unit,
+    onInjuryToggle: (String) -> Unit,
+    onInjuriesOtherNoteChange: (String) -> Unit,
+    onSquatChange: (Float?) -> Unit,
+    onBenchChange: (Float?) -> Unit,
+    onDeadliftChange: (Float?) -> Unit,
+    onClearOneRepMax: () -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Hồ sơ tập luyện của bạn?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Giúp CalAI gợi ý chương trình tập phù hợp với bạn",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        SectionLabel("Kinh nghiệm tập luyện?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("BEGINNER" to "Mới bắt đầu", "INTERMEDIATE" to "Trung bình", "ADVANCED" to "Nâng cao").forEach { (key, label) ->
+                SelectionPill(label, trainingExperience == key, isDarkTheme, Modifier.weight(1f)) { onExperienceSelect(key) }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Mục tiêu tập luyện chính?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "BUILD_MUSCLE" to "Tăng cơ", "LOSE_FAT" to "Giảm mỡ", "STRENGTH" to "Tăng sức mạnh",
+            "ENDURANCE" to "Tăng sức bền", "RECOMP" to "Vừa tăng cơ vừa giảm mỡ", "GENERAL_FITNESS" to "Sức khỏe tổng quát"
+        ).chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (key, label) ->
+                    SelectionPill(label, trainingGoal == key, isDarkTheme, Modifier.weight(1f)) { onGoalSelect(key) }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+        SectionLabel("Số buổi tập mong muốn mỗi tuần?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("ONE_TO_TWO" to "1-2 buổi", "THREE_TO_FOUR" to "3-4 buổi", "FIVE_TO_SIX" to "5-6 buổi", "SEVEN" to "7 buổi").forEach { (key, label) ->
+                SelectionPill(label, sessionsPerWeek == key, isDarkTheme, Modifier.weight(1f)) { onSessionsSelect(key) }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Thiết bị/nơi tập bạn có sẵn?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "FULL_GYM" to "Gym đầy đủ", "BASIC_GYM" to "Gym cơ bản",
+            "HOME_DUMBBELL" to "Tại nhà (có tạ đơn)", "BODYWEIGHT_ONLY" to "Chỉ trọng lượng cơ thể"
+        ).chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (key, label) ->
+                    SelectionPill(label, equipmentAccess == key, isDarkTheme, Modifier.weight(1f)) { onEquipmentSelect(key) }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+        SectionLabel("Bạn có chấn thương hoặc hạn chế vận động nào không?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "SHOULDER" to "Vai", "LOWER_BACK" to "Lưng dưới", "KNEE" to "Đầu gối",
+            "WRIST" to "Cổ tay", "OTHER" to "Khác", "NONE" to "Không có"
+        ).chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (key, label) ->
+                    SelectionPill(label, injuries.contains(key), isDarkTheme, Modifier.weight(1f)) { onInjuryToggle(key) }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        if (injuries.contains("OTHER")) {
+            OutlinedTextField(
+                value = injuriesOtherNote,
+                onValueChange = onInjuriesOtherNoteChange,
+                label = { Text("Mô tả chấn thương khác", fontSize = 12.sp) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+        SectionLabel("1RM hiện tại (nếu biết, kg)", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = oneRepMaxSquatKg?.toString() ?: "",
+                onValueChange = { onSquatChange(it.toFloatOrNull()) },
+                label = { Text("Squat", fontSize = 11.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = oneRepMaxBenchKg?.toString() ?: "",
+                onValueChange = { onBenchChange(it.toFloatOrNull()) },
+                label = { Text("Bench", fontSize = 11.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = oneRepMaxDeadliftKg?.toString() ?: "",
+                onValueChange = { onDeadliftChange(it.toFloatOrNull()) },
+                label = { Text("Deadlift", fontSize = 11.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onClearOneRepMax) {
+            Text("Chưa biết", color = textSecondary, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 11: PROGRAM_SETUP (Program Type, Macro Style, Protein Preference)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun ProgramSetupPage(
+    macroStyle: String,
+    programType: String,
+    proteinPreference: String,
+    onMacroStyleSelect: (String) -> Unit,
+    onProgramTypeSelect: (String) -> Unit,
+    onProteinPreferenceSelect: (String) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Thiết lập chương trình?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Bước cuối cùng trước khi CalAI tính mục tiêu calo & macro cho bạn",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        SectionLabel("Bạn muốn CalAI đồng hành thế nào?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "COACHED" to ("CalAI dẫn dắt" to "Tự động điều chỉnh mục tiêu theo tiến độ"),
+            "COLLABORATIVE" to ("Kết hợp" to "CalAI gợi ý, bạn xác nhận trước khi áp dụng"),
+            "MANUAL" to ("Tự chủ" to "Bạn tự đặt và chỉnh mục tiêu")
+        ).forEach { (key, pair) ->
+            val (label, desc) = pair
+            MacroStyleOptionRow(label, desc, programType == key, isDarkTheme) { onProgramTypeSelect(key) }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionLabel("Bạn ưu tiên phong cách ăn nào?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "BALANCED" to ("Cân bằng" to "30% đạm · 40% tinh bột · 30% béo"),
+            "HIGH_CARB_LOW_FAT" to ("Nhiều tinh bột, ít béo" to "30% đạm · 55% tinh bột · 15% béo"),
+            "LOW_CARB_HIGH_FAT" to ("Ít tinh bột, nhiều béo" to "35% đạm · 20% tinh bột · 45% béo"),
+            "KETO" to ("Keto" to "25% đạm · 5% tinh bột · 70% béo")
+        ).forEach { (key, pair) ->
+            val (label, desc) = pair
+            MacroStyleOptionRow(label, desc, macroStyle == key, isDarkTheme) { onMacroStyleSelect(key) }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionLabel("Mức ưu tiên Protein?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("LOW" to "Thấp", "MID" to "Vừa", "HIGH" to "Cao", "VERY_HIGH" to "Rất cao").forEach { (key, label) ->
+                SelectionPill(label, proteinPreference == key, isDarkTheme, Modifier.weight(1f)) { onProteinPreferenceSelect(key) }
+            }
         }
         Spacer(Modifier.height(8.dp))
     }
