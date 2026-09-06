@@ -241,6 +241,34 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto> {
+        return try {
+            val response = api.getExpenditureStatus()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockExpenditureStatus()
+            }
+        } catch (_: Exception) {
+            getMockExpenditureStatus()
+        }
+    }
+
+    private fun getMockExpenditureStatus(): Result<ExpenditureStatusDto> {
+        return Result.success(
+            ExpenditureStatusDto(
+                method = "STATIC_FALLBACK",
+                status = "UPDATING",
+                estimatedExpenditure = 2310f,
+                staticTdee = 2310f,
+                windowDays = 0,
+                weightLogsCount = 0,
+                loggedDaysCount = 0,
+                message = "Cần thêm dữ liệu cân nặng & bữa ăn để bắt đầu tính Expenditure thích ứng."
+            )
+        )
+    }
+
     // --- Meals Remote & Sync (với Mock Offline Fallback) ---
     override suspend fun fetchDailySummary(date: String?): Result<DailyNutritionSummaryData> {
         return try {

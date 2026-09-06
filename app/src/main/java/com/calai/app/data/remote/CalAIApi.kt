@@ -29,6 +29,9 @@ interface CalAIApi {
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfileDto>
 
+    @GET("users/me/expenditure")
+    suspend fun getExpenditureStatus(): ApiResponse<ExpenditureStatusDto>
+
     // --- MEALS ---
     @POST("meals")
     suspend fun createMeal(@Body request: CreateMealRequest): ApiResponse<MealResponseDto>

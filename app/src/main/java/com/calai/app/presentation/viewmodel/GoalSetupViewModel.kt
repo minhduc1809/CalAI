@@ -2,6 +2,7 @@ package com.calai.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.calai.app.data.remote.dto.ExpenditureStatusDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.domain.repository.CalAIRepository
@@ -20,6 +21,7 @@ data class GoalSetupUiState(
     val errorMessage: String? = null,
     // Giá trị gốc từ server, dùng để phát hiện có thay đổi hay không (Goal Change cần xác nhận)
     val original: UserProfileDto? = null,
+    val expenditure: ExpenditureStatusDto? = null,
     // Giá trị đang chỉnh sửa trên màn hình
     val goal: String = "MAINTAIN",
     val targetWeightKg: String = "",
@@ -37,6 +39,7 @@ class GoalSetupViewModel @Inject constructor(
 
     init {
         loadProfile()
+        loadExpenditure()
     }
 
     private fun loadProfile() {
@@ -54,6 +57,14 @@ class GoalSetupViewModel @Inject constructor(
                 }
             }.onFailure { e ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
+        }
+    }
+
+    private fun loadExpenditure() {
+        viewModelScope.launch {
+            repository.fetchExpenditureStatus().onSuccess { result ->
+                _uiState.update { it.copy(expenditure = result) }
             }
         }
     }
@@ -96,6 +107,7 @@ class GoalSetupViewModel @Inject constructor(
             )
             repository.updateProfile(request).onSuccess { updated ->
                 _uiState.update { it.copy(isSaving = false, isSaveSuccess = true, original = updated) }
+                loadExpenditure()
             }.onFailure { e ->
                 _uiState.update { it.copy(isSaving = false, errorMessage = e.message ?: "Không thể lưu mục tiêu") }
             }

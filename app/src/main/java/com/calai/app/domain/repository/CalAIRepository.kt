@@ -34,6 +34,7 @@ interface CalAIRepository {
     // --- User Profile ---
     suspend fun fetchRemoteProfile(): Result<UserProfileDto>
     suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfileDto>
+    suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto>
 
     // --- Meals Remote & Sync ---
     suspend fun fetchDailySummary(date: String? = null): Result<DailyNutritionSummaryData>
