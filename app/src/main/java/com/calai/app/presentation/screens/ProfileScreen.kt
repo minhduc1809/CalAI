@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,6 +47,74 @@ fun ProfileScreen(
 
     var showChangePasswordSheet by remember { mutableStateOf(false) }
     var showReminderSheet by remember { mutableStateOf(false) }
+    var showEditHeightSheet by remember { mutableStateOf(false) }
+    var showEditWeightSheet by remember { mutableStateOf(false) }
+
+    if (showEditHeightSheet) {
+        val currentHeight = (profile?.heightCm?.toInt() ?: 170).coerceIn(100, 230)
+        EditBiometricModalSheet(
+            title = "Chỉnh sửa Chiều cao",
+            subtitle = "Hệ thống sẽ tự động tính toán lại BMI, BMR và TDEE của bạn",
+            initialValue = currentHeight,
+            range = 100..230,
+            unit = "cm",
+            isLoading = uiState.isUpdatingBiometrics,
+            isDarkTheme = isDarkTheme,
+            onDismiss = { showEditHeightSheet = false },
+            onSave = { newHeight ->
+                viewModel.updateHeight(
+                    heightCm = newHeight.toFloat(),
+                    onSuccess = {
+                        showEditHeightSheet = false
+                        Toast.makeText(context, "Cập nhật chiều cao thành công!", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        )
+    }
+
+    if (showEditWeightSheet) {
+        val isLb = uiState.weightUnit == "lb"
+        val rawWeight = profile?.weightKg ?: 65f
+        val currentWeight = if (isLb) {
+            UserPreferencesManager.convertKg(rawWeight, "lb").toInt().coerceIn(66, 440)
+        } else {
+            rawWeight.toInt().coerceIn(30, 200)
+        }
+        val range = if (isLb) 66..440 else 30..200
+        val unitLabel = if (isLb) "lbs" else "kg"
+
+        EditBiometricModalSheet(
+            title = "Chỉnh sửa Cân nặng",
+            subtitle = "Hệ thống sẽ cập nhật nhật ký cân nặng và tự động điều chỉnh calo mục tiêu",
+            initialValue = currentWeight,
+            range = range,
+            unit = unitLabel,
+            isLoading = uiState.isUpdatingBiometrics,
+            isDarkTheme = isDarkTheme,
+            onDismiss = { showEditWeightSheet = false },
+            onSave = { newWeight ->
+                val weightKg = if (isLb) {
+                    UserPreferencesManager.convertToKg(newWeight.toFloat(), "lb")
+                } else {
+                    newWeight.toFloat()
+                }
+                viewModel.updateWeight(
+                    weightKg = weightKg,
+                    onSuccess = {
+                        showEditWeightSheet = false
+                        Toast.makeText(context, "Cập nhật cân nặng thành công!", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        )
+    }
 
     if (showChangePasswordSheet) {
         ChangePasswordModalSheet(
@@ -221,7 +290,9 @@ fun ProfileScreen(
                     unit = "cm",
                     color = if (isDarkTheme) LavenderGradientStart else PastelLavenderLight,
                     isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    canEdit = true,
+                    onClick = { showEditHeightSheet = true }
                 )
                 val rawWeight = profile?.weightKg ?: 68.5f
                 val displayWeight = UserPreferencesManager.formatWeightValueOnly(rawWeight, uiState.weightUnit)
@@ -232,7 +303,9 @@ fun ProfileScreen(
                     unit = if (uiState.weightUnit == "lb") "lbs" else "kg",
                     color = if (isDarkTheme) ProteinGradientStart else PastelProteinLight,
                     isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    canEdit = true,
+                    onClick = { showEditWeightSheet = true }
                 )
             }
 
@@ -458,7 +531,9 @@ private fun BioMetricCard(
     unit: String,
     color: Color,
     isDark: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    canEdit: Boolean = false,
+    onClick: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier
@@ -471,10 +546,27 @@ private fun BioMetricCard(
             .clip(RoundedCornerShape(20.dp))
             .background(if (isDark) CharcoalSurface else PearlCard)
             .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+            .then(
+                if (onClick != null) Modifier.clickable { onClick() } else Modifier
+            )
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text = title, fontSize = 12.sp, color = if (isDark) TextMuted else TextInkMuted)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = title, fontSize = 12.sp, color = if (isDark) TextMuted else TextInkMuted)
+                if (canEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Chỉnh sửa $title",
+                        tint = if (isDark) TextMuted.copy(alpha = 0.6f) else TextInkMuted.copy(alpha = 0.6f),
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
+            }
             Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (isDark) TextWhite else TextInkPrimary)
             Text(text = unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
         }
@@ -543,3 +635,109 @@ private fun ActionRowItem(
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditBiometricModalSheet(
+    title: String,
+    subtitle: String,
+    initialValue: Int,
+    range: IntRange,
+    unit: String,
+    isLoading: Boolean,
+    isDarkTheme: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit
+) {
+    var selectedValue by remember(initialValue) { mutableIntStateOf(initialValue) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
+            )
+
+            Text(
+                text = subtitle,
+                fontSize = 13.sp,
+                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                textAlign = TextAlign.Center
+            )
+
+            // Hiển thị số lớn ở giữa
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "$selectedValue",
+                    fontSize = 42.sp,
+                    fontWeight = FontWeight.Black,
+                    color = VividOrange
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = unit,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDarkTheme) TextMuted else TextInkMuted,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            // WheelPicker3D
+            WheelPicker3D(
+                value = selectedValue,
+                onValueChange = { selectedValue = it },
+                range = range,
+                modifier = Modifier.fillMaxWidth(0.55f),
+                isDarkTheme = isDarkTheme
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Nút Lưu thay đổi
+            Button(
+                onClick = { onSave(selectedValue) },
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VividOrange,
+                    contentColor = TextDeepInk
+                )
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = TextDeepInk,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Lưu thay đổi",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
