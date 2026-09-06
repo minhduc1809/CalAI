@@ -93,7 +93,7 @@ class CalAIRepositoryImpl @Inject constructor(
         dao.insertWeightLog(log.toEntity())
     }
 
-    // --- Authentication (với Mock Offline Fallback) ---
+    // --- Authentication ---
     override suspend fun login(username: String, password: String): Result<AuthResponseData> {
         return try {
             val response = api.login(LoginRequest(username = username.trim(), password = password))
@@ -108,22 +108,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.failure(Exception(response.message ?: "Đăng nhập thất bại"))
             }
-        } catch (_: Exception) {
-            // Mock Offline Fallback
-            val mockUser = AuthUserDto(
-                id = "mock_user_01",
-                username = username.ifBlank { "calai_user" },
-                email = "${username.ifBlank { "user" }}@calai.com",
-                name = username.ifBlank { "Người dùng CalAI" }
-            )
-            val mockAuth = AuthResponseData(
-                accessToken = "mock_access_token",
-                refreshToken = "mock_refresh_token",
-                user = mockUser
-            )
-            tokenManager.saveTokens(mockAuth.accessToken, mockAuth.refreshToken)
-            tokenManager.saveUser(mockUser.id, mockUser.username, mockUser.name)
-            Result.success(mockAuth)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -153,22 +139,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.failure(Exception(response.message ?: "Đăng ký thất bại"))
             }
-        } catch (_: Exception) {
-            // Mock Offline Fallback
-            val mockUser = AuthUserDto(
-                id = "mock_user_01",
-                username = username.ifBlank { "calai_user" },
-                email = email?.ifBlank { "user@calai.com" } ?: "user@calai.com",
-                name = name?.ifBlank { "Người dùng CalAI" } ?: "Người dùng CalAI"
-            )
-            val mockAuth = AuthResponseData(
-                accessToken = "mock_access_token",
-                refreshToken = "mock_refresh_token",
-                user = mockUser
-            )
-            tokenManager.saveTokens(mockAuth.accessToken, mockAuth.refreshToken)
-            tokenManager.saveUser(mockUser.id, mockUser.username, mockUser.name)
-            Result.success(mockAuth)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -195,50 +167,22 @@ class CalAIRepositoryImpl @Inject constructor(
 
     override fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
-    override fun getCurrentUserId(): String = tokenManager.getUserId() ?: "mock_user_01"
+    override fun getCurrentUserId(): String = tokenManager.getUserId() ?: ""
 
     override fun getCurrentUsername(): String = tokenManager.getUsername() ?: "Người dùng CalAI"
 
-    // --- User Profile (với Mock Offline Fallback) ---
+    // --- User Profile ---
     override suspend fun fetchRemoteProfile(): Result<UserProfileDto> {
         return try {
             val response = api.getProfile()
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockProfile()
+                Result.failure(Exception(response.message ?: "Không thể tải thông tin hồ sơ"))
             }
-        } catch (_: Exception) {
-            getMockProfile()
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
-    }
-
-    private fun getMockProfile(): Result<UserProfileDto> {
-        val username = tokenManager.getUsername() ?: "calai_user"
-        return Result.success(
-            UserProfileDto(
-                id = "mock_user_01",
-                username = username,
-                email = "$username@calai.com",
-                name = "Người dùng CalAI",
-                gender = "MALE",
-                heightCm = 175f,
-                weightKg = 68.5f,
-                goal = "LOSE_WEIGHT",
-                targetWeightKg = 62.0f,
-                weightRateKgPerWeek = 0.5f,
-                bodyFatPercent = 18.5f,
-                macroStyle = "BALANCED",
-                bmi = 22.4f,
-                bmr = 1680f,
-                tdee = 2310f,
-                targetCalories = 1810f,
-                targetProtein = 135f,
-                targetCarb = 200f,
-                targetFat = 50f,
-                dailyAiQuota = 50
-            )
-        )
     }
 
     override suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfileDto> {
@@ -247,10 +191,10 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockProfile()
+                Result.failure(Exception(response.message ?: "Không thể cập nhật hồ sơ"))
             }
-        } catch (_: Exception) {
-            getMockProfile()
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -282,39 +226,18 @@ class CalAIRepositoryImpl @Inject constructor(
         )
     }
 
-    // --- Meals Remote & Sync (với Mock Offline Fallback) ---
+    // --- Meals Remote & Sync ---
     override suspend fun fetchDailySummary(date: String?): Result<DailyNutritionSummaryData> {
         return try {
             val response = api.getDailySummary(date)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockDailySummary(date)
+                Result.failure(Exception(response.message ?: "Không thể tải tổng hợp dinh dưỡng"))
             }
-        } catch (_: Exception) {
-            getMockDailySummary(date)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
-    }
-
-    private fun getMockDailySummary(date: String?): Result<DailyNutritionSummaryData> {
-        val targetIso = date ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        return Result.success(
-            DailyNutritionSummaryData(
-                date = targetIso,
-                summary = DailySummaryDto(
-                    consumedCalories = 1450f,
-                    targetCalories = 2200f,
-                    remainingCalories = 750f,
-                    progressPercent = 65,
-                    macros = MacrosSummaryDto(
-                        protein = MacroDetailDto(consumed = 110f, target = 140f, unit = "g"),
-                        carb = MacroDetailDto(consumed = 180f, target = 220f, unit = "g"),
-                        fat = MacroDetailDto(consumed = 45f, target = 65f, unit = "g")
-                    )
-                ),
-                mealsCount = 3
-            )
-        )
     }
 
     override suspend fun fetchMealsFromRemote(date: String?): Result<List<MealResponseDto>> {
@@ -323,57 +246,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockMeals()
+                Result.failure(Exception(response.message ?: "Không thể tải danh sách bữa ăn"))
             }
-        } catch (_: Exception) {
-            getMockMeals()
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
-    }
-
-    private fun getMockMeals(): Result<List<MealResponseDto>> {
-        val dateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val mockList = listOf(
-            MealResponseDto(
-                id = "meal_mock_1",
-                userId = "mock_user_01",
-                mealType = "BREAKFAST",
-                date = dateIso,
-                totalCalories = 550f,
-                totalProtein = 28f,
-                totalCarb = 65f,
-                totalFat = 18f,
-                items = listOf(
-                    MealItemResponseDto("item_1", "meal_mock_1", "Phở Bò Tái chín", "1 tô (450g)", 1f, 550f, 28f, 65f, 18f, "MANUAL")
-                )
-            ),
-            MealResponseDto(
-                id = "meal_mock_2",
-                userId = "mock_user_01",
-                mealType = "LUNCH",
-                date = dateIso,
-                totalCalories = 620f,
-                totalProtein = 32f,
-                totalCarb = 75f,
-                totalFat = 22f,
-                items = listOf(
-                    MealItemResponseDto("item_2", "meal_mock_2", "Cơm Tấm Sườn Bì Chả", "1 đĩa (400g)", 1f, 620f, 32f, 75f, 22f, "MANUAL")
-                )
-            ),
-            MealResponseDto(
-                id = "meal_mock_3",
-                userId = "mock_user_01",
-                mealType = "SNACK",
-                date = dateIso,
-                totalCalories = 280f,
-                totalProtein = 25f,
-                totalCarb = 12f,
-                totalFat = 14f,
-                items = listOf(
-                    MealItemResponseDto("item_3", "meal_mock_3", "Salad Ức Gà Sốt Mè", "1 tô (300g)", 1f, 280f, 25f, 12f, 14f, "AI_VISION")
-                )
-            )
-        )
-        return Result.success(mockList)
     }
 
     override suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto> {
@@ -382,46 +259,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockCreatedMeal(request)
+                Result.failure(Exception(response.message ?: "Không thể tạo bữa ăn"))
             }
-        } catch (_: Exception) {
-            getMockCreatedMeal(request)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
-    }
-
-    private fun getMockCreatedMeal(request: CreateMealRequest): Result<MealResponseDto> {
-        val totalCal = request.items.sumOf { (it.calories * it.quantity).toDouble() }.toFloat()
-        val totalP = request.items.sumOf { (it.protein * it.quantity).toDouble() }.toFloat()
-        val totalC = request.items.sumOf { (it.carb * it.quantity).toDouble() }.toFloat()
-        val totalF = request.items.sumOf { (it.fat * it.quantity).toDouble() }.toFloat()
-        val dateIso = request.date
-
-        val mockMealId = UUID.randomUUID().toString()
-        val mockMeal = MealResponseDto(
-            id = mockMealId,
-            userId = "mock_user_01",
-            mealType = request.mealType,
-            date = dateIso,
-            totalCalories = totalCal,
-            totalProtein = totalP,
-            totalCarb = totalC,
-            totalFat = totalF,
-            items = request.items.mapIndexed { idx, item ->
-                MealItemResponseDto(
-                    id = "item_${idx}_${UUID.randomUUID()}",
-                    mealId = mockMealId,
-                    name = item.name,
-                    servingSize = item.servingSize,
-                    quantity = item.quantity,
-                    calories = item.calories,
-                    protein = item.protein,
-                    carb = item.carb,
-                    fat = item.fat,
-                    source = item.source
-                )
-            }
-        )
-        return Result.success(mockMeal)
     }
 
     override suspend fun updateRemoteMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
@@ -431,26 +273,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockUpdatedMeal(mealId, request.mealType, request.date)
+                Result.failure(Exception(response.message ?: "Không thể cập nhật bữa ăn"))
             }
-        } catch (_: Exception) {
-            getMockUpdatedMeal(mealId, request.mealType, request.date)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
-    }
-
-    private fun getMockUpdatedMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
-        return Result.success(
-            MealResponseDto(
-                id = mealId,
-                userId = "mock_user_01",
-                mealType = mealType ?: "LUNCH",
-                date = date ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
-                totalCalories = 0f,
-                totalProtein = 0f,
-                totalCarb = 0f,
-                totalFat = 0f
-            )
-        )
     }
 
     override suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String?): Result<MealResponseDto> {
@@ -459,10 +286,10 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockUpdatedMeal(mealId, mealType, targetDate)
+                Result.failure(Exception(response.message ?: "Không thể sao chép bữa ăn"))
             }
-        } catch (_: Exception) {
-            getMockUpdatedMeal(mealId, mealType, targetDate)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -472,10 +299,10 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success) {
                 Result.success(Unit)
             } else {
-                Result.success(Unit)
+                Result.failure(Exception(response.message ?: "Không thể xóa bữa ăn"))
             }
-        } catch (_: Exception) {
-            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
