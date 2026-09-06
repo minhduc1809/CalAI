@@ -36,6 +36,7 @@ data class ProfileUiState(
     val successMessage: String? = null,
     val isLoggedOut: Boolean = false,
     val weightUnit: String = "kg",
+    val mealStructureMode: String = "TIMELINE",
     val reminderSettings: ReminderSettingsState = ReminderSettingsState()
 )
 
@@ -45,7 +46,12 @@ class ProfileViewModel @Inject constructor(
     private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState(weightUnit = preferencesManager.getWeightUnit()))
+    private val _uiState = MutableStateFlow(
+        ProfileUiState(
+            weightUnit = preferencesManager.getWeightUnit(),
+            mealStructureMode = preferencesManager.getMealStructureMode()
+        )
+    )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
@@ -60,10 +66,19 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(weightUnit = unit) }
             }
         }
+        viewModelScope.launch {
+            preferencesManager.mealStructureMode.collect { mode ->
+                _uiState.update { it.copy(mealStructureMode = mode) }
+            }
+        }
     }
 
     fun setWeightUnit(unit: String) {
         preferencesManager.setWeightUnit(unit)
+    }
+
+    fun setMealStructureMode(mode: String) {
+        preferencesManager.setMealStructureMode(mode)
     }
 
 

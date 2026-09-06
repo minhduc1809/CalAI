@@ -46,6 +46,7 @@ fun SettingsScreen(
     var showChangePasswordSheet by remember { mutableStateOf(false) }
     var showReminderSheet by remember { mutableStateOf(false) }
     var showUnitDialog by remember { mutableStateOf(false) }
+    var showMealStructureDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
@@ -60,6 +61,19 @@ fun SettingsScreen(
                 Toast.makeText(context, "Đã đổi đơn vị cân nặng sang $unitLabel", Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showUnitDialog = false }
+        )
+    }
+
+    if (showMealStructureDialog) {
+        MealStructureModalSheet(
+            isDarkTheme = isDarkTheme,
+            currentMode = uiState.mealStructureMode,
+            onSelectMode = { mode ->
+                viewModel.setMealStructureMode(mode)
+                val modeLabel = if (mode == "FIXED_MEALS") "Bữa cố định" else "Timeline theo giờ"
+                Toast.makeText(context, "Đã đổi cách hiển thị sang $modeLabel", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showMealStructureDialog = false }
         )
     }
 
@@ -285,10 +299,19 @@ fun SettingsScreen(
                     title = "Đơn vị đo lường (Units)",
                     subtitle = "$weightLabel • Centimeter (cm) • Calo (kcal)",
                     isDark = isDarkTheme,
-                    isLast = true,
+                    isLast = false,
                     onClick = {
                         showUnitDialog = true
                     }
+                )
+                val mealModeLabel = if (uiState.mealStructureMode == "FIXED_MEALS") "Bữa cố định (Sáng/Trưa/Tối/Phụ)" else "Timeline theo giờ"
+                SettingsActionRow(
+                    icon = Icons.Default.Schedule,
+                    title = "Hiển thị Nhật ký ăn uống",
+                    subtitle = mealModeLabel,
+                    isDark = isDarkTheme,
+                    isLast = true,
+                    onClick = { showMealStructureDialog = true }
                 )
             }
 
@@ -767,6 +790,77 @@ fun UnitSelectionModalSheet(
                 isDark = isDarkTheme,
                 onClick = {
                     onSelectWeightUnit("lb")
+                    onDismiss()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
+            ) {
+                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MealStructureModalSheet(
+    isDarkTheme: Boolean,
+    currentMode: String,
+    onSelectMode: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Text(
+                text = "Hiển Thị Nhật Ký Ăn Uống",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
+            )
+
+            Text(
+                text = "Chỉ đổi cách nhóm hiển thị — dữ liệu calo/macro đã lưu không thay đổi.",
+                fontSize = 13.sp,
+                color = if (isDarkTheme) TextMuted else TextInkMuted
+            )
+
+            UnitOptionCard(
+                title = "Timeline theo giờ",
+                description = "Nhóm bữa ăn theo mốc giờ đã log, không giới hạn số bữa/ngày",
+                isSelected = currentMode == "TIMELINE",
+                isDark = isDarkTheme,
+                onClick = {
+                    onSelectMode("TIMELINE")
+                    onDismiss()
+                }
+            )
+
+            UnitOptionCard(
+                title = "Bữa cố định",
+                description = "Nhóm theo Sáng / Trưa / Tối / Phụ như truyền thống",
+                isSelected = currentMode == "FIXED_MEALS",
+                isDark = isDarkTheme,
+                onClick = {
+                    onSelectMode("FIXED_MEALS")
                     onDismiss()
                 }
             )
