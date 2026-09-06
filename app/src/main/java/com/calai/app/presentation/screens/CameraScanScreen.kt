@@ -386,12 +386,20 @@ fun CameraScanScreen(
 
                             if (result.healthTip.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(14.dp))
-                                Text(
-                                    text = "💡 ${result.healthTip}",
-                                    fontSize = 12.sp,
-                                    color = PastelLavender,
-                                    lineHeight = 16.sp
-                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lightbulb,
+                                        contentDescription = null,
+                                        tint = PastelLavender,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = result.healthTip,
+                                        fontSize = 12.sp,
+                                        color = PastelLavender,
+                                        lineHeight = 16.sp
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))

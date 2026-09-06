@@ -488,7 +488,7 @@ fun LogWorkoutScreen(
                     item {
                         Text(
                             text = uiState.errorMessage ?: "",
-                            color = Color(0xFFFF6B6B),
+                            color = CrimsonError,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
