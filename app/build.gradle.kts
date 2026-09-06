@@ -43,15 +43,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     buildFeatures {
         compose = true
         buildConfig = false
         aidl = false
-        renderScript = false
         resValues = false
         shaders = false
     }
@@ -66,6 +62,9 @@ android {
 kapt {
     correctErrorTypes = true
     useBuildCache = true
+    javacOptions {
+        option("-Xlint:-processing")
+    }
 }
 
 dependencies {
