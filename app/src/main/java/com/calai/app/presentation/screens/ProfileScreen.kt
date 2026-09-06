@@ -1,5 +1,6 @@
 package com.calai.app.presentation.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,10 +36,49 @@ fun ProfileScreen(
     isDarkTheme: Boolean = true,
     onToggleTheme: (Boolean) -> Unit = {},
     onOpenGoalSetup: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val profile = uiState.profile
+
+    var showChangePasswordSheet by remember { mutableStateOf(false) }
+    var showReminderSheet by remember { mutableStateOf(false) }
+
+    if (showChangePasswordSheet) {
+        ChangePasswordModalSheet(
+            isDarkTheme = isDarkTheme,
+            isLoading = uiState.isChangingPassword,
+            onDismiss = { showChangePasswordSheet = false },
+            onConfirm = { oldPass, newPass ->
+                viewModel.changePassword(
+                    oldPass = oldPass,
+                    newPass = newPass,
+                    onSuccess = {
+                        showChangePasswordSheet = false
+                        Toast.makeText(context, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        )
+    }
+
+    if (showReminderSheet) {
+        RemindersModalSheet(
+            isDarkTheme = isDarkTheme,
+            settings = uiState.reminderSettings,
+            onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
+            onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
+            onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
+            onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
+            onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
+            onDismiss = { showReminderSheet = false }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -71,7 +112,8 @@ fun ProfileScreen(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape),
+                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
+                        .clickable { onOpenSettings() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -113,7 +155,7 @@ fun ProfileScreen(
                                 spotColor = if (isDarkTheme) DarkShadow else WarmShadow
                             )
                             .clip(CircleShape)
-                            .background(if (isDarkTheme) LavenderGradientStart else Color(0xFFDDD6FE))
+                            .background(if (isDarkTheme) LavenderGradientStart else PastelLavenderTrackLight)
                             .border(2.dp, VividOrange, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -149,7 +191,7 @@ fun ProfileScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "🎯 $goalLabel",
+                                text = goalLabel,
                                 color = VividOrange,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -318,7 +360,7 @@ fun ProfileScreen(
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = if (isDarkTheme) "🌙 Giao diện tối" else "☀️ Giao diện sáng",
+                                text = if (isDarkTheme) "Giao diện tối" else "Giao diện sáng",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDarkTheme) TextWhite else TextInkPrimary
@@ -359,8 +401,9 @@ fun ProfileScreen(
                     .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
             ) {
                 ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme, onClick = onOpenGoalSetup)
-                ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme)
-                ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = true, isDark = isDarkTheme)
+                ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme, onClick = { showReminderSheet = true })
+                ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = false, isDark = isDarkTheme, onClick = { showChangePasswordSheet = true })
+                ActionRowItem(icon = Icons.Default.Settings, label = "Cài đặt hệ thống & Giao diện", isLast = true, isDark = isDarkTheme, onClick = onOpenSettings)
             }
 
             // 7. LOGOUT BUTTON
@@ -445,7 +488,7 @@ private fun MacroBadgePill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isDark) CharcoalDock else Color(0xFFF9F7F2))
+            .background(if (isDark) CharcoalDock else PearlDock)
             .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(14.dp))
             .padding(vertical = 10.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center

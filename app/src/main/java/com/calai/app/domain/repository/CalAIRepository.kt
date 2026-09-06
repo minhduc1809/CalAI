@@ -27,6 +27,7 @@ interface CalAIRepository {
     suspend fun login(username: String, password: String): Result<AuthResponseData>
     suspend fun register(username: String, email: String?, password: String, name: String?): Result<AuthResponseData>
     suspend fun logout(): Result<Unit>
+    suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit>
     fun isLoggedIn(): Boolean
     fun getCurrentUserId(): String?
     fun getCurrentUsername(): String?
@@ -73,6 +74,8 @@ interface CalAIRepository {
     suspend fun fetchRemoteWeightLogs(limit: Int = 30): Result<List<WeightLogResponseDto>>
     suspend fun fetchWeightTrend(limit: Int = 60): Result<List<WeightTrendPointDto>>
     suspend fun fetchWeightProgress(): Result<WeightProgressDto>
+    suspend fun updateRemoteWeightLog(logId: String, weightKg: Float? = null, note: String? = null, date: String? = null): Result<WeightLogResponseDto>
+    suspend fun deleteRemoteWeightLog(logId: String): Result<Unit>
 
     // --- AI Food Recognition & Chat Coach ---
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>

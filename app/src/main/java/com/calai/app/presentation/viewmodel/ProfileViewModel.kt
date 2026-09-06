@@ -2,7 +2,7 @@ package com.calai.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.calai.app.data.remote.dto.UpdateProfileRequest
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,16 +13,33 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class ReminderSettingsState(
+    val breakfastEnabled: Boolean = true,
+    val breakfastTime: String = "07:30",
+    val lunchEnabled: Boolean = true,
+    val lunchTime: String = "12:00",
+    val dinnerEnabled: Boolean = true,
+    val dinnerTime: String = "19:00",
+    val snackEnabled: Boolean = false,
+    val snackTime: String = "15:30",
+    val waterEnabled: Boolean = true,
+    val waterInterval: Int = 2
+)
+
 data class ProfileUiState(
     val isLoading: Boolean = false,
+    val isChangingPassword: Boolean = false,
     val profile: UserProfileDto? = null,
     val errorMessage: String? = null,
-    val isLoggedOut: Boolean = false
+    val successMessage: String? = null,
+    val isLoggedOut: Boolean = false,
+    val reminderSettings: ReminderSettingsState = ReminderSettingsState()
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val repository: CalAIRepository
+    private val repository: CalAIRepository,
+    private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -30,6 +47,51 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
+        loadReminderSettings()
+    }
+
+    fun loadReminderSettings() {
+        _uiState.update {
+            it.copy(
+                reminderSettings = ReminderSettingsState(
+                    breakfastEnabled = preferencesManager.isBreakfastReminderEnabled(),
+                    breakfastTime = preferencesManager.getBreakfastReminderTime(),
+                    lunchEnabled = preferencesManager.isLunchReminderEnabled(),
+                    lunchTime = preferencesManager.getLunchReminderTime(),
+                    dinnerEnabled = preferencesManager.isDinnerReminderEnabled(),
+                    dinnerTime = preferencesManager.getDinnerReminderTime(),
+                    snackEnabled = preferencesManager.isSnackReminderEnabled(),
+                    snackTime = preferencesManager.getSnackReminderTime(),
+                    waterEnabled = preferencesManager.isWaterReminderEnabled(),
+                    waterInterval = preferencesManager.getWaterReminderInterval()
+                )
+            )
+        }
+    }
+
+    fun updateBreakfastReminder(enabled: Boolean, time: String = "07:30") {
+        preferencesManager.setBreakfastReminder(enabled, time)
+        loadReminderSettings()
+    }
+
+    fun updateLunchReminder(enabled: Boolean, time: String = "12:00") {
+        preferencesManager.setLunchReminder(enabled, time)
+        loadReminderSettings()
+    }
+
+    fun updateDinnerReminder(enabled: Boolean, time: String = "19:00") {
+        preferencesManager.setDinnerReminder(enabled, time)
+        loadReminderSettings()
+    }
+
+    fun updateSnackReminder(enabled: Boolean, time: String = "15:30") {
+        preferencesManager.setSnackReminder(enabled, time)
+        loadReminderSettings()
+    }
+
+    fun updateWaterReminder(enabled: Boolean, interval: Int = 2) {
+        preferencesManager.setWaterReminder(enabled, interval)
+        loadReminderSettings()
     }
 
     fun loadProfile() {
@@ -63,6 +125,40 @@ class ProfileViewModel @Inject constructor(
                         )
                     )
                 }
+            }
+        }
+    }
+
+    fun changePassword(
+        oldPass: String,
+        newPass: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (oldPass.isBlank()) {
+            onError("Vui lòng nhập mật khẩu hiện tại")
+            return
+        }
+        if (newPass.length < 8) {
+            onError("Mật khẩu mới phải có tối thiểu 8 ký tự")
+            return
+        }
+        val hasUpper = newPass.any { it.isUpperCase() }
+        val hasLower = newPass.any { it.isLowerCase() }
+        val hasDigit = newPass.any { it.isDigit() }
+        if (!hasUpper || !hasLower || !hasDigit) {
+            onError("Mật khẩu mới cần chứa cả chữ hoa, chữ thường và chữ số")
+            return
+        }
+
+        _uiState.update { it.copy(isChangingPassword = true, errorMessage = null) }
+        viewModelScope.launch {
+            val result = repository.changePassword(oldPass, newPass)
+            _uiState.update { it.copy(isChangingPassword = false) }
+            result.onSuccess {
+                onSuccess()
+            }.onFailure { err ->
+                onError(err.message ?: "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.")
             }
         }
     }

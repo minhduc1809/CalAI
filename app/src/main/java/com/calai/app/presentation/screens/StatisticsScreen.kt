@@ -34,6 +34,7 @@ import com.calai.app.presentation.viewmodel.StatsPeriod
 @Composable
 fun StatisticsScreen(
     onNavigateTab: (DockTab) -> Unit,
+    onNavigateToWeightHistory: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
@@ -159,7 +160,7 @@ fun StatisticsScreen(
             MacroDistributionCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
             // Thẻ Xu Hướng Cân Nặng (EWMA Trend)
-            WeightTrendCard(uiState = uiState, isDarkTheme = isDarkTheme)
+            WeightTrendCard(uiState = uiState, isDarkTheme = isDarkTheme, onNavigateToHistory = onNavigateToWeightHistory)
         }
 
         // Thanh Dock nổi ở đáy
@@ -378,7 +379,7 @@ private fun MacroSharePill(label: String, percent: String, color: Color, modifie
 }
 
 @Composable
-private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true, onNavigateToHistory: () -> Unit = {}) {
     val diff = uiState.weightChangedKg
     val diffSign = if (diff <= 0) "" else "+"
     val diffFormatted = String.format("%.1f", diff)
@@ -508,6 +509,18 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 fontWeight = FontWeight.SemiBold,
                 color = if (isDarkTheme) TextMuted else TextInkMuted,
                 modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Xem lịch sử →",
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = VividOrange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToHistory),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }

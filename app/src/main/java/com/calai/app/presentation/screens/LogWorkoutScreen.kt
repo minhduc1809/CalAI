@@ -41,6 +41,7 @@ import com.calai.app.presentation.viewmodel.WorkoutViewModel
 fun LogWorkoutScreen(
     onBack: () -> Unit,
     onSaveSuccess: () -> Unit,
+    isDarkTheme: Boolean = true,
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -56,7 +57,7 @@ fun LogWorkoutScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         // Quầng ambient glow loang nhẹ phá vỡ khối đen (Quy tắc 10.5)
         Box(
@@ -65,7 +66,7 @@ fun LogWorkoutScreen(
                 .align(Alignment.TopEnd)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(VividOrange.copy(alpha = 0.08f), Color.Transparent)
+                        colors = listOf(VividOrange.copy(alpha = if (isDarkTheme) 0.08f else 0.15f), Color.Transparent)
                     )
                 )
         )
@@ -75,7 +76,7 @@ fun LogWorkoutScreen(
                 .align(Alignment.BottomStart)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(PastelMint.copy(alpha = 0.06f), Color.Transparent)
+                        colors = listOf(PastelMint.copy(alpha = if (isDarkTheme) 0.06f else 0.12f), Color.Transparent)
                     )
                 )
         )
@@ -102,15 +103,15 @@ fun LogWorkoutScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(CharcoalSurface)
-                            .border(1.dp, CharcoalBorder, CircleShape)
+                            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = TextWhite,
+                            tint = if (isDarkTheme) TextWhite else TextInkPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -120,13 +121,13 @@ fun LogWorkoutScreen(
                             text = "Ghi Nhận Buổi Tập",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
                             letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "Theo dõi Sets, Reps, Calo & Tải tạ",
                             fontSize = 12.sp,
-                            color = TextMuted
+                            color = if (isDarkTheme) TextMuted else TextInkMuted
                         )
                     }
                 }
@@ -438,6 +439,7 @@ fun LogWorkoutScreen(
                     itemsIndexed(uiState.exercises) { _, exercise ->
                         ExerciseCardItem(
                             exercise = exercise,
+                            isDark = isDarkTheme,
                             onAddSet = { viewModel.addSet(exercise.id) },
                             onRemoveSet = { setNumber -> viewModel.removeSet(exercise.id, setNumber) },
                             onUpdateSet = { setNum, reps, kg, rpe ->
@@ -706,6 +708,7 @@ fun LogWorkoutScreen(
 @Composable
 fun ExerciseCardItem(
     exercise: EditableWorkoutExercise,
+    isDark: Boolean = true,
     onAddSet: () -> Unit,
     onRemoveSet: (Int) -> Unit,
     onUpdateSet: (setNum: Int, reps: Int, weightKg: Float, rpe: Int?) -> Unit,
@@ -716,8 +719,8 @@ fun ExerciseCardItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(CharcoalCard)
-            .border(1.dp, CharcoalBorder, RoundedCornerShape(20.dp))
+            .background(if (isDark) CharcoalCard else PearlCard)
+            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -738,14 +741,14 @@ fun ExerciseCardItem(
                             .background(PastelMint.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        DuotoneDumbbellIcon(size = 18.dp, outlineColor = TextWhite, accentColor = PastelMint)
+                        DuotoneDumbbellIcon(size = 18.dp, outlineColor = if (isDark) TextWhite else TextInkPrimary, accentColor = PastelMint)
                     }
 
                     Text(
                         text = exercise.name,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = if (isDark) TextWhite else TextInkPrimary
                     )
                 }
 
@@ -756,7 +759,7 @@ fun ExerciseCardItem(
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Xóa bài tập",
-                        tint = TextMuted.copy(alpha = 0.7f),
+                        tint = (if (isDark) TextMuted else TextInkMuted).copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
