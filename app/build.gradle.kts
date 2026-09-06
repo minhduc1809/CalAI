@@ -109,6 +109,9 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
+    // ML Kit (Barcode Scanning)
+    implementation(libs.mlkit.barcode.scanning)
+
     // Coil (Image Loading)
     implementation(libs.coil.compose)
 

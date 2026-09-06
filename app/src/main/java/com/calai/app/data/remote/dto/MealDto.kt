@@ -7,6 +7,10 @@ data class CreateMealItemDto(
     val name: String,
     @SerializedName("servingSize")
     val servingSize: String? = null,
+    @SerializedName("servingAmount")
+    val servingAmount: Float? = null,
+    @SerializedName("servingUnit")
+    val servingUnit: String? = null,
     @SerializedName("quantity")
     val quantity: Float = 1f,
     @SerializedName("calories")
