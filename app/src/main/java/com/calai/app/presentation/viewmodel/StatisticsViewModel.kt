@@ -2,6 +2,7 @@ package com.calai.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.WeightTrendPointDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,7 +40,8 @@ data class StatisticsUiState(
     val startWeight: Float = 0f,
     val targetWeight: Float = 0f,
     val weightChangedKg: Float = 0f,
-    val weightProgressPercent: Int = 0
+    val weightProgressPercent: Int = 0,
+    val weightUnit: String = "kg"
 )
 
 /** Thứ trong tuần theo Calendar.DAY_OF_WEEK (SUNDAY = 1 ... SATURDAY = 7), quy ước Việt Nam T2..CN. */
@@ -57,13 +59,19 @@ private fun dayLabelOf(dateIso: String): String {
 
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
-    private val repository: CalAIRepository
+    private val repository: CalAIRepository,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StatisticsUiState())
+    private val _uiState = MutableStateFlow(StatisticsUiState(weightUnit = userPreferencesManager.getWeightUnit()))
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            userPreferencesManager.weightUnit.collect { unit ->
+                _uiState.value = _uiState.value.copy(weightUnit = unit)
+            }
+        }
         loadStatistics()
     }
 

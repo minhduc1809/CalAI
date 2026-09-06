@@ -234,9 +234,13 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     navController.popBackStack()
                                 },
-                                isDarkTheme = isDarkTheme
+                                isDarkTheme = isDarkTheme,
+                                onOpenExpenditureDetail = {
+                                    navController.navigate(Screen.ExpenditureDetail.route)
+                                }
                             )
                         }
+
 
                         // 9. Màn hình Cài đặt Hệ thống & Giao diện (Settings Screen - Spec STT 132-134)
                         composable(Screen.Settings.route) {
@@ -251,7 +255,18 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
+                        // 10. Màn hình Chi tiết Tiêu hao Năng lượng (Expenditure Detail - Spec STT 49-50)
+                        composable(Screen.ExpenditureDetail.route) {
+                            ExpenditureDetailScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
                     }
+
                 }
             }
         }

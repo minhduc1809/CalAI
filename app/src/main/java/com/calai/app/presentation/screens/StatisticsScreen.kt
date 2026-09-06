@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.theme.*
@@ -380,10 +381,15 @@ private fun MacroSharePill(label: String, percent: String, color: Color, modifie
 
 @Composable
 private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true, onNavigateToHistory: () -> Unit = {}) {
-    val diff = uiState.weightChangedKg
+    val unitLabel = if (uiState.weightUnit == "lb") "lbs" else "kg"
+    val diff = UserPreferencesManager.convertKg(uiState.weightChangedKg, uiState.weightUnit)
     val diffSign = if (diff <= 0) "" else "+"
-    val diffFormatted = String.format("%.1f", diff)
+    val diffFormatted = String.format(java.util.Locale.US, "%.1f", diff)
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+
+    val startWeightDisplay = UserPreferencesManager.formatWeight(uiState.startWeight, uiState.weightUnit)
+    val currentWeightDisplay = UserPreferencesManager.formatWeight(uiState.currentWeight, uiState.weightUnit)
+    val targetWeightDisplay = UserPreferencesManager.formatWeight(uiState.targetWeight, uiState.weightUnit)
 
     Box(
         modifier = Modifier
@@ -432,7 +438,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "$diffSign$diffFormatted kg",
+                        text = "$diffSign$diffFormatted $unitLabel",
                         color = if (diff <= 0) EmeraldSuccess else CoralWarning,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -486,7 +492,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Bắt đầu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
                     Text(
-                        "${uiState.startWeight} kg",
+                        startWeightDisplay,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isDarkTheme) TextWhite else TextInkPrimary
@@ -494,11 +500,11 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Hiện tại", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
-                    Text("${uiState.currentWeight} kg", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
+                    Text(currentWeightDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Mục tiêu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
-                    Text("${uiState.targetWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
+                    Text(targetWeightDisplay, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
                 }
             }
 

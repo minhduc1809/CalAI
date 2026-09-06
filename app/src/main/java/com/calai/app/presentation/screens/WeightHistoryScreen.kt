@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MonitorWeight
@@ -21,13 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.WeightLogResponseDto
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.WeightHistoryViewModel
 
 /**
- * Lịch sử cân nặng đầy đủ: xem, sửa, xóa từng bản ghi (PATCH/DELETE weight-logs/:id).
- * Truy cập từ nút "Xem lịch sử →" trên thẻ Xu hướng cân nặng ở màn Thống kê.
+ * Lịch sử cân nặng đầy đủ: xem, thêm, sửa, xóa từng bản ghi (POST/PATCH/DELETE weight-logs).
+ * Hỗ trợ đa đơn vị (kg / lb) theo cài đặt hệ thống.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +46,55 @@ fun WeightHistoryScreen(
     val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
     val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    val inputUnitLabel = if (uiState.weightUnit == "lb") "lb" else "kg"
+
+    if (uiState.isAddingLog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelAdd() },
+            containerColor = surface,
+            title = { Text("Ghi cân nặng mới", color = textPrimary, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = uiState.addWeightText,
+                        onValueChange = viewModel::setAddWeight,
+                        label = { Text("Cân nặng ($inputUnitLabel)") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textPrimary,
+                            unfocusedTextColor = textPrimary,
+                            focusedBorderColor = VividOrange,
+                            unfocusedBorderColor = border
+                        )
+                    )
+                    OutlinedTextField(
+                        value = uiState.addNoteText,
+                        onValueChange = viewModel::setAddNote,
+                        label = { Text("Ghi chú (tùy chọn)") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textPrimary,
+                            unfocusedTextColor = textPrimary,
+                            focusedBorderColor = VividOrange,
+                            unfocusedBorderColor = border
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.confirmAdd() },
+                    enabled = !uiState.isSaving && uiState.addWeightText.toFloatOrNull() != null
+                ) {
+                    Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelAdd() }) {
+                    Text("Hủy", color = textSecondary)
+                }
+            }
+        )
+    }
 
     if (uiState.editingLog != null) {
         AlertDialog(
@@ -55,7 +106,7 @@ fun WeightHistoryScreen(
                     OutlinedTextField(
                         value = uiState.editWeightText,
                         onValueChange = viewModel::setEditWeight,
-                        label = { Text("Cân nặng (kg)") },
+                        label = { Text("Cân nặng ($inputUnitLabel)") },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = textPrimary,
@@ -122,8 +173,30 @@ fun WeightHistoryScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = textPrimary)
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.startAdd() }) {
+                        Icon(Icons.Default.Add, contentDescription = "Ghi cân nặng", tint = VividOrange)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = bg)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.startAdd() },
+                containerColor = VividOrange,
+                contentColor = TextWhite,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("Ghi cân nặng", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -147,12 +220,13 @@ fun WeightHistoryScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 88.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(uiState.logs, key = { it.id }) { log ->
                             WeightLogRow(
                                 log = log,
+                                weightUnit = uiState.weightUnit,
                                 surface = surface,
                                 border = border,
                                 shadowColor = shadowColor,
@@ -172,6 +246,7 @@ fun WeightHistoryScreen(
 @Composable
 private fun WeightLogRow(
     log: WeightLogResponseDto,
+    weightUnit: String,
     surface: androidx.compose.ui.graphics.Color,
     border: androidx.compose.ui.graphics.Color,
     shadowColor: androidx.compose.ui.graphics.Color,
@@ -180,6 +255,8 @@ private fun WeightLogRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val displayWeight = UserPreferencesManager.formatWeight(log.weightKg, weightUnit)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -196,7 +273,7 @@ private fun WeightLogRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${log.weightKg} kg",
+                    text = displayWeight,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary
