@@ -56,7 +56,21 @@ data class UserProfileDto(
     @SerializedName("dailyAiQuota")
     val dailyAiQuota: Int? = null,
     @SerializedName("timezone")
-    val timezone: String? = null
+    val timezone: String? = null,
+    @SerializedName("sleepHours")
+    val sleepHours: Float? = null,
+    @SerializedName("stressLevel")
+    val stressLevel: String? = null,
+    @SerializedName("takesSupplements")
+    val takesSupplements: Boolean? = null,
+    @SerializedName("dietType")
+    val dietType: String? = null,
+    @SerializedName("mealsPerDay")
+    val mealsPerDay: Int? = null,
+    @SerializedName("cookTimeMinutes")
+    val cookTimeMinutes: Int? = null,
+    @SerializedName("foodBudgetLevel")
+    val foodBudgetLevel: String? = null
 )
 
 /** Trạng thái Adaptive Expenditure Engine — GET /users/me/expenditure. */
@@ -107,5 +121,19 @@ data class UpdateProfileRequest(
     @SerializedName("bodyFatPercent")
     val bodyFatPercent: Float? = null,
     @SerializedName("macroStyle")
-    val macroStyle: String? = null
+    val macroStyle: String? = null,
+    @SerializedName("sleepHours")
+    val sleepHours: Float? = null,
+    @SerializedName("stressLevel")
+    val stressLevel: String? = null,
+    @SerializedName("takesSupplements")
+    val takesSupplements: Boolean? = null,
+    @SerializedName("dietType")
+    val dietType: String? = null,
+    @SerializedName("mealsPerDay")
+    val mealsPerDay: Int? = null,
+    @SerializedName("cookTimeMinutes")
+    val cookTimeMinutes: Int? = null,
+    @SerializedName("foodBudgetLevel")
+    val foodBudgetLevel: String? = null
 )

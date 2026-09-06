@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -28,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.MacroStyleOptionRow
+import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.components.WheelPicker3D
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.ONBOARDING_STEP_COUNT
@@ -36,12 +40,14 @@ import com.calai.app.presentation.viewmodel.OnboardingViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Luồng Onboarding 5 bước (HorizontalPager, vuốt qua lại):
- * 0. WELCOME  — Chào mừng, giới thiệu app
- * 1. HEIGHT   — Chọn chiều cao bằng WheelPicker3D (100-220 cm)
- * 2. WEIGHT   — Chọn cân nặng bằng WheelPicker3D (30-180 kg)
+ * Luồng Onboarding 7 bước (HorizontalPager, vuốt qua lại):
+ * 0. WELCOME    — Chào mừng, giới thiệu app
+ * 1. HEIGHT     — Chọn chiều cao bằng WheelPicker3D (100-220 cm)
+ * 2. WEIGHT     — Chọn cân nặng bằng WheelPicker3D (30-180 kg)
  * 3. BIRTH_DATE — Chọn ngày sinh bằng 3 cột WheelPicker3D (ngày/tháng/năm)
- * 4. GOAL     — Chọn mục tiêu (3 card: Giảm cân / Duy trì / Tăng cân)
+ * 4. GOAL       — Chọn mục tiêu (3 card: Giảm cân / Duy trì / Tăng cân)
+ * 5. LIFESTYLE  — Giờ ngủ, mức stress, supplements, mức vận động (Lifestyle Profile)
+ * 6. NUTRITION  — Chế độ ăn, số bữa/ngày, thời gian nấu, ngân sách (Nutrition Profile)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -140,6 +146,28 @@ fun OnboardingScreen(
                             2 -> WeightPage(uiState.weightKg.toInt(), { viewModel.setWeightKg(it.toFloat()) }, isDarkTheme)
                             3 -> BirthDatePage(uiState.birthDay, uiState.birthMonth, uiState.birthYear, viewModel::setDateOfBirth, isDarkTheme)
                             4 -> GoalPage(uiState.goal, viewModel::selectGoal, isDarkTheme)
+                            5 -> LifestylePage(
+                                sleepHours = uiState.sleepHours,
+                                stressLevel = uiState.stressLevel,
+                                takesSupplements = uiState.takesSupplements,
+                                activityLevel = uiState.activityLevel,
+                                onSleepHoursChange = viewModel::setSleepHours,
+                                onStressSelect = viewModel::selectStressLevel,
+                                onSupplementsChange = viewModel::setTakesSupplements,
+                                onActivitySelect = viewModel::selectActivityLevel,
+                                isDarkTheme = isDarkTheme
+                            )
+                            6 -> NutritionPage(
+                                dietType = uiState.dietType,
+                                mealsPerDay = uiState.mealsPerDay,
+                                cookTimeMinutes = uiState.cookTimeMinutes,
+                                foodBudgetLevel = uiState.foodBudgetLevel,
+                                onDietTypeSelect = viewModel::selectDietType,
+                                onMealsPerDayChange = viewModel::setMealsPerDay,
+                                onCookTimeChange = viewModel::setCookTimeMinutes,
+                                onFoodBudgetSelect = viewModel::selectFoodBudgetLevel,
+                                isDarkTheme = isDarkTheme
+                            )
                         }
                     }
 
@@ -556,6 +584,208 @@ private fun GoalPage(
 
         Spacer(Modifier.height(12.dp))
     }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 5: LIFESTYLE (giờ ngủ, mức stress, supplements, mức vận động)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun LifestylePage(
+    sleepHours: Float,
+    stressLevel: String,
+    takesSupplements: Boolean,
+    activityLevel: String,
+    onSleepHoursChange: (Float) -> Unit,
+    onStressSelect: (String) -> Unit,
+    onSupplementsChange: (Boolean) -> Unit,
+    onActivitySelect: (String) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "Lối sống của bạn?",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Black,
+            color = textPrimary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Giúp CalAI cá nhân hóa lời khuyên phù hợp hơn",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        SectionLabel("Bạn ngủ trung bình bao nhiêu giờ mỗi đêm?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(4, 5, 6, 7, 8, 9, 10).chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { h ->
+                    SelectionPill(
+                        label = "$h h",
+                        isSelected = sleepHours.toInt() == h,
+                        isDarkTheme = isDarkTheme,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSleepHoursChange(h.toFloat()) }
+                    )
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Mức độ căng thẳng gần đây?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("LOW" to "Thấp", "MEDIUM" to "Trung bình", "HIGH" to "Cao").forEach { (key, label) ->
+                SelectionPill(label, stressLevel == key, isDarkTheme, Modifier.weight(1f)) { onStressSelect(key) }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Bạn có dùng thực phẩm bổ sung (supplements) không?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectionPill("Có", takesSupplements, isDarkTheme, Modifier.weight(1f)) { onSupplementsChange(true) }
+            SelectionPill("Không", !takesSupplements, isDarkTheme, Modifier.weight(1f)) { onSupplementsChange(false) }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Mức độ vận động hàng ngày?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "SEDENTARY" to "Ít vận động",
+            "LIGHTLY_ACTIVE" to "Vận động nhẹ",
+            "MODERATELY_ACTIVE" to "Vận động vừa",
+            "VERY_ACTIVE" to "Vận động nhiều",
+            "EXTRA_ACTIVE" to "Vận động rất nhiều"
+        ).forEach { (key, label) ->
+            SelectionPill(
+                label = label,
+                isSelected = activityLevel == key,
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onActivitySelect(key) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANG 6: NUTRITION (chế độ ăn, số bữa, thời gian nấu, ngân sách)
+// ══════════════════════════════════════════════════════════════
+@Composable
+private fun NutritionPage(
+    dietType: String,
+    mealsPerDay: Int,
+    cookTimeMinutes: Int,
+    foodBudgetLevel: String,
+    onDietTypeSelect: (String) -> Unit,
+    onMealsPerDayChange: (Int) -> Unit,
+    onCookTimeChange: (Int) -> Unit,
+    onFoodBudgetSelect: (String) -> Unit,
+    isDarkTheme: Boolean
+) {
+    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
+    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "Thói quen ăn uống?",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Black,
+            color = textPrimary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "CalAI gợi ý thực đơn phù hợp với khẩu vị và thời gian của bạn",
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(24.dp))
+
+        SectionLabel("Chế độ ăn của bạn?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "BALANCED" to ("Cân bằng" to "Đa dạng nhóm thực phẩm"),
+            "VEGETARIAN" to ("Ăn chay" to "Không thịt, không cá"),
+            "VEGAN" to ("Thuần chay" to "Không sản phẩm từ động vật"),
+            "KETO" to ("Keto" to "Ít tinh bột, nhiều chất béo"),
+            "LOW_CARB" to ("Ít tinh bột" to "Giảm carb, giữ đạm & rau"),
+            "PESCATARIAN" to ("Chay + hải sản" to "Không thịt đỏ/gia cầm"),
+            "OTHER" to ("Khác" to "Chế độ ăn khác/tự do")
+        ).forEach { (key, pair) ->
+            val (label, desc) = pair
+            MacroStyleOptionRow(label, desc, dietType == key, isDarkTheme) { onDietTypeSelect(key) }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionLabel("Số bữa ăn mỗi ngày?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (2..6).forEach { n ->
+                SelectionPill("$n bữa", mealsPerDay == n, isDarkTheme, Modifier.weight(1f)) { onMealsPerDayChange(n) }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Thời gian nấu ăn có sẵn mỗi bữa?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(15, 30, 45, 60, 90).forEach { m ->
+                SelectionPill("$m'", cookTimeMinutes == m, isDarkTheme, Modifier.weight(1f)) { onCookTimeChange(m) }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        SectionLabel("Mức ngân sách ăn uống?", textPrimary)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            "LOW" to ("Tiết kiệm" to "Ưu tiên món rẻ, nguyên liệu đơn giản"),
+            "MEDIUM" to ("Vừa phải" to "Cân đối chi phí và chất lượng"),
+            "HIGH" to ("Thoải mái" to "Không giới hạn nhiều về chi phí")
+        ).forEach { (key, pair) ->
+            val (label, desc) = pair
+            MacroStyleOptionRow(label, desc, foodBudgetLevel == key, isDarkTheme) { onFoodBudgetSelect(key) }
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String, color: Color) {
+    Text(
+        text,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 // ══════════════════════════════════════════════════════════════

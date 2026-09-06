@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Tổng số bước của Onboarding (5 bước). */
-const val ONBOARDING_STEP_COUNT = 5
+/** Tổng số bước của Onboarding (7 bước). */
+const val ONBOARDING_STEP_COUNT = 7
 
 data class OnboardingUiState(
-    val currentStep: Int = 0, // 0: WELCOME, 1: HEIGHT, 2: WEIGHT, 3: BIRTH_DATE, 4: GOAL
+    val currentStep: Int = 0, // 0: WELCOME, 1: HEIGHT, 2: WEIGHT, 3: BIRTH_DATE, 4: GOAL, 5: LIFESTYLE, 6: NUTRITION
     val isCompleted: Boolean = false,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
@@ -37,6 +37,17 @@ data class OnboardingUiState(
     // 4. GOAL: LOSE_WEIGHT, MAINTAIN, GAIN_WEIGHT
     val goal: String = "MAINTAIN",
 
+    // 5. LIFESTYLE (giờ ngủ, mức stress, supplements, mức vận động)
+    val sleepHours: Float = 7f,
+    val stressLevel: String = "MEDIUM",
+    val takesSupplements: Boolean = false,
+
+    // 6. NUTRITION (chế độ ăn, số bữa/ngày, thời gian nấu, ngân sách)
+    val dietType: String = "BALANCED",
+    val mealsPerDay: Int = 3,
+    val cookTimeMinutes: Int = 30,
+    val foodBudgetLevel: String = "MEDIUM",
+
     // Mặc định hỗ trợ tính toán BMR/TDEE
     val gender: String = "MALE",
     val activityLevel: String = "MODERATELY_ACTIVE"
@@ -51,6 +62,8 @@ data class OnboardingUiState(
         2 -> weightKg in 20f..300f
         3 -> birthYear in 1920..2020 && birthMonth in 1..12 && birthDay in 1..31
         4 -> goal.isNotBlank()
+        5 -> sleepHours in 0f..24f
+        6 -> mealsPerDay in 1..10 && cookTimeMinutes in 0..300
         else -> true
     }
 }
@@ -86,6 +99,38 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(goal = goal, errorMessage = null) }
     }
 
+    fun setSleepHours(value: Float) {
+        _uiState.update { it.copy(sleepHours = value, errorMessage = null) }
+    }
+
+    fun selectStressLevel(level: String) {
+        _uiState.update { it.copy(stressLevel = level, errorMessage = null) }
+    }
+
+    fun setTakesSupplements(value: Boolean) {
+        _uiState.update { it.copy(takesSupplements = value, errorMessage = null) }
+    }
+
+    fun selectActivityLevel(level: String) {
+        _uiState.update { it.copy(activityLevel = level, errorMessage = null) }
+    }
+
+    fun selectDietType(type: String) {
+        _uiState.update { it.copy(dietType = type, errorMessage = null) }
+    }
+
+    fun setMealsPerDay(value: Int) {
+        _uiState.update { it.copy(mealsPerDay = value, errorMessage = null) }
+    }
+
+    fun setCookTimeMinutes(value: Int) {
+        _uiState.update { it.copy(cookTimeMinutes = value, errorMessage = null) }
+    }
+
+    fun selectFoodBudgetLevel(level: String) {
+        _uiState.update { it.copy(foodBudgetLevel = level, errorMessage = null) }
+    }
+
     fun setCurrentStep(step: Int) {
         _uiState.update { it.copy(currentStep = step.coerceIn(0, ONBOARDING_STEP_COUNT - 1)) }
     }
@@ -103,7 +148,14 @@ class OnboardingViewModel @Inject constructor(
                 heightCm = state.heightCm,
                 weightKg = state.weightKg,
                 activityLevel = state.activityLevel,
-                goal = state.goal
+                goal = state.goal,
+                sleepHours = state.sleepHours,
+                stressLevel = state.stressLevel,
+                takesSupplements = state.takesSupplements,
+                dietType = state.dietType,
+                mealsPerDay = state.mealsPerDay,
+                cookTimeMinutes = state.cookTimeMinutes,
+                foodBudgetLevel = state.foodBudgetLevel
             )
             repository.updateProfile(request).onSuccess { profile ->
                 _uiState.update {
