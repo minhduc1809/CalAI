@@ -1,6 +1,7 @@
 package com.calai.app.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,12 +26,17 @@ data class DayItem(
 )
 
 /**
- * Thanh lịch tuần ngang (Weekly Day Strip) theo chuẩn ảnh mẫu
+ * Thanh lịch tuần ngang dạng đảo (Dark Luxury Weekly Calendar Strip)
+ * Tuân thủ quy tắc 9.3:
+ * - Trạng thái đang chọn dùng Lavender Gradient (LavenderGradientStart -> LavenderGradientEnd)
+ * - Chữ trên pill active dùng TextDeepInk
+ * - Nền thanh dùng CharcoalSurface + viền CharcoalBorder
  */
 @Composable
 fun WeeklyCalendarStrip(
     selectedDateIso: String,
     onDateSelected: (String) -> Unit,
+    isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val days = remember(selectedDateIso) {
@@ -39,8 +46,9 @@ fun WeeklyCalendarStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CharcoalSurface)
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
             .padding(horizontal = 8.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -48,6 +56,7 @@ fun WeeklyCalendarStrip(
         days.forEach { day ->
             DayPill(
                 day = day,
+                isDarkTheme = isDarkTheme,
                 onClick = { onDateSelected(day.dateIso) }
             )
         }
@@ -57,17 +66,30 @@ fun WeeklyCalendarStrip(
 @Composable
 private fun DayPill(
     day: DayItem,
+    isDarkTheme: Boolean = true,
     onClick: () -> Unit
 ) {
     val isSelected = day.isSelected
 
-    Box(
-        modifier = Modifier
+    val pillModifier = if (isSelected) {
+        Modifier
             .width(42.dp)
             .height(64.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) PastelLavender else androidx.compose.ui.graphics.Color.Transparent)
-            .clickable { onClick() },
+            .background(LavenderBrush)
+            .border(0.75.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+    } else {
+        Modifier
+            .width(42.dp)
+            .height(64.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Transparent)
+            .clickable { onClick() }
+    }
+
+    Box(
+        modifier = pillModifier,
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -78,14 +100,14 @@ private fun DayPill(
                 text = day.dayOfWeek,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TextDeepInk else TextMuted
+                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextMuted else TextInkMuted
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = day.dayOfMonth,
                 fontSize = 15.sp,
                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                color = if (isSelected) TextDeepInk else TextWhite
+                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextWhite else TextInkPrimary
             )
         }
     }
@@ -117,3 +139,4 @@ private fun generateWeekDays(selectedDateIso: String): List<DayItem> {
     }
     return list
 }
+

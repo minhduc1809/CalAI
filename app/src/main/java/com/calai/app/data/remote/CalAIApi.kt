@@ -22,12 +22,18 @@ interface CalAIApi {
     @POST("auth/logout")
     suspend fun logout(): ApiResponse<Any?>
 
+    @PATCH("auth/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): ApiResponse<Any?>
+
     // --- USERS ---
     @GET("users/me")
     suspend fun getProfile(): ApiResponse<UserProfileDto>
 
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfileDto>
+
+    @GET("users/me/expenditure")
+    suspend fun getExpenditureStatus(): ApiResponse<ExpenditureStatusDto>
 
     // --- MEALS ---
     @POST("meals")
@@ -36,8 +42,23 @@ interface CalAIApi {
     @GET("meals")
     suspend fun getMeals(@Query("date") date: String? = null): ApiResponse<List<MealResponseDto>>
 
+    @POST("meals/quick-add")
+    suspend fun quickAddMeal(@Body request: QuickAddMealRequest): ApiResponse<MealResponseDto>
+
     @GET("meals/summary")
     suspend fun getDailySummary(@Query("date") date: String? = null): ApiResponse<DailyNutritionSummaryData>
+
+    @GET("meals/statistics")
+    suspend fun getMealsStatistics(
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
+    ): ApiResponse<NutritionStatisticsData>
+
+    @PATCH("meals/{id}")
+    suspend fun updateMeal(@Path("id") mealId: String, @Body request: UpdateMealRequest): ApiResponse<MealResponseDto>
+
+    @POST("meals/{id}/copy")
+    suspend fun copyMeal(@Path("id") mealId: String, @Body request: CopyMealRequest): ApiResponse<MealResponseDto>
 
     @DELETE("meals/{id}")
     suspend fun deleteMeal(@Path("id") mealId: String): ApiResponse<Any?>
@@ -48,6 +69,15 @@ interface CalAIApi {
 
     @GET("weight-logs")
     suspend fun getWeightLogs(@Query("limit") limit: Int = 30): ApiResponse<List<WeightLogResponseDto>>
+
+    @GET("weight-logs/trend")
+    suspend fun getWeightTrend(@Query("limit") limit: Int = 60): ApiResponse<List<WeightTrendPointDto>>
+
+    @GET("weight-logs/progress")
+    suspend fun getWeightProgress(): ApiResponse<WeightProgressDto>
+
+    @PATCH("weight-logs/{id}")
+    suspend fun updateWeightLog(@Path("id") logId: String, @Body request: UpdateWeightLogRequest): ApiResponse<WeightLogResponseDto>
 
     @DELETE("weight-logs/{id}")
     suspend fun deleteWeightLog(@Path("id") logId: String): ApiResponse<Any?>
@@ -61,6 +91,80 @@ interface CalAIApi {
 
     @GET("recommendations/foods/categories")
     suspend fun getFoodCategories(): ApiResponse<List<String>>
+
+    @POST("recommendations/favorites")
+    suspend fun addFavoriteFood(@Body request: AddFavoriteFoodRequest): ApiResponse<Any?>
+
+    @GET("recommendations/favorites")
+    suspend fun getFavoriteFoods(): ApiResponse<List<String>>
+
+    @DELETE("recommendations/favorites/{foodName}")
+    suspend fun removeFavoriteFood(@Path("foodName") foodName: String): ApiResponse<Any?>
+
+    @GET("recommendations/diet")
+    suspend fun getDietRecommendation(): ApiResponse<DietRecommendationData>
+
+    @GET("recommendations/workout")
+    suspend fun getWorkoutRecommendation(): ApiResponse<WorkoutRecommendationData>
+
+    @GET("recommendations/exercises")
+    suspend fun getExercises(
+        @Query("gender") gender: String? = null,
+        @Query("level") level: String? = null
+    ): ApiResponse<ExerciseListData>
+
+    @GET("recommendations/diet/monthly")
+    suspend fun getMonthlyDiet(
+        @Query("goal") goal: String? = null,
+        @Query("level") level: String? = null
+    ): ApiResponse<MonthlyDietData>
+
+    @POST("recommendations/custom-foods")
+    suspend fun createCustomFood(@Body request: CreateCustomFoodRequest): ApiResponse<CustomFoodDto>
+
+    @GET("recommendations/custom-foods")
+    suspend fun getCustomFoods(): ApiResponse<List<CustomFoodDto>>
+
+    @DELETE("recommendations/custom-foods/{id}")
+    suspend fun deleteCustomFood(@Path("id") id: String): ApiResponse<Any?>
+
+    // --- WORKOUTS & TRAINING ---
+    @GET("workouts/categories")
+    suspend fun getWorkoutCategories(): ApiResponse<List<WorkoutCategoryInfoDto>>
+
+    @GET("workouts/summary")
+    suspend fun getWorkoutSummary(
+        @Query("date") date: String? = null
+    ): ApiResponse<WorkoutSummaryDto>
+
+    @POST("workouts")
+    suspend fun createWorkout(
+        @Body request: CreateWorkoutLogRequest
+    ): ApiResponse<WorkoutLogDto>
+
+    @GET("workouts")
+    suspend fun getWorkouts(
+        @Query("date") date: String? = null,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null,
+        @Query("category") category: String? = null
+    ): ApiResponse<List<WorkoutLogDto>>
+
+    @GET("workouts/{id}")
+    suspend fun getWorkoutById(
+        @Path("id") id: String
+    ): ApiResponse<WorkoutLogDto>
+
+    @PATCH("workouts/{id}")
+    suspend fun updateWorkout(
+        @Path("id") id: String,
+        @Body request: UpdateWorkoutLogRequest
+    ): ApiResponse<WorkoutLogDto>
+
+    @DELETE("workouts/{id}")
+    suspend fun deleteWorkout(
+        @Path("id") id: String
+    ): ApiResponse<Any?>
 
     // --- AI ENGINE ---
     @Multipart

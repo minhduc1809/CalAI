@@ -53,3 +53,10 @@ data class RefreshTokenResponseData(
     @SerializedName("refreshToken")
     val refreshToken: String
 )
+
+data class ChangePasswordRequest(
+    @SerializedName("oldPassword")
+    val oldPassword: String,
+    @SerializedName("newPassword")
+    val newPassword: String
+)

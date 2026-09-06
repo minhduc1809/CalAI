@@ -2,6 +2,7 @@ package com.calai.app.presentation.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.theme.*
@@ -32,6 +35,8 @@ import com.calai.app.presentation.viewmodel.StatsPeriod
 @Composable
 fun StatisticsScreen(
     onNavigateTab: (DockTab) -> Unit,
+    onNavigateToWeightHistory: () -> Unit = {},
+    isDarkTheme: Boolean = true,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -39,7 +44,7 @@ fun StatisticsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
     ) {
         Column(
             modifier = Modifier
@@ -54,16 +59,30 @@ fun StatisticsScreen(
                 text = "Phân Tích & Xu Hướng",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite,
+                color = if (isDarkTheme) TextWhite else TextInkPrimary,
                 letterSpacing = (-0.5).sp
             )
 
-            // Card Xanh Mint Banner (Đúng góc trên ảnh mẫu)
+            // Card Xanh Mint Banner với Shadow nổi khối
+            val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(
+                        elevation = if (isDarkTheme) 4.dp else 8.dp,
+                        shape = RoundedCornerShape(22.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(PastelMint)
+                    .background(if (isDarkTheme) PastelMint else ProteinGradientStartLight)
+                    .border(
+                        width = 1.dp,
+                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.6f), Color.Transparent)
+                        ),
+                        shape = RoundedCornerShape(22.dp)
+                    )
                     .padding(18.dp)
             ) {
                 Column {
@@ -88,8 +107,15 @@ fun StatisticsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                    .shadow(
+                        elevation = if (isDarkTheme) 2.dp else 4.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CharcoalSurface)
+                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -106,7 +132,7 @@ fun StatisticsScreen(
                         text = "Theo Ngày",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.DAILY) TextWhite else TextMuted
+                        color = if (uiState.period == StatsPeriod.DAILY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
 
@@ -123,37 +149,52 @@ fun StatisticsScreen(
                         text = "Theo Tuần",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.WEEKLY) TextWhite else TextMuted
+                        color = if (uiState.period == StatsPeriod.WEEKLY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
             }
 
             // Thẻ Calorie Trends (Màu Pastel Lavender chuẩn ảnh mẫu)
-            CalorieTrendsCard(uiState = uiState)
+            CalorieTrendsCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
             // Thẻ Macro Distribution
-            MacroDistributionCard()
+            MacroDistributionCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
             // Thẻ Xu Hướng Cân Nặng (EWMA Trend)
-            WeightTrendCard(uiState = uiState)
+            WeightTrendCard(uiState = uiState, isDarkTheme = isDarkTheme, onNavigateToHistory = onNavigateToWeightHistory)
         }
 
         // Thanh Dock nổi ở đáy
         FloatingBottomDock(
             currentTab = DockTab.STATISTICS,
             onTabSelected = onNavigateTab,
+            isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
 
 @Composable
-private fun CalorieTrendsCard(uiState: StatisticsUiState) {
+private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
-            .background(PastelLavender)
+            .background(if (isDarkTheme) PastelLavender else LavenderGradientStartLight)
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.65f), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
@@ -165,74 +206,82 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Trung bình: ${uiState.averageCalories} kcal/ngày",
+                text = "Trung bình: ${uiState.averageCalories} kcal/ngày · Mục tiêu ${uiState.targetCalories} kcal",
                 fontSize = 13.sp,
                 color = TextDeepInk.copy(alpha = 0.65f)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Biểu đồ đường cong Bézier 7 ngày
+            // Biểu đồ đường cong calo thực tế (GET /meals/statistics)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(110.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
+                if (uiState.weeklyStats.isNotEmpty()) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val width = size.width
+                        val height = size.height
+                        val calories = uiState.weeklyStats.map { it.calories }
+                        val minCal = minOf(calories.min(), uiState.targetCalories)
+                        val maxCal = maxOf(calories.max(), uiState.targetCalories)
+                        val range = (maxCal - minCal).takeIf { it > 0 } ?: 1
 
-                    // Đường mục tiêu đứt nét
-                    val targetY = height * 0.4f
-                    drawLine(
-                        color = TextDeepInk.copy(alpha = 0.25f),
-                        start = Offset(0f, targetY),
-                        end = Offset(width, targetY),
-                        strokeWidth = 2.dp.toPx()
-                    )
+                        // Trục dọc đảo chiều (calo cao -> gần đỉnh), chừa lề trên/dưới 15%
+                        fun yFor(value: Int): Float {
+                            val t = (value - minCal).toFloat() / range
+                            return height * (0.85f - t * 0.70f)
+                        }
 
-                    // Vẽ đường cong calo các ngày
-                    val points = listOf(
-                        Offset(width * 0.05f, height * 0.65f),
-                        Offset(width * 0.20f, height * 0.35f),
-                        Offset(width * 0.35f, height * 0.70f),
-                        Offset(width * 0.50f, height * 0.45f),
-                        Offset(width * 0.65f, height * 0.20f),
-                        Offset(width * 0.80f, height * 0.55f),
-                        Offset(width * 0.95f, height * 0.75f)
-                    )
+                        // Đường mục tiêu đứt nét — đúng vị trí Target Calories thật của người dùng
+                        val targetY = yFor(uiState.targetCalories)
+                        drawLine(
+                            color = TextDeepInk.copy(alpha = 0.25f),
+                            start = Offset(0f, targetY),
+                            end = Offset(width, targetY),
+                            strokeWidth = 2.dp.toPx()
+                        )
 
-                    val path = Path()
-                    path.moveTo(points[0].x, points[0].y)
-                    for (i in 1 until points.size) {
-                        val prev = points[i - 1]
-                        val curr = points[i]
-                        val midX = (prev.x + curr.x) / 2
-                        path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
-                    }
+                        // Vẽ đường cong calo các ngày từ dữ liệu thật
+                        val n = uiState.weeklyStats.size
+                        val points = uiState.weeklyStats.mapIndexed { index, day ->
+                            val x = if (n == 1) width / 2f else width * index / (n - 1).toFloat()
+                            Offset(x, yFor(day.calories))
+                        }
 
-                    drawPath(
-                        path = path,
-                        color = TextDeepInk,
-                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-                    )
+                        val path = Path()
+                        path.moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            val prev = points[i - 1]
+                            val curr = points[i]
+                            val midX = (prev.x + curr.x) / 2
+                            path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                        }
 
-                    // Vẽ các điểm mút
-                    points.forEach { pt ->
-                        drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
+                        drawPath(
+                            path = path,
+                            color = TextDeepInk,
+                            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                        )
+
+                        // Vẽ các điểm mút
+                        points.forEach { pt ->
+                            drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
+                        }
                     }
                 }
             }
 
-            // Nhãn thứ
+            // Nhãn thứ — lấy đúng thứ thật trong tuần của từng ngày dữ liệu
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN").forEach { day ->
-                    Text(day, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.5f))
+                uiState.weeklyStats.forEach { day ->
+                    Text(day.dayLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.5f))
                 }
             }
 
@@ -261,12 +310,29 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState) {
 }
 
 @Composable
-private fun MacroDistributionCard() {
+private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
-            .background(CharcoalSurface)
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
@@ -274,13 +340,13 @@ private fun MacroDistributionCard() {
                 text = "Phân bổ nhóm chất dinh dưỡng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite
+                color = if (isDarkTheme) TextWhite else TextInkPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Duy trì tỉ lệ đạm cao giúp bảo vệ khối cơ bắp khi thâm hụt calo.",
                 fontSize = 12.sp,
-                color = TextMuted
+                color = if (isDarkTheme) TextMuted else TextInkMuted
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -289,9 +355,9 @@ private fun MacroDistributionCard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MacroSharePill("Đạm (Protein)", "30%", PastelMint, Modifier.weight(1f))
-                MacroSharePill("Carb", "45%", PastelButtercup, Modifier.weight(1f))
-                MacroSharePill("Chất béo", "25%", PastelRose, Modifier.weight(1f))
+                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, Modifier.weight(1f))
+                MacroSharePill("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, Modifier.weight(1f))
+                MacroSharePill("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, Modifier.weight(1f))
             }
         }
     }
@@ -314,16 +380,38 @@ private fun MacroSharePill(label: String, percent: String, color: Color, modifie
 }
 
 @Composable
-private fun WeightTrendCard(uiState: StatisticsUiState) {
-    val diff = uiState.currentWeight - uiState.startWeight
+private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true, onNavigateToHistory: () -> Unit = {}) {
+    val unitLabel = if (uiState.weightUnit == "lb") "lbs" else "kg"
+    val diff = UserPreferencesManager.convertKg(uiState.weightChangedKg, uiState.weightUnit)
     val diffSign = if (diff <= 0) "" else "+"
-    val diffFormatted = String.format("%.1f", diff)
+    val diffFormatted = String.format(java.util.Locale.US, "%.1f", diff)
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+
+    val startWeightDisplay = UserPreferencesManager.formatWeight(uiState.startWeight, uiState.weightUnit)
+    val currentWeightDisplay = UserPreferencesManager.formatWeight(uiState.currentWeight, uiState.weightUnit)
+    val targetWeightDisplay = UserPreferencesManager.formatWeight(uiState.targetWeight, uiState.weightUnit)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
             .clip(RoundedCornerShape(24.dp))
-            .background(CharcoalSurface)
+            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
             .padding(18.dp)
     ) {
         Column {
@@ -337,12 +425,12 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                         text = "Xu hướng cân nặng EWMA",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
                     )
                     Text(
                         text = "Làm mịn biến động nước cơ thể",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = if (isDarkTheme) TextMuted else TextInkMuted
                     )
                 }
                 Surface(
@@ -350,7 +438,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "$diffSign$diffFormatted kg",
+                        text = "$diffSign$diffFormatted $unitLabel",
                         color = if (diff <= 0) EmeraldSuccess else CoralWarning,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -359,25 +447,88 @@ private fun WeightTrendCard(uiState: StatisticsUiState) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Sparkline đường Trend Weight thật (EWMA, alpha = 0.1) từ GET /weight-logs/trend
+            if (uiState.weightTrendPoints.size >= 2) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    val width = size.width
+                    val height = size.height
+                    val values = uiState.weightTrendPoints.map { it.trendWeight }
+                    val minV = values.min()
+                    val maxV = values.max()
+                    val range = (maxV - minV).takeIf { it > 0f } ?: 1f
+                    val n = values.size
+
+                    val points = values.mapIndexed { index, v ->
+                        val x = width * index / (n - 1).toFloat()
+                        val y = height * (0.9f - ((v - minV) / range) * 0.8f)
+                        Offset(x, y)
+                    }
+
+                    val path = Path()
+                    path.moveTo(points[0].x, points[0].y)
+                    for (i in 1 until points.size) {
+                        val prev = points[i - 1]
+                        val curr = points[i]
+                        val midX = (prev.x + curr.x) / 2
+                        path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                    }
+
+                    drawPath(path = path, color = VividOrange, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+                    drawCircle(color = VividOrange, radius = 4.dp.toPx(), center = points.last())
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Bắt đầu", fontSize = 11.sp, color = TextMuted)
-                    Text("${uiState.startWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                    Text("Bắt đầu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text(
+                        startWeightDisplay,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Hiện tại", fontSize = 11.sp, color = TextMuted)
-                    Text("${uiState.currentWeight} kg", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
+                    Text("Hiện tại", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text(currentWeightDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Mục tiêu", fontSize = 11.sp, color = TextMuted)
-                    Text("${uiState.targetWeight} kg", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
+                    Text("Mục tiêu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text(targetWeightDisplay, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Đã hoàn thành ${uiState.weightProgressPercent}% mục tiêu cân nặng",
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Xem lịch sử →",
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = VividOrange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToHistory),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

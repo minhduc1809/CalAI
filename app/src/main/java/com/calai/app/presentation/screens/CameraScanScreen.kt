@@ -1,7 +1,10 @@
 package com.calai.app.presentation.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
@@ -30,9 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.calai.app.domain.util.MealTimeHelper
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.CameraScanViewModel
 import java.io.File
@@ -53,6 +58,26 @@ fun CameraScanScreen(
     ) { success ->
         if (success && tempPhotoUri != null) {
             viewModel.onImageCapturedOrSelected(tempPhotoUri!!, context)
+        }
+    }
+
+    val launchCamera = {
+        val uri = createTempPictureUri(context)
+        tempPhotoUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCamera()
+        } else {
+            Toast.makeText(
+                context,
+                "Vui lòng cấp quyền Camera để chụp ảnh nhận diện món ăn",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -173,9 +198,16 @@ fun CameraScanScreen(
                 ) {
                     Button(
                         onClick = {
-                            val uri = createTempPictureUri(context)
-                            tempPhotoUri = uri
-                            cameraLauncher.launch(uri)
+                            val hasCameraPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasCameraPermission) {
+                                launchCamera()
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -386,15 +418,49 @@ fun CameraScanScreen(
 
                             if (result.healthTip.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(14.dp))
-                                Text(
-                                    text = "💡 ${result.healthTip}",
-                                    fontSize = 12.sp,
-                                    color = PastelLavender,
-                                    lineHeight = 16.sp
-                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lightbulb,
+                                        contentDescription = null,
+                                        tint = PastelLavender,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = result.healthTip,
+                                        fontSize = 12.sp,
+                                        color = PastelLavender,
+                                        lineHeight = 16.sp
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
+
+                            // Gợi ý bữa ăn theo giờ chụp
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    tint = VividOrange,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (uiState.detectedTimeStr != null) {
+                                        "Đề xuất theo giờ chụp (${uiState.detectedTimeStr} • ${MealTimeHelper.getMealTypeLabel(uiState.mealType)}):"
+                                    } else {
+                                        "Bữa ăn:"
+                                    },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextMuted
+                                )
+                            }
 
                             // Chọn bữa ăn
                             Row(

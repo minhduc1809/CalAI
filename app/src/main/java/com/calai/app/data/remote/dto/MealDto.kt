@@ -32,6 +32,23 @@ data class CreateMealRequest(
     val items: List<CreateMealItemDto>
 )
 
+data class QuickAddMealRequest(
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("mealType")
+    val mealType: String,
+    @SerializedName("date")
+    val date: String,
+    @SerializedName("calories")
+    val calories: Float,
+    @SerializedName("protein")
+    val protein: Float = 0f,
+    @SerializedName("carb")
+    val carb: Float = 0f,
+    @SerializedName("fat")
+    val fat: Float = 0f
+)
+
 data class MealItemResponseDto(
     @SerializedName("id")
     val id: String,
@@ -53,6 +70,20 @@ data class MealItemResponseDto(
     val fat: Float,
     @SerializedName("source")
     val source: String
+)
+
+data class UpdateMealRequest(
+    @SerializedName("mealType")
+    val mealType: String? = null,
+    @SerializedName("date")
+    val date: String? = null
+)
+
+data class CopyMealRequest(
+    @SerializedName("targetDate")
+    val targetDate: String,
+    @SerializedName("mealType")
+    val mealType: String? = null
 )
 
 data class MealResponseDto(
@@ -120,4 +151,47 @@ data class DailyNutritionSummaryData(
     val mealsCount: Int,
     @SerializedName("meals")
     val meals: List<MealResponseDto> = emptyList()
+)
+
+data class StatisticsPeriodDto(
+    @SerializedName("start")
+    val start: String,
+    @SerializedName("end")
+    val end: String
+)
+
+data class StatisticsAveragesDto(
+    @SerializedName("dailyCalories")
+    val dailyCalories: Float,
+    @SerializedName("dailyProtein")
+    val dailyProtein: Float,
+    @SerializedName("dailyCarb")
+    val dailyCarb: Float,
+    @SerializedName("dailyFat")
+    val dailyFat: Float
+)
+
+data class DailyStatDto(
+    @SerializedName("date")
+    val date: String,
+    @SerializedName("calories")
+    val calories: Float,
+    @SerializedName("protein")
+    val protein: Float,
+    @SerializedName("carb")
+    val carb: Float,
+    @SerializedName("fat")
+    val fat: Float,
+    @SerializedName("mealsCount")
+    val mealsCount: Int
+)
+
+/** Thống kê dinh dưỡng theo dải ngày — trả về từ GET /meals/statistics. */
+data class NutritionStatisticsData(
+    @SerializedName("period")
+    val period: StatisticsPeriodDto,
+    @SerializedName("averages")
+    val averages: StatisticsAveragesDto,
+    @SerializedName("dailyStats")
+    val dailyStats: List<DailyStatDto>
 )

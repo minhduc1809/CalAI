@@ -18,7 +18,9 @@ data class AuthUiState(
     val name: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isSuccess: Boolean = false
+    val isSuccess: Boolean = false,
+    /** true nếu cần hiện Onboarding (profile chưa hoàn tất hoặc vừa đăng ký mới). */
+    val needsOnboarding: Boolean = false
 )
 
 @HiltViewModel
@@ -30,9 +32,36 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
-        // Kiểm tra xem đã đăng nhập chưa
+        // Nếu đã đăng nhập (token còn lưu), kiểm tra profile đã đầy đủ chưa
         if (repository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(isSuccess = true)
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                val needsOnboarding = checkProfileIncomplete()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isSuccess = true,
+                    needsOnboarding = needsOnboarding
+                )
+            }
+        }
+    }
+
+    /**
+     * Gọi GET /users/me, kiểm tra các trường bắt buộc (heightCm, weightKg, goal, dateOfBirth).
+     * Nếu thiếu bất kỳ trường nào → cần Onboarding lại.
+     * Nếu API lỗi (mất mạng, token hết hạn) → cho vào Home bình thường (fail-open).
+     */
+    private suspend fun checkProfileIncomplete(): Boolean {
+        return try {
+            val result = repository.fetchRemoteProfile()
+            result.getOrNull()?.let { profile ->
+                profile.heightCm == null ||
+                profile.weightKg == null ||
+                profile.goal == null ||
+                profile.dateOfBirth.isNullOrBlank()
+            } ?: false
+        } catch (_: Exception) {
+            false // Fail-open: không chặn user vào app nếu API lỗi
         }
     }
 
@@ -107,7 +136,22 @@ class AuthViewModel @Inject constructor(
             }
 
             result.onSuccess {
-                _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+                if (state.isLoginMode) {
+                    // Đăng nhập → kiểm tra profile có đầy đủ chưa
+                    val needsOnboarding = checkProfileIncomplete()
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        needsOnboarding = needsOnboarding
+                    )
+                } else {
+                    // Đăng ký mới → luôn cần Onboarding
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        needsOnboarding = true
+                    )
+                }
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

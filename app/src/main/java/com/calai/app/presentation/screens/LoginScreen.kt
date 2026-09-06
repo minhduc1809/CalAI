@@ -32,7 +32,7 @@ import com.calai.app.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (isNewRegistration: Boolean) -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -40,7 +40,7 @@ fun LoginScreen(
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            onLoginSuccess()
+            onLoginSuccess(uiState.needsOnboarding)
         }
     }
 
@@ -60,7 +60,7 @@ fun LoginScreen(
 
             // Brand Header
             Text(
-                text = "CalAI",
+                text = "NutriWise",
                 fontSize = 38.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = TextWhite,
