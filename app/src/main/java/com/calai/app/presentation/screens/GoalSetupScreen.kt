@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -129,10 +130,17 @@ fun GoalSetupScreen(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(badgeColor.copy(alpha = 0.15f))
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(badgeColor)
+                            )
                             Text(
-                                if (isHolding) "🟢 Expenditure đã ổn định (Adaptive)" else "🟡 Đang cập nhật Expenditure",
+                                if (isHolding) "Expenditure đã ổn định (Adaptive)" else "Đang cập nhật Expenditure",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = badgeColor

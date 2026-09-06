@@ -92,11 +92,21 @@ val PastelFatTrackLight = Color(0xFFFFE4E6)
 val PastelLavenderLight = Color(0xFF8B5CF6)      // Tím oải hương tươi
 val PastelLavenderTrackLight = Color(0xFFEDE9FE)
 
+// Gradient 2 tông Bento Macro Light Mode — dùng làm nguồn DUY NHẤT cho brush lẫn màu đơn
+val ProteinGradientStartLight = Color(0xFF6EE7B7)
+val ProteinGradientEndLight = Color(0xFF34D399)
+val CarbGradientStartLight = Color(0xFFFDE68A)
+val CarbGradientEndLight = Color(0xFFFBBF24)
+val FatGradientStartLight = Color(0xFFFDA4AF)
+val FatGradientEndLight = Color(0xFFFB7185)
+val LavenderGradientStartLight = Color(0xFFDDD6FE)
+val LavenderGradientEndLight = Color(0xFFA78BFA)
+
 // Brushes cho Bento Macro Light Mode (Tươi tắn, sắc nét)
-val ProteinBrushLight = Brush.verticalGradient(listOf(Color(0xFF6EE7B7), Color(0xFF34D399)))
-val CarbBrushLight = Brush.verticalGradient(listOf(Color(0xFFFDE68A), Color(0xFFFBBF24)))
-val FatBrushLight = Brush.horizontalGradient(listOf(Color(0xFFFDA4AF), Color(0xFFFB7185)))
-val LavenderBrushLight = Brush.verticalGradient(listOf(Color(0xFFDDD6FE), Color(0xFFA78BFA)))
+val ProteinBrushLight = Brush.verticalGradient(listOf(ProteinGradientStartLight, ProteinGradientEndLight))
+val CarbBrushLight = Brush.verticalGradient(listOf(CarbGradientStartLight, CarbGradientEndLight))
+val FatBrushLight = Brush.horizontalGradient(listOf(FatGradientStartLight, FatGradientEndLight))
+val LavenderBrushLight = Brush.verticalGradient(listOf(LavenderGradientStartLight, LavenderGradientEndLight))
 
 val TextInkPrimary = Color(0xFF14151C)           // Chữ chính đậm rõ nét
 val TextInkSecondary = Color(0xFF5B5D6B)         // Chữ phụ

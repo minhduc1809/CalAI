@@ -660,13 +660,24 @@ fun HistoryTabContent(
                         }
 
                         if (!workout.note.isNullOrBlank()) {
-                            Text(
-                                text = "💬 ${workout.note}",
-                                fontSize = 12.sp,
-                                color = TextMuted.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notes,
+                                    contentDescription = null,
+                                    tint = TextMuted.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = workout.note,
+                                    fontSize = 12.sp,
+                                    color = TextMuted.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }

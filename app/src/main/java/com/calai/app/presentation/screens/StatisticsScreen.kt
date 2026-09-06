@@ -74,7 +74,7 @@ fun StatisticsScreen(
                         spotColor = shadowColor
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) PastelMint else Color(0xFF6EE7B7))
+                    .background(if (isDarkTheme) PastelMint else ProteinGradientStartLight)
                     .border(
                         width = 1.dp,
                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
@@ -186,7 +186,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) PastelLavender else Color(0xFFDDD6FE))
+            .background(if (isDarkTheme) PastelLavender else LavenderGradientStartLight)
             .border(
                 width = 1.dp,
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
@@ -354,9 +354,9 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else Color(0xFF6EE7B7), Modifier.weight(1f))
-                MacroSharePill("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else Color(0xFFFDE68A), Modifier.weight(1f))
-                MacroSharePill("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else Color(0xFFFDA4AF), Modifier.weight(1f))
+                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, Modifier.weight(1f))
+                MacroSharePill("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, Modifier.weight(1f))
+                MacroSharePill("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, Modifier.weight(1f))
             }
         }
     }

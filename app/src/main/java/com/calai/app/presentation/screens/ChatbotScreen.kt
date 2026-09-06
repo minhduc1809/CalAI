@@ -294,11 +294,23 @@ private fun ChatBubble(message: ChatMessage, isDarkTheme: Boolean = true) {
                 )
                 if (message.isFallback) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "💡 Chế độ offline / Smart Coach",
-                        fontSize = 10.sp,
-                        color = if (isDarkTheme) PastelLavender.copy(alpha = 0.8f) else VividOrange.copy(alpha = 0.8f)
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val fallbackTint = if (isDarkTheme) PastelLavender.copy(alpha = 0.8f) else VividOrange.copy(alpha = 0.8f)
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = fallbackTint,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "Chế độ offline / Smart Coach",
+                            fontSize = 10.sp,
+                            color = fallbackTint
+                        )
+                    }
                 }
             }
         }

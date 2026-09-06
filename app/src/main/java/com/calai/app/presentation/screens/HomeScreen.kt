@@ -307,7 +307,7 @@ fun HomeScreen(
                                 title = "Carbs",
                                 consumedGrams = carbConsumed,
                                 targetGrams = carbTarget,
-                                gradientColors = if (isDarkTheme) listOf(CarbGradientStart, CarbGradientEnd) else listOf(Color(0xFFFDE68A), Color(0xFFFBBF24)),
+                                gradientColors = if (isDarkTheme) listOf(CarbGradientStart, CarbGradientEnd) else listOf(CarbGradientStartLight, CarbGradientEndLight),
                                 icon = Icons.Default.Grain,
                                 modifier = Modifier.weight(1f),
                                 isDarkTheme = isDarkTheme
@@ -318,7 +318,7 @@ fun HomeScreen(
                                 title = "Protein",
                                 consumedGrams = proteinConsumed,
                                 targetGrams = proteinTarget,
-                                gradientColors = if (isDarkTheme) listOf(ProteinGradientStart, ProteinGradientEnd) else listOf(Color(0xFF6EE7B7), Color(0xFF34D399)),
+                                gradientColors = if (isDarkTheme) listOf(ProteinGradientStart, ProteinGradientEnd) else listOf(ProteinGradientStartLight, ProteinGradientEndLight),
                                 icon = Icons.Default.Egg,
                                 modifier = Modifier.weight(1f),
                                 isDarkTheme = isDarkTheme
