@@ -46,7 +46,14 @@ class TokenManager @Inject constructor(
 
     fun getUserName(): String? = prefs.getString(KEY_USER_NAME, null)
 
-    fun isLoggedIn(): Boolean = !getAccessToken().isNullOrBlank()
+    fun isLoggedIn(): Boolean {
+        val token = getAccessToken()
+        if (token == "mock_access_token") {
+            clear()
+            return false
+        }
+        return !token.isNullOrBlank()
+    }
 
     fun clear() {
         prefs.edit().clear().apply()

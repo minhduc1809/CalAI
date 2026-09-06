@@ -119,25 +119,7 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = err.message,
-                        // Cung cấp profile mặc định nếu offline / lỗi server
-                        profile = it.profile ?: UserProfileDto(
-                            id = "default_user",
-                            username = repository.getCurrentUsername() ?: "NutriWise User",
-                            name = "Nguyễn Minh Đức",
-                            heightCm = 175f,
-                            weightKg = 68.5f,
-                            goal = "LOSE_WEIGHT",
-                            activityLevel = "MODERATE",
-                            bmi = 22.4f,
-                            bmr = 1680f,
-                            tdee = 2310f,
-                            targetCalories = 1810f,
-                            targetProtein = 135f,
-                            targetCarb = 200f,
-                            targetFat = 50f,
-                            dailyAiQuota = 50
-                        )
+                        errorMessage = err.message ?: "Không thể kết nối đến máy chủ"
                     )
                 }
             }
