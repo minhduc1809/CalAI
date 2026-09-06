@@ -95,6 +95,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
                                 },
+                                onNavigateToWorkoutHub = {
+                                    navController.navigate(Screen.WorkoutHub.route)
+                                },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -171,7 +174,20 @@ class MainActivity : ComponentActivity() {
                                 isDarkTheme = isDarkTheme,
                                 onToggleTheme = { newTheme ->
                                     isDarkTheme = newTheme
+                                },
+                                onOpenGoalSetup = {
+                                    navController.navigate(Screen.GoalSetup.route)
                                 }
+                            )
+                        }
+
+                        // 8. Màn hình Mục tiêu & Chương trình (Goal Selection/Change, Program Setup)
+                        composable(Screen.GoalSetup.route) {
+                            GoalSetupScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
                     }

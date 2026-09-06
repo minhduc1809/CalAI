@@ -27,6 +27,14 @@ data class UserProfileDto(
     val activityLevel: String? = null,
     @SerializedName("goal")
     val goal: String? = null,
+    @SerializedName("targetWeightKg")
+    val targetWeightKg: Float? = null,
+    @SerializedName("weightRateKgPerWeek")
+    val weightRateKgPerWeek: Float? = null,
+    @SerializedName("bodyFatPercent")
+    val bodyFatPercent: Float? = null,
+    @SerializedName("macroStyle")
+    val macroStyle: String? = null,
     @SerializedName("bmi")
     val bmi: Float? = null,
     @SerializedName("bmr")
@@ -61,5 +69,13 @@ data class UpdateProfileRequest(
     @SerializedName("activityLevel")
     val activityLevel: String? = null,
     @SerializedName("goal")
-    val goal: String? = null
+    val goal: String? = null,
+    @SerializedName("targetWeightKg")
+    val targetWeightKg: Float? = null,
+    @SerializedName("weightRateKgPerWeek")
+    val weightRateKgPerWeek: Float? = null,
+    @SerializedName("bodyFatPercent")
+    val bodyFatPercent: Float? = null,
+    @SerializedName("macroStyle")
+    val macroStyle: String? = null
 )

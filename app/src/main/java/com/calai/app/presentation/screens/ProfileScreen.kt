@@ -33,6 +33,7 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     isDarkTheme: Boolean = true,
     onToggleTheme: (Boolean) -> Unit = {},
+    onOpenGoalSetup: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -357,7 +358,7 @@ fun ProfileScreen(
                     .background(if (isDarkTheme) CharcoalSurface else PearlCard)
                     .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
             ) {
-                ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme)
+                ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme, onClick = onOpenGoalSetup)
                 ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme)
                 ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = true, isDark = isDarkTheme)
             }
@@ -462,12 +463,13 @@ private fun ActionRowItem(
     icon: ImageVector,
     label: String,
     isLast: Boolean,
-    isDark: Boolean = true
+    isDark: Boolean = true,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 18.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

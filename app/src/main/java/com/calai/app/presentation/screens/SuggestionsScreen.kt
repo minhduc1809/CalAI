@@ -49,6 +49,7 @@ import com.calai.app.presentation.viewmodel.SuggestionsViewModel
 fun SuggestionsScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit = {},
+    onNavigateToWorkoutHub: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: SuggestionsViewModel = hiltViewModel()
 ) {
@@ -210,16 +211,29 @@ fun SuggestionsScreen(
                 // 2. SECTION LỘ TRÌNH TẬP LUYỆN
                 item {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        DuotoneWorkoutIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            DuotoneWorkoutIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
+                            Text(
+                                text = "Lộ trình tập luyện gợi ý",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                                letterSpacing = (-0.3).sp
+                            )
+                        }
                         Text(
-                            text = "Lộ trình tập luyện gợi ý",
-                            fontSize = 18.sp,
+                            text = "Workout Hub →",
+                            fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
-                            letterSpacing = (-0.3).sp
+                            color = VividOrange,
+                            modifier = Modifier.clickable { onNavigateToWorkoutHub() }
                         )
                     }
                 }
