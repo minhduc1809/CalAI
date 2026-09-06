@@ -2,7 +2,6 @@ package com.calai.app.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.MacroStyleOptionRow
+import com.calai.app.presentation.components.RateSelectionPill
+import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.GoalSetupViewModel
 
@@ -124,9 +126,9 @@ fun GoalSetupScreen(
             // 1. Loại mục tiêu
             Text("Bạn muốn giảm cân, duy trì hay tăng cân?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textPrimary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GoalPill("LOSE_WEIGHT", "Giảm cân", uiState.goal, isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal(it) }
-                GoalPill("MAINTAIN", "Duy trì", uiState.goal, isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal(it) }
-                GoalPill("GAIN_WEIGHT", "Tăng cân", uiState.goal, isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal(it) }
+                SelectionPill("Giảm cân", uiState.goal == "LOSE_WEIGHT", isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal("LOSE_WEIGHT") }
+                SelectionPill("Duy trì", uiState.goal == "MAINTAIN", isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal("MAINTAIN") }
+                SelectionPill("Tăng cân", uiState.goal == "GAIN_WEIGHT", isDarkTheme, Modifier.weight(1f)) { viewModel.selectGoal("GAIN_WEIGHT") }
             }
 
             // 2. Cân nặng mục tiêu
@@ -153,7 +155,7 @@ fun GoalSetupScreen(
             Text("Tốc độ thay đổi cân nặng mong muốn?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textPrimary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(0.25f, 0.5f, 0.75f, 1.0f).forEach { rate ->
-                    RatePill(rate, uiState.weightRateKgPerWeek, isDarkTheme, Modifier.weight(1f)) { viewModel.selectRate(it) }
+                    RateSelectionPill(rate, uiState.weightRateKgPerWeek == rate, isDarkTheme, Modifier.weight(1f)) { viewModel.selectRate(rate) }
                 }
             }
             Text(
@@ -165,10 +167,10 @@ fun GoalSetupScreen(
             // 4. Phong cách Macro
             Text("Bạn ưu tiên phong cách ăn nào?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textPrimary)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MacroStyleRow("BALANCED", "Cân bằng", "30% đạm · 40% tinh bột · 30% béo", uiState.macroStyle, isDarkTheme) { viewModel.selectMacroStyle(it) }
-                MacroStyleRow("HIGH_CARB_LOW_FAT", "Nhiều tinh bột, ít béo", "30% đạm · 55% tinh bột · 15% béo", uiState.macroStyle, isDarkTheme) { viewModel.selectMacroStyle(it) }
-                MacroStyleRow("LOW_CARB_HIGH_FAT", "Ít tinh bột, nhiều béo", "35% đạm · 20% tinh bột · 45% béo", uiState.macroStyle, isDarkTheme) { viewModel.selectMacroStyle(it) }
-                MacroStyleRow("KETO", "Keto", "25% đạm · 5% tinh bột · 70% béo", uiState.macroStyle, isDarkTheme) { viewModel.selectMacroStyle(it) }
+                MacroStyleOptionRow("Cân bằng", "30% đạm · 40% tinh bột · 30% béo", uiState.macroStyle == "BALANCED", isDarkTheme) { viewModel.selectMacroStyle("BALANCED") }
+                MacroStyleOptionRow("Nhiều tinh bột, ít béo", "30% đạm · 55% tinh bột · 15% béo", uiState.macroStyle == "HIGH_CARB_LOW_FAT", isDarkTheme) { viewModel.selectMacroStyle("HIGH_CARB_LOW_FAT") }
+                MacroStyleOptionRow("Ít tinh bột, nhiều béo", "35% đạm · 20% tinh bột · 45% béo", uiState.macroStyle == "LOW_CARB_HIGH_FAT", isDarkTheme) { viewModel.selectMacroStyle("LOW_CARB_HIGH_FAT") }
+                MacroStyleOptionRow("Keto", "25% đạm · 5% tinh bột · 70% béo", uiState.macroStyle == "KETO", isDarkTheme) { viewModel.selectMacroStyle("KETO") }
             }
 
             uiState.errorMessage?.let {
@@ -216,95 +218,3 @@ private fun SectionCard(
     }
 }
 
-@Composable
-private fun GoalPill(
-    value: String,
-    label: String,
-    selected: String,
-    isDarkTheme: Boolean,
-    modifier: Modifier = Modifier,
-    onSelect: (String) -> Unit
-) {
-    val isSelected = value == selected
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrange else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(14.dp))
-            .clickable { onSelect(value) }
-            .padding(vertical = 14.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (if (isDarkTheme) TextMuted else TextInkMuted)
-        )
-    }
-}
-
-@Composable
-private fun RatePill(
-    rate: Float,
-    selected: Float,
-    isDarkTheme: Boolean,
-    modifier: Modifier = Modifier,
-    onSelect: (Float) -> Unit
-) {
-    val isSelected = rate == selected
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) VividOrange else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(12.dp))
-            .clickable { onSelect(rate) }
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            "${rate} kg",
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (if (isDarkTheme) TextMuted else TextInkMuted)
-        )
-    }
-}
-
-@Composable
-private fun MacroStyleRow(
-    value: String,
-    label: String,
-    desc: String,
-    selected: String,
-    isDarkTheme: Boolean,
-    onSelect: (String) -> Unit
-) {
-    val isSelected = value == selected
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrangeSoft else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(14.dp))
-            .clickable { onSelect(value) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                label,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) VividOrange else (if (isDarkTheme) TextWhite else TextInkPrimary)
-            )
-            Text(desc, fontSize = 11.5.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
-        }
-        RadioButton(
-            selected = isSelected,
-            onClick = { onSelect(value) },
-            colors = RadioButtonDefaults.colors(selectedColor = VividOrange)
-        )
-    }
-}
