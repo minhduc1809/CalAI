@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
+import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ data class ReminderSettingsState(
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val isChangingPassword: Boolean = false,
+    val isUpdatingBiometrics: Boolean = false,
     val profile: UserProfileDto? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -156,6 +158,42 @@ class ProfileViewModel @Inject constructor(
                 onSuccess()
             }.onFailure { err ->
                 onError(err.message ?: "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.")
+            }
+        }
+    }
+
+    fun updateHeight(
+        heightCm: Float,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        _uiState.update { it.copy(isUpdatingBiometrics = true, errorMessage = null) }
+        viewModelScope.launch {
+            val result = repository.updateProfile(UpdateProfileRequest(heightCm = heightCm))
+            _uiState.update { it.copy(isUpdatingBiometrics = false) }
+            result.onSuccess { updated ->
+                _uiState.update { it.copy(profile = updated) }
+                onSuccess()
+            }.onFailure { err ->
+                onError(err.message ?: "Cập nhật chiều cao thất bại")
+            }
+        }
+    }
+
+    fun updateWeight(
+        weightKg: Float,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        _uiState.update { it.copy(isUpdatingBiometrics = true, errorMessage = null) }
+        viewModelScope.launch {
+            val result = repository.updateProfile(UpdateProfileRequest(weightKg = weightKg))
+            _uiState.update { it.copy(isUpdatingBiometrics = false) }
+            result.onSuccess { updated ->
+                _uiState.update { it.copy(profile = updated) }
+                onSuccess()
+            }.onFailure { err ->
+                onError(err.message ?: "Cập nhật cân nặng thất bại")
             }
         }
     }
