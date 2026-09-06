@@ -92,6 +92,9 @@ interface CalAIApi {
     @GET("recommendations/foods/categories")
     suspend fun getFoodCategories(): ApiResponse<List<String>>
 
+    @GET("recommendations/barcode/{code}")
+    suspend fun lookupBarcode(@Path("code") code: String): ApiResponse<BarcodeProductDto?>
+
     @POST("recommendations/favorites")
     suspend fun addFavoriteFood(@Body request: AddFavoriteFoodRequest): ApiResponse<Any?>
 

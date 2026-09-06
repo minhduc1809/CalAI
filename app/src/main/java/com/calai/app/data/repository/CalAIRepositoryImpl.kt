@@ -706,12 +706,23 @@ class CalAIRepositoryImpl @Inject constructor(
     override suspend fun createCustomFood(
         name: String,
         servingSize: String?,
+        servingAmount: Float?,
+        servingUnit: String?,
         calories: Float,
         protein: Float,
         carb: Float,
         fat: Float
     ): Result<CustomFoodDto> {
-        val request = CreateCustomFoodRequest(name = name, servingSize = servingSize, calories = calories, protein = protein, carb = carb, fat = fat)
+        val request = CreateCustomFoodRequest(
+            name = name,
+            servingSize = servingSize,
+            servingAmount = servingAmount,
+            servingUnit = servingUnit,
+            calories = calories,
+            protein = protein,
+            carb = carb,
+            fat = fat
+        )
         return try {
             val response = api.createCustomFood(request)
             if (response.success && response.data != null) {
@@ -730,6 +741,8 @@ class CalAIRepositoryImpl @Inject constructor(
             userId = "mock_user_01",
             name = request.name,
             servingSize = request.servingSize,
+            servingAmount = request.servingAmount,
+            servingUnit = request.servingUnit,
             calories = request.calories,
             protein = request.protein,
             carb = request.carb,
@@ -737,6 +750,19 @@ class CalAIRepositoryImpl @Inject constructor(
         )
         mockCustomFoods.add(0, food)
         return Result.success(food)
+    }
+
+    override suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?> {
+        return try {
+            val response = api.lookupBarcode(code)
+            if (response.success) {
+                Result.success(response.data)
+            } else {
+                Result.success(null)
+            }
+        } catch (_: Exception) {
+            Result.success(null)
+        }
     }
 
     override suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>> {

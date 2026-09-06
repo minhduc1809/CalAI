@@ -57,7 +57,16 @@ class AddMealViewModel @Inject constructor(
     }
 
     /** Tạo món ăn riêng mới, lưu vào kho món của người dùng để tái sử dụng về sau. */
-    fun createCustomFood(name: String, servingSize: String, calories: Float, protein: Float, carb: Float, fat: Float) {
+    fun createCustomFood(
+        name: String,
+        servingSize: String,
+        servingAmount: Float?,
+        servingUnit: String?,
+        calories: Float,
+        protein: Float,
+        carb: Float,
+        fat: Float
+    ) {
         if (name.isBlank() || calories <= 0f) {
             _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
             return
@@ -66,6 +75,8 @@ class AddMealViewModel @Inject constructor(
             repository.createCustomFood(
                 name = name,
                 servingSize = servingSize.ifBlank { null },
+                servingAmount = servingAmount,
+                servingUnit = servingUnit,
                 calories = calories,
                 protein = protein,
                 carb = carb,
