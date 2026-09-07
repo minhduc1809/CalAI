@@ -351,9 +351,9 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun fetchNutritionStatistics(startDate: String?, endDate: String?): Result<NutritionStatisticsData> {
+    override suspend fun fetchNutritionStatistics(startDate: String?, endDate: String?, preset: String?): Result<NutritionStatisticsData> {
         return try {
-            val response = api.getMealsStatistics(startDate, endDate)
+            val response = api.getMealsStatistics(startDate, endDate, preset)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -361,6 +361,19 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {
             getMockNutritionStatistics()
+        }
+    }
+
+    override suspend fun fetchInsights(): Result<List<InsightDto>> {
+        return try {
+            val response = api.getInsights()
+            if (response.success && response.data != null) {
+                Result.success(response.data.insights)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (_: Exception) {
+            Result.success(emptyList())
         }
     }
 

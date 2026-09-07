@@ -60,8 +60,12 @@ interface CalAIApi {
     @GET("meals/statistics")
     suspend fun getMealsStatistics(
         @Query("startDate") startDate: String? = null,
-        @Query("endDate") endDate: String? = null
+        @Query("endDate") endDate: String? = null,
+        @Query("preset") preset: String? = null
     ): ApiResponse<NutritionStatisticsData>
+
+    @GET("analytics/insights")
+    suspend fun getInsights(): ApiResponse<InsightsData>
 
     @PATCH("meals/{id}")
     suspend fun updateMeal(@Path("id") mealId: String, @Body request: UpdateMealRequest): ApiResponse<MealResponseDto>

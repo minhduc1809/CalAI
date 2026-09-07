@@ -1,5 +1,8 @@
 package com.calai.app.presentation.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +12,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,15 +25,19 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.data.remote.dto.InsightDto
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
+import com.calai.app.presentation.components.MacroDonutChart
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.StatisticsUiState
 import com.calai.app.presentation.viewmodel.StatisticsViewModel
@@ -102,11 +113,11 @@ fun StatisticsScreen(
                 }
             }
 
-            // Segmented Pill Toggle: [ Theo Ngày ] [ Theo Tuần ]
+            // Segmented Pill Toggle: 5 preset thời gian (Tuần/Tháng/Quý/Năm/Tất cả)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(46.dp)
                     .shadow(
                         elevation = if (isDarkTheme) 2.dp else 4.dp,
                         shape = RoundedCornerShape(24.dp),
@@ -117,41 +128,32 @@ fun StatisticsScreen(
                     .background(if (isDarkTheme) CharcoalSurface else PearlCard)
                     .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
                     .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (uiState.period == StatsPeriod.DAILY) VividOrange else Color.Transparent)
-                        .clickable { viewModel.setPeriod(StatsPeriod.DAILY) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Theo Ngày",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.DAILY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
-                    )
+                StatsPeriod.values().forEach { period ->
+                    val isSelected = uiState.period == period
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSelected) VividOrange else Color.Transparent)
+                            .clickable { viewModel.setPeriod(period) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = period.label,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
+                        )
+                    }
                 }
+            }
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (uiState.period == StatsPeriod.WEEKLY) VividOrange else Color.Transparent)
-                        .clickable { viewModel.setPeriod(StatsPeriod.WEEKLY) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Theo Tuần",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.period == StatsPeriod.WEEKLY) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
-                    )
-                }
+            // Thẻ Insight tự động (Plateau Detection / Goal Deviation) — chỉ hiện khi có insight
+            if (uiState.insights.isNotEmpty()) {
+                InsightCard(insights = uiState.insights, isDarkTheme = isDarkTheme)
             }
 
             // Thẻ Calorie Trends (Màu Pastel Lavender chuẩn ảnh mẫu)
@@ -171,6 +173,44 @@ fun StatisticsScreen(
             isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+}
+
+@Composable
+private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 4.dp else 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (isDarkTheme) PastelButtercup.copy(alpha = 0.18f) else CarbGradientStartLight.copy(alpha = 0.35f))
+            .border(1.dp, if (isDarkTheme) PastelButtercup.copy(alpha = 0.35f) else CarbGradientStartLight, RoundedCornerShape(20.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        insights.forEach { insight ->
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(
+                    imageVector = if (insight.type == "PLATEAU") Icons.AutoMirrored.Filled.TrendingFlat else Icons.Default.ReportProblem,
+                    contentDescription = null,
+                    tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = insight.message,
+                    fontSize = 12.8.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 17.sp,
+                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                )
+            }
+        }
     }
 }
 
@@ -213,13 +253,19 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Biểu đồ đường cong calo thực tế (GET /meals/statistics)
+            // Biểu đồ đường cong calo thực tế (GET /meals/statistics) — animate vẽ dần khi đổi preset/dữ liệu
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(110.dp)
             ) {
                 if (uiState.weeklyStats.isNotEmpty()) {
+                    val drawProgress = remember { Animatable(0f) }
+                    LaunchedEffect(uiState.weeklyStats) {
+                        drawProgress.snapTo(0f)
+                        drawProgress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = LinearEasing))
+                    }
+
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val width = size.width
                         val height = size.height
@@ -259,14 +305,37 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                             path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
                         }
 
+                        // Cắt path theo tiến độ animate (đường "tự vẽ" từ trái sang phải)
+                        val pathMeasure = PathMeasure()
+                        pathMeasure.setPath(path, false)
+                        val animatedPath = Path()
+                        pathMeasure.getSegment(0f, pathMeasure.length * drawProgress.value, animatedPath, true)
+
+                        // Gradient fill phía dưới đường cong
+                        val fillPath = Path().apply {
+                            addPath(animatedPath)
+                            lineTo(width * drawProgress.value, height)
+                            lineTo(0f, height)
+                            close()
+                        }
                         drawPath(
-                            path = path,
+                            path = fillPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(TextDeepInk.copy(alpha = 0.20f), Color.Transparent),
+                                startY = 0f,
+                                endY = height
+                            )
+                        )
+
+                        drawPath(
+                            path = animatedPath,
                             color = TextDeepInk,
                             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                         )
 
-                        // Vẽ các điểm mút
-                        points.forEach { pt ->
+                        // Vẽ các điểm mút đã "lộ ra" theo tiến độ animate
+                        val visibleCount = (points.size * drawProgress.value).toInt().coerceIn(0, points.size)
+                        points.take(visibleCount).forEach { pt ->
                             drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
                         }
                     }
@@ -353,13 +422,43 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                MacroSharePill("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, Modifier.weight(1f))
-                MacroSharePill("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, Modifier.weight(1f))
-                MacroSharePill("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, Modifier.weight(1f))
+                MacroDonutChart(
+                    proteinPercent = uiState.proteinPercent,
+                    carbPercent = uiState.carbPercent,
+                    fatPercent = uiState.fatPercent,
+                    centerLabel = "${uiState.averageCalories}",
+                    isDarkTheme = isDarkTheme
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MacroLegendRow("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, isDarkTheme)
+                    MacroLegendRow("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, isDarkTheme)
+                    MacroLegendRow("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, isDarkTheme)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun MacroLegendRow(label: String, percent: String, dotColor: Color, isDarkTheme: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(dotColor))
+        Text(
+            text = label,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isDarkTheme) TextMuted else TextInkMuted
+        )
+        Text(
+            text = percent,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (isDarkTheme) TextWhite else TextInkPrimary
+        )
     }
 }
 
