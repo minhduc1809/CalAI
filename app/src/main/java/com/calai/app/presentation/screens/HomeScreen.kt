@@ -26,6 +26,7 @@ import com.calai.app.data.remote.dto.MealResponseDto
 import com.calai.app.presentation.components.*
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.HomeViewModel
+import com.calai.app.presentation.viewmodel.formatMealLogTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -485,14 +486,26 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    items(uiState.meals) { meal ->
-                        MealItemRow(
-                            meal = meal,
-                            isDarkTheme = isDarkTheme,
-                            onDelete = { viewModel.deleteMeal(meal.id) },
-                            onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
-                            onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) }
-                        )
+                    uiState.mealGroups.forEach { group ->
+                        item(key = "group_${group.label}") {
+                            Text(
+                                text = group.label,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                            )
+                        }
+                        items(group.meals, key = { it.id }) { meal ->
+                            MealItemRow(
+                                meal = meal,
+                                isDarkTheme = isDarkTheme,
+                                showTimelineTime = uiState.mealStructureMode != "FIXED_MEALS",
+                                onDelete = { viewModel.deleteMeal(meal.id) },
+                                onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
+                                onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) }
+                            )
+                        }
                     }
                 }
             }
@@ -525,6 +538,7 @@ private val MEAL_TYPE_LABELS = listOf(
 private fun MealItemRow(
     meal: MealResponseDto,
     isDarkTheme: Boolean = true,
+    showTimelineTime: Boolean = true,
     onDelete: () -> Unit,
     onChangeMealType: (String) -> Unit,
     onCopy: (String) -> Unit
@@ -580,17 +594,29 @@ private fun MealItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    color = VividOrangeSoft,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = mealTypeName,
-                        color = VividOrange,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = VividOrangeSoft,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = mealTypeName,
+                            color = VividOrange,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    if (showTimelineTime) {
+                        formatMealLogTime(meal.createdAt)?.let { time ->
+                            Text(
+                                text = time,
+                                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 val itemsSummary = meal.items.joinToString(", ") { "${it.name} (${it.quantity.toInt()}x)" }

@@ -15,6 +15,8 @@ data class UserProfileDto(
     val avatar: String? = null,
     @SerializedName("role")
     val role: String? = null,
+    @SerializedName("isEmailVerified")
+    val isEmailVerified: Boolean = false,
     @SerializedName("gender")
     val gender: String? = null,
     @SerializedName("dateOfBirth")
@@ -56,7 +58,49 @@ data class UserProfileDto(
     @SerializedName("dailyAiQuota")
     val dailyAiQuota: Int? = null,
     @SerializedName("timezone")
-    val timezone: String? = null
+    val timezone: String? = null,
+    @SerializedName("sleepHours")
+    val sleepHours: Float? = null,
+    @SerializedName("stressLevel")
+    val stressLevel: String? = null,
+    @SerializedName("takesSupplements")
+    val takesSupplements: Boolean? = null,
+    @SerializedName("dietType")
+    val dietType: String? = null,
+    @SerializedName("mealsPerDay")
+    val mealsPerDay: Int? = null,
+    @SerializedName("cookTimeMinutes")
+    val cookTimeMinutes: Int? = null,
+    @SerializedName("foodBudgetLevel")
+    val foodBudgetLevel: String? = null,
+    @SerializedName("trainingExperience")
+    val trainingExperience: String? = null,
+    @SerializedName("trainingGoal")
+    val trainingGoal: String? = null,
+    @SerializedName("sessionsPerWeek")
+    val sessionsPerWeek: String? = null,
+    @SerializedName("equipmentAccess")
+    val equipmentAccess: String? = null,
+    @SerializedName("injuries")
+    val injuries: List<String>? = null,
+    @SerializedName("injuriesOtherNote")
+    val injuriesOtherNote: String? = null,
+    @SerializedName("oneRepMaxSquatKg")
+    val oneRepMaxSquatKg: Float? = null,
+    @SerializedName("oneRepMaxBenchKg")
+    val oneRepMaxBenchKg: Float? = null,
+    @SerializedName("oneRepMaxDeadliftKg")
+    val oneRepMaxDeadliftKg: Float? = null,
+    @SerializedName("programType")
+    val programType: String? = null,
+    @SerializedName("proteinPreference")
+    val proteinPreference: String? = null,
+    @SerializedName("isIntermittentFasting")
+    val isIntermittentFasting: Boolean? = null,
+    @SerializedName("ifWindowStart")
+    val ifWindowStart: String? = null,
+    @SerializedName("ifWindowEnd")
+    val ifWindowEnd: String? = null
 )
 
 /** Trạng thái Adaptive Expenditure Engine — GET /users/me/expenditure. */
@@ -107,5 +151,47 @@ data class UpdateProfileRequest(
     @SerializedName("bodyFatPercent")
     val bodyFatPercent: Float? = null,
     @SerializedName("macroStyle")
-    val macroStyle: String? = null
+    val macroStyle: String? = null,
+    @SerializedName("sleepHours")
+    val sleepHours: Float? = null,
+    @SerializedName("stressLevel")
+    val stressLevel: String? = null,
+    @SerializedName("takesSupplements")
+    val takesSupplements: Boolean? = null,
+    @SerializedName("dietType")
+    val dietType: String? = null,
+    @SerializedName("mealsPerDay")
+    val mealsPerDay: Int? = null,
+    @SerializedName("cookTimeMinutes")
+    val cookTimeMinutes: Int? = null,
+    @SerializedName("foodBudgetLevel")
+    val foodBudgetLevel: String? = null,
+    @SerializedName("trainingExperience")
+    val trainingExperience: String? = null,
+    @SerializedName("trainingGoal")
+    val trainingGoal: String? = null,
+    @SerializedName("sessionsPerWeek")
+    val sessionsPerWeek: String? = null,
+    @SerializedName("equipmentAccess")
+    val equipmentAccess: String? = null,
+    @SerializedName("injuries")
+    val injuries: List<String>? = null,
+    @SerializedName("injuriesOtherNote")
+    val injuriesOtherNote: String? = null,
+    @SerializedName("oneRepMaxSquatKg")
+    val oneRepMaxSquatKg: Float? = null,
+    @SerializedName("oneRepMaxBenchKg")
+    val oneRepMaxBenchKg: Float? = null,
+    @SerializedName("oneRepMaxDeadliftKg")
+    val oneRepMaxDeadliftKg: Float? = null,
+    @SerializedName("programType")
+    val programType: String? = null,
+    @SerializedName("proteinPreference")
+    val proteinPreference: String? = null,
+    @SerializedName("isIntermittentFasting")
+    val isIntermittentFasting: Boolean? = null,
+    @SerializedName("ifWindowStart")
+    val ifWindowStart: String? = null,
+    @SerializedName("ifWindowEnd")
+    val ifWindowEnd: String? = null
 )

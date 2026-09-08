@@ -25,6 +25,15 @@ interface CalAIApi {
     @PATCH("auth/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): ApiResponse<Any?>
 
+    @POST("auth/google")
+    suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): ApiResponse<AuthResponseData>
+
+    @POST("auth/send-verification-email")
+    suspend fun sendVerificationEmail(): ApiResponse<Any?>
+
+    @POST("auth/verify-email")
+    suspend fun verifyEmail(@Body request: VerifyEmailRequest): ApiResponse<Any?>
+
     // --- USERS ---
     @GET("users/me")
     suspend fun getProfile(): ApiResponse<UserProfileDto>
@@ -51,8 +60,12 @@ interface CalAIApi {
     @GET("meals/statistics")
     suspend fun getMealsStatistics(
         @Query("startDate") startDate: String? = null,
-        @Query("endDate") endDate: String? = null
+        @Query("endDate") endDate: String? = null,
+        @Query("preset") preset: String? = null
     ): ApiResponse<NutritionStatisticsData>
+
+    @GET("analytics/insights")
+    suspend fun getInsights(): ApiResponse<InsightsData>
 
     @PATCH("meals/{id}")
     suspend fun updateMeal(@Path("id") mealId: String, @Body request: UpdateMealRequest): ApiResponse<MealResponseDto>
@@ -91,6 +104,9 @@ interface CalAIApi {
 
     @GET("recommendations/foods/categories")
     suspend fun getFoodCategories(): ApiResponse<List<String>>
+
+    @GET("recommendations/barcode/{code}")
+    suspend fun lookupBarcode(@Path("code") code: String): ApiResponse<BarcodeProductDto?>
 
     @POST("recommendations/favorites")
     suspend fun addFavoriteFood(@Body request: AddFavoriteFoodRequest): ApiResponse<Any?>
@@ -182,6 +198,38 @@ interface CalAIApi {
     suspend fun chatAi(
         @Body request: ChatAiRequest
     ): ApiResponse<ChatAiResponseDto>
+
+    @GET("ai/chat/packages")
+    suspend fun getChatPlans(): ApiResponse<List<ChatPlanDto>>
+
+    @POST("ai/chat/purchase")
+    suspend fun purchaseChatPlan(
+        @Body request: PurchaseChatPlanRequest
+    ): ApiResponse<ChatQuotaInfoDto>
+
+    @GET("ai/chat/quota")
+    suspend fun getChatQuota(): ApiResponse<ChatQuotaInfoDto>
+
+    @GET("ai/chat/history")
+    suspend fun getChatHistory(): ApiResponse<ChatHistoryResponseDto>
+
+    @DELETE("ai/chat/history")
+    suspend fun clearChatHistory(): ApiResponse<Any?>
+
+    @GET("ai/suggest-meal")
+    suspend fun getSuggestMeal(): ApiResponse<SuggestMealResponseDto>
+
+    @Multipart
+    @POST("ai/scan-menu")
+    suspend fun scanMenu(
+        @Part image: MultipartBody.Part,
+        @Part note: MultipartBody.Part? = null
+    ): ApiResponse<ScanMenuResponseDto>
+
+    @POST("ai/scan-menu-base64")
+    suspend fun scanMenuBase64(
+        @Body request: ScanMenuBase64Request
+    ): ApiResponse<ScanMenuResponseDto>
 
     companion object {
         // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)

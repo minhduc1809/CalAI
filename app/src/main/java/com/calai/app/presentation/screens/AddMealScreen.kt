@@ -30,6 +30,7 @@ import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.data.remote.dto.toFoodItemDto
+import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.AddMealViewModel
 
@@ -38,6 +39,7 @@ import com.calai.app.presentation.viewmodel.AddMealViewModel
 fun AddMealScreen(
     onBack: () -> Unit,
     onCameraClick: () -> Unit = {},
+    onBarcodeClick: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: AddMealViewModel = hiltViewModel()
 ) {
@@ -68,8 +70,8 @@ fun AddMealScreen(
         CreateCustomFoodDialog(
             isDark = isDarkTheme,
             onDismiss = { showCreateCustomFoodDialog = false },
-            onConfirm = { name, servingSize, calories, protein, carb, fat ->
-                viewModel.createCustomFood(name, servingSize, calories, protein, carb, fat)
+            onConfirm = { name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat ->
+                viewModel.createCustomFood(name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat)
                 showCreateCustomFoodDialog = false
             }
         )
@@ -321,6 +323,31 @@ fun AddMealScreen(
                     Icon(Icons.Default.Bolt, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
                     Text(
                         text = "Nhập nhanh Calo / Macro (không cần chọn món)",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (isDarkTheme) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
+                }
+            }
+
+            // 4b. QUÉT MÃ VẠCH SẢN PHẨM (Barcode Scanner)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+                        .clickable { onBarcodeClick() }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = "Quét mã vạch sản phẩm đóng gói",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isDarkTheme) TextWhite else TextInkPrimary,
@@ -842,10 +869,12 @@ private fun QuickAddDialog(
 private fun CreateCustomFoodDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, servingSize: String, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
+    onConfirm: (name: String, servingSize: String, servingAmount: Float?, servingUnit: String?, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var servingSize by remember { mutableStateOf("") }
+    var servingAmount by remember { mutableStateOf("") }
+    var servingUnit by remember { mutableStateOf("PORTION") }
     var calories by remember { mutableStateOf("") }
     var protein by remember { mutableStateOf("") }
     var carb by remember { mutableStateOf("") }
@@ -883,6 +912,26 @@ private fun CreateCustomFoodDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = textFieldColors()
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = servingAmount,
+                        onValueChange = { servingAmount = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Số lượng", fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors()
+                    )
+                    listOf("GRAM" to "g", "ML" to "ml", "PORTION" to "phần").forEach { (key, label) ->
+                        SelectionPill(
+                            label = label,
+                            isSelected = servingUnit == key,
+                            isDarkTheme = isDark,
+                            modifier = Modifier.weight(1f),
+                            onClick = { servingUnit = key }
+                        )
+                    }
+                }
                 OutlinedTextField(
                     value = calories,
                     onValueChange = { calories = it.filter { c -> c.isDigit() } },
@@ -929,6 +978,8 @@ private fun CreateCustomFoodDialog(
                     onConfirm(
                         name,
                         servingSize,
+                        servingAmount.toFloatOrNull(),
+                        servingUnit,
                         calories.toFloatOrNull() ?: 0f,
                         protein.toFloatOrNull() ?: 0f,
                         carb.toFloatOrNull() ?: 0f,

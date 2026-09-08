@@ -162,6 +162,9 @@ class MainActivity : ComponentActivity() {
                                 onCameraClick = {
                                     navController.navigate(Screen.CameraScan.route)
                                 },
+                                onBarcodeClick = {
+                                    navController.navigate(Screen.BarcodeScan.route)
+                                },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -169,6 +172,13 @@ class MainActivity : ComponentActivity() {
                         // 4. Màn hình Quét Camera AI (AI Camera Scan)
                         composable(Screen.CameraScan.route) {
                             CameraScanScreen(onBack = {
+                                navController.popBackStack()
+                            })
+                        }
+
+                        // 4b. Màn hình Quét Mã Vạch (Barcode Scanner)
+                        composable(Screen.BarcodeScan.route) {
+                            BarcodeScanScreen(onBack = {
                                 navController.popBackStack()
                             })
                         }

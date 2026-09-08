@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">NutriWise</string>
+    <!-- Web Client ID (KHÔNG phải Android Client ID) lấy từ Firebase Console > Project Settings > General
+         hoặc Google Cloud Console > APIs & Services > Credentials > OAuth 2.0 Client IDs (loại "Web application").
+         Phải trùng với GOOGLE_CLIENT_ID trên backend (.env). -->
+    <string name="google_web_client_id" translatable="false">89465732720-ab22slsbjvi0ube9bgc8nrrm9olv71tc.apps.googleusercontent.com</string>
 </resources>

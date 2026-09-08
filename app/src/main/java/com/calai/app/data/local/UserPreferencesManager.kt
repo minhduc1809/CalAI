@@ -31,6 +31,7 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_UNIT_WEIGHT = "pref_unit_weight" // "kg", "lb"
         private const val KEY_UNIT_HEIGHT = "pref_unit_height" // "cm", "ft"
         private const val KEY_UNIT_ENERGY = "pref_unit_energy" // "kcal", "kJ"
+        private const val KEY_MEAL_STRUCTURE_MODE = "pref_meal_structure_mode" // "TIMELINE", "FIXED_MEALS"
 
         private const val KG_TO_LB = 2.20462f
 
@@ -146,6 +147,19 @@ class UserPreferencesManager @Inject constructor(
 
     fun getEnergyUnit(): String = prefs.getString(KEY_UNIT_ENERGY, "kcal") ?: "kcal"
     fun setEnergyUnit(unit: String) = prefs.edit().putString(KEY_UNIT_ENERGY, unit).apply()
+
+    // Food Log Display — BRD: "meal_structure_mode (timeline / fixed_meals)", mặc định Timeline,
+    // chỉ đổi cách nhóm hiển thị, không ảnh hưởng dữ liệu/tính toán calo-macro đã lưu.
+    private val _mealStructureMode = MutableStateFlow(
+        prefs.getString(KEY_MEAL_STRUCTURE_MODE, "TIMELINE") ?: "TIMELINE"
+    )
+    val mealStructureMode: StateFlow<String> = _mealStructureMode.asStateFlow()
+
+    fun getMealStructureMode(): String = _mealStructureMode.value
+    fun setMealStructureMode(mode: String) {
+        prefs.edit().putString(KEY_MEAL_STRUCTURE_MODE, mode).apply()
+        _mealStructureMode.value = mode
+    }
 
     fun clear() {
         prefs.edit().clear().apply()

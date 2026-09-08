@@ -28,6 +28,9 @@ interface CalAIRepository {
     suspend fun register(username: String, email: String?, password: String, name: String?): Result<AuthResponseData>
     suspend fun logout(): Result<Unit>
     suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit>
+    suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData>
+    suspend fun sendVerificationEmail(): Result<Unit>
+    suspend fun verifyEmail(code: String): Result<Unit>
     fun isLoggedIn(): Boolean
     fun getCurrentUserId(): String?
     fun getCurrentUsername(): String?
@@ -44,7 +47,8 @@ interface CalAIRepository {
     suspend fun updateRemoteMeal(mealId: String, mealType: String? = null, date: String? = null): Result<MealResponseDto>
     suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String? = null): Result<MealResponseDto>
     suspend fun deleteRemoteMeal(mealId: String): Result<Unit>
-    suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null): Result<NutritionStatisticsData>
+    suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null, preset: String? = null): Result<NutritionStatisticsData>
+    suspend fun fetchInsights(): Result<List<InsightDto>>
     suspend fun quickAddMeal(
         name: String,
         mealType: String,
@@ -65,7 +69,8 @@ interface CalAIRepository {
     suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
     suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
     suspend fun fetchMonthlyDiet(goal: String? = null, level: String? = null): Result<MonthlyDietData>
-    suspend fun createCustomFood(name: String, servingSize: String?, calories: Float, protein: Float = 0f, carb: Float = 0f, fat: Float = 0f): Result<CustomFoodDto>
+    suspend fun createCustomFood(name: String, servingSize: String?, servingAmount: Float? = null, servingUnit: String? = null, calories: Float, protein: Float = 0f, carb: Float = 0f, fat: Float = 0f): Result<CustomFoodDto>
+    suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?>
     suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>>
     suspend fun deleteCustomFood(id: String): Result<Unit>
 
@@ -81,6 +86,14 @@ interface CalAIRepository {
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>
     suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto>
     suspend fun chatAi(message: String): Result<ChatAiResponseDto>
+    suspend fun fetchChatPlans(): Result<List<ChatPlanDto>>
+    suspend fun purchaseChatPlan(packageId: String): Result<ChatQuotaInfoDto>
+    suspend fun fetchChatQuota(): Result<ChatQuotaInfoDto>
+    suspend fun fetchChatHistory(): Result<ChatHistoryResponseDto>
+    suspend fun clearChatHistory(): Result<Unit>
+    suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto>
+    suspend fun scanMenu(file: File, note: String? = null): Result<ScanMenuResponseDto>
+    suspend fun scanMenuBase64(base64: String, note: String? = null): Result<ScanMenuResponseDto>
 
     // --- Workouts & Training Remote ---
     suspend fun fetchWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>>

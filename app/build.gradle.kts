@@ -109,6 +109,14 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
+    // ML Kit (Barcode Scanning)
+    implementation(libs.mlkit.barcode.scanning)
+
+    // Google Sign-In (Credential Manager)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     // Coil (Image Loading)
     implementation(libs.coil.compose)
 

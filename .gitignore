@@ -22,10 +22,14 @@ reports/
 # Gradle files & caches
 .gradle/
 **/.gradle/
+.kotlin/
 buildOutputCleanup/
 
 # Local configuration file (contains SDK path)
 local.properties
+
+# Firebase config — chứa API key thật, KHÔNG commit (dùng app/google-services.json.example làm mẫu)
+app/google-services.json
 
 # Android Studio / IntelliJ IDEA
 .idea/
@@ -46,4 +50,3 @@ Thumbs.db
 # Documentation / Prompt Rules (Local Only)
 CODING_RULES.md
 *RULES*.md
-
