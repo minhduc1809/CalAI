@@ -19,7 +19,9 @@ data class FoodRecognitionResultDto(
     val totalFat: Double = 0.0,
     val items: List<FoodItemRecognitionDto> = emptyList(),
     val healthTip: String = "",
-    val isFallback: Boolean = false
+    val isFallback: Boolean = false,
+    val remainingDailyQuota: Int? = null,
+    val dailyLimit: Int? = null
 )
 
 data class RecognizeFoodBase64Request(

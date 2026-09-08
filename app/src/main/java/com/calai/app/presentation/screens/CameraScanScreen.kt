@@ -141,7 +141,34 @@ fun CameraScanScreen(
             }
 
             if (uiState.selectedImageUri == null) {
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Badge hiển thị giới hạn lượt dùng 5 ảnh/ngày
+                Surface(
+                    color = CharcoalSurface,
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                    modifier = Modifier.padding(bottom = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = VividOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Hạn mức AI: 5 lượt chụp ảnh / ngày",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextWhite
+                        )
+                    }
+                }
 
                 // Khung ngắm Camera góc bo tròn
                 Box(
@@ -352,6 +379,14 @@ fun CameraScanScreen(
                                         fontSize = 13.sp,
                                         color = TextMuted
                                     )
+                                    if (result.remainingDailyQuota != null) {
+                                        Text(
+                                            text = "Còn ${result.remainingDailyQuota}/5 lượt chụp hôm nay",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = VividOrange
+                                        )
+                                    }
                                 }
 
                                 Surface(
