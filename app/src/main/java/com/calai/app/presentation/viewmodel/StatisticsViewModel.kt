@@ -4,24 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.InsightDto
-import com.calai.app.data.remote.dto.WeightTrendPointDto
-import com.calai.app.domain.repository.CalAIRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import javax.inject.Inject
-
-enum class StatsPeriod(val apiPreset: String, val label: String, val maxPoints: Int) {
-    WEEK("week", "Tuần", 7),
-    MONTH("month", "Tháng", 10),
-    QUARTER("quarter", "Quý", 12),
-    YEAR("year", "Năm", 12),
-    ALL("all", "Tất cả", 12)
 }
 
 data class DayCalorieStat(
@@ -103,41 +85,6 @@ private fun bucketDailyStats(
     }
 }
 
-@HiltViewModel
-class StatisticsViewModel @Inject constructor(
-    private val repository: CalAIRepository,
-    private val userPreferencesManager: UserPreferencesManager
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(StatisticsUiState(weightUnit = userPreferencesManager.getWeightUnit()))
-    val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            userPreferencesManager.weightUnit.collect { unit ->
-                _uiState.value = _uiState.value.copy(weightUnit = unit)
-            }
-        }
-        loadStatistics()
-        loadInsights()
-    }
-
-    fun setPeriod(period: StatsPeriod) {
-        if (_uiState.value.period == period) return
-        _uiState.value = _uiState.value.copy(period = period)
-        loadStatistics()
-    }
-
-    private fun loadInsights() {
-        viewModelScope.launch {
-            repository.fetchInsights().onSuccess { insights ->
-                _uiState.value = _uiState.value.copy(insights = insights)
-            }
-        }
-    }
-
-    private fun loadStatistics() {
-        val period = _uiState.value.period
         _uiState.value = _uiState.value.copy(isLoading = true)
 
         viewModelScope.launch {
