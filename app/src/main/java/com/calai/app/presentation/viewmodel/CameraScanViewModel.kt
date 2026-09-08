@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
 import com.calai.app.data.remote.dto.FoodRecognitionResultDto
+import com.calai.app.data.remote.dto.MenuItemDto
+import com.calai.app.data.remote.dto.ScanMenuResponseDto
 import com.calai.app.domain.repository.CalAIRepository
 import com.calai.app.domain.util.MealTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,11 +25,18 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+enum class ScanMode {
+    FOOD,       // Quét ảnh món ăn
+    MENU        // Quét thực đơn quán ăn
+}
+
 data class CameraScanUiState(
+    val scanMode: ScanMode = ScanMode.FOOD,
     val selectedImageUri: Uri? = null,
     val isAnalyzing: Boolean = false,
     val result: FoodRecognitionResultDto? = null,
-    val mealType: String = MealTimeHelper.detectMealType(), // Tự động nhận diện theo giờ
+    val menuResult: ScanMenuResponseDto? = null,
+    val mealType: String = MealTimeHelper.detectMealType(),
     val detectedTimeStr: String? = null,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
@@ -42,6 +51,15 @@ class CameraScanViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CameraScanUiState())
     val uiState: StateFlow<CameraScanUiState> = _uiState.asStateFlow()
 
+    fun setScanMode(mode: ScanMode) {
+        _uiState.value = _uiState.value.copy(
+            scanMode = mode,
+            result = null,
+            menuResult = null,
+            errorMessage = null
+        )
+    }
+
     fun onMealTypeSelect(type: String) {
         _uiState.value = _uiState.value.copy(mealType = type)
     }
@@ -53,6 +71,7 @@ class CameraScanViewModel @Inject constructor(
             selectedImageUri = uri,
             isAnalyzing = true,
             result = null,
+            menuResult = null,
             mealType = autoMealType,
             detectedTimeStr = timeStr,
             errorMessage = null,
@@ -71,18 +90,35 @@ class CameraScanViewModel @Inject constructor(
                     file
                 }
 
-                val scanResult = repository.recognizeFood(tempFile)
-                scanResult.onSuccess { data ->
-                    _uiState.value = _uiState.value.copy(
-                        isAnalyzing = false,
-                        result = data,
-                        errorMessage = null
-                    )
-                }.onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isAnalyzing = false,
-                        errorMessage = error.message ?: "Không thể phân tích ảnh"
-                    )
+                if (_uiState.value.scanMode == ScanMode.FOOD) {
+                    val scanResult = repository.recognizeFood(tempFile)
+                    scanResult.onSuccess { data ->
+                        _uiState.value = _uiState.value.copy(
+                            isAnalyzing = false,
+                            result = data,
+                            errorMessage = null
+                        )
+                    }.onFailure { error ->
+                        _uiState.value = _uiState.value.copy(
+                            isAnalyzing = false,
+                            errorMessage = error.message ?: "Không thể phân tích món ăn"
+                        )
+                    }
+                } else {
+                    // Chế độ quét MENU
+                    val menuScanResult = repository.scanMenu(tempFile)
+                    menuScanResult.onSuccess { data ->
+                        _uiState.value = _uiState.value.copy(
+                            isAnalyzing = false,
+                            menuResult = data,
+                            errorMessage = null
+                        )
+                    }.onFailure { error ->
+                        _uiState.value = _uiState.value.copy(
+                            isAnalyzing = false,
+                            errorMessage = error.message ?: "Không thể đọc menu thực đơn"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -100,70 +136,103 @@ class CameraScanViewModel @Inject constructor(
         _uiState.value = currentState.copy(isSaving = true, errorMessage = null)
 
         viewModelScope.launch {
-            val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                .format(Date())
+            try {
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                val nowStr = dateFormat.format(Date())
 
-            val items = if (result.items.isNotEmpty()) {
-                result.items.map { item ->
+                val items = result.items.map { item ->
                     CreateMealItemDto(
                         name = item.name,
-                        servingSize = item.servingSize ?: result.servingSize,
+                        servingSize = item.servingSize,
+                        servingAmount = 1.0f,
+                        servingUnit = "PORTION",
                         quantity = 1.0f,
                         calories = item.calories.toFloat(),
                         protein = item.protein.toFloat(),
                         carb = item.carb.toFloat(),
-                        fat = item.fat.toFloat(),
-                        source = "ai_vision"
+                        fat = item.fat.toFloat()
                     )
                 }
-            } else {
-                listOf(
-                    CreateMealItemDto(
-                        name = result.foodName,
-                        servingSize = result.servingSize,
-                        quantity = 1.0f,
-                        calories = result.totalCalories.toFloat(),
-                        protein = result.totalProtein.toFloat(),
-                        carb = result.totalCarb.toFloat(),
-                        fat = result.totalFat.toFloat(),
-                        source = "ai_vision"
+
+                val request = CreateMealRequest(
+                    mealType = currentState.mealType,
+                    date = nowStr,
+                    items = items
+                )
+
+                val saveResult = repository.createRemoteMeal(request)
+                saveResult.onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        isSaveSuccess = true
                     )
-                )
-            }
-
-            val request = CreateMealRequest(
-                mealType = currentState.mealType,
-                date = isoDate,
-                items = items
-            )
-
-            repository.createRemoteMeal(request).onSuccess {
+                }.onFailure { err ->
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        errorMessage = "Lỗi khi lưu bữa ăn: ${err.message}"
+                    )
+                }
+            } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    isSaveSuccess = true
-                )
-            }.onFailure { err ->
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = err.message ?: "Không thể lưu bữa ăn"
+                    errorMessage = "Lỗi hệ thống: ${e.localizedMessage}"
                 )
             }
         }
     }
 
-    fun resetScan() {
-        _uiState.value = _uiState.value.copy(
-            selectedImageUri = null,
-            isAnalyzing = false,
-            result = null,
-            mealType = MealTimeHelper.detectMealType(),
-            detectedTimeStr = null,
-            errorMessage = null,
-            isSaveSuccess = false
-        )
+    fun saveMenuItemAsMeal(item: MenuItemDto) {
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(isSaving = true, errorMessage = null)
+
+        viewModelScope.launch {
+            try {
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                val nowStr = dateFormat.format(Date())
+
+                val request = CreateMealRequest(
+                    mealType = currentState.mealType,
+                    date = nowStr,
+                    items = listOf(
+                        CreateMealItemDto(
+                            name = item.name,
+                            servingSize = "1 phần",
+                            servingAmount = 1.0f,
+                            servingUnit = "PORTION",
+                            quantity = 1.0f,
+                            calories = item.estimatedCalories.toFloat(),
+                            protein = item.protein.toFloat(),
+                            carb = item.carbs.toFloat(),
+                            fat = item.fat.toFloat()
+                        )
+                    )
+                )
+
+                val saveResult = repository.createRemoteMeal(request)
+                saveResult.onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        isSaveSuccess = true
+                    )
+                }.onFailure { err ->
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        errorMessage = "Lỗi khi lưu món ăn từ menu: ${err.message}"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    errorMessage = "Lỗi: ${e.localizedMessage}"
+                )
+            }
+        }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
+    fun resetState() {
+        _uiState.value = CameraScanUiState(
+            scanMode = _uiState.value.scanMode,
+            mealType = MealTimeHelper.detectMealType()
+        )
     }
 }

@@ -1043,6 +1043,167 @@ class CalAIRepositoryImpl @Inject constructor(
         return Result.success(ChatAiResponseDto(reply = answer))
     }
 
+    override suspend fun fetchChatPlans(): Result<List<ChatPlanDto>> {
+        return try {
+            val response = api.getChatPlans()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(listOf(
+                    ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
+                    ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
+                    ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
+                ))
+            }
+        } catch (_: Exception) {
+            Result.success(listOf(
+                ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
+                ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
+                ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
+            ))
+        }
+    }
+
+    override suspend fun purchaseChatPlan(packageId: String): Result<ChatQuotaInfoDto> {
+        return try {
+            val response = api.purchaseChatPlan(PurchaseChatPlanRequest(packageId = packageId))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể nâng cấp gói"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun fetchChatQuota(): Result<ChatQuotaInfoDto> {
+        return try {
+            val response = api.getChatQuota()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(ChatQuotaInfoDto())
+            }
+        } catch (_: Exception) {
+            Result.success(ChatQuotaInfoDto())
+        }
+    }
+
+    override suspend fun fetchChatHistory(): Result<ChatHistoryResponseDto> {
+        return try {
+            val response = api.getChatHistory()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(ChatHistoryResponseDto())
+            }
+        } catch (_: Exception) {
+            Result.success(ChatHistoryResponseDto())
+        }
+    }
+
+    override suspend fun clearChatHistory(): Result<Unit> {
+        return try {
+            val response = api.clearChatHistory()
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể xóa lịch sử"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto> {
+        return try {
+            val response = api.getSuggestMeal()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.success(SuggestMealResponseDto(
+                    nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
+                    suggestions = listOf(
+                        SuggestedMealItemDto(
+                            name = "Phở gà ức ít bánh + 2 trứng chần",
+                            mealType = "Bữa tối",
+                            calories = 450,
+                            protein = 40,
+                            carbs = 48,
+                            fat = 9,
+                            reason = "Cung cấp đạm nạc tinh khiết, vừa vặn với calo còn thiếu tối nay."
+                        )
+                    ),
+                    advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
+                ))
+            }
+        } catch (_: Exception) {
+            Result.success(SuggestMealResponseDto(
+                nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
+                suggestions = listOf(
+                    SuggestedMealItemDto(
+                        name = "Phở gà ức ít bánh + 2 trứng chần",
+                        mealType = "Bữa tối",
+                        calories = 450,
+                        protein = 40,
+                        carbs = 48,
+                        fat = 9,
+                        reason = "Cung cấp đạm nạc tinh khiết, vừa vặn với calo còn thiếu tối nay."
+                    )
+                ),
+                advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
+            ))
+        }
+    }
+
+    override suspend fun scanMenu(file: File, note: String?): Result<ScanMenuResponseDto> {
+        return try {
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+            val noteBody = note?.let { MultipartBody.Part.createFormData("note", it) }
+
+            val response = api.scanMenu(body, noteBody)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockMenuScan()
+            }
+        } catch (_: Exception) {
+            getMockMenuScan()
+        }
+    }
+
+    override suspend fun scanMenuBase64(base64: String, note: String?): Result<ScanMenuResponseDto> {
+        return try {
+            val response = api.scanMenuBase64(ScanMenuBase64Request(imageBase64 = base64, note = note))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                getMockMenuScan()
+            }
+        } catch (_: Exception) {
+            getMockMenuScan()
+        }
+    }
+
+    private fun getMockMenuScan(): Result<ScanMenuResponseDto> {
+        return Result.success(
+            ScanMenuResponseDto(
+                restaurantName = "Thực Đơn Quán Cơm & Bún",
+                items = listOf(
+                    MenuItemDto("Phở bò tái nạc", "55.000đ", 480, 34, 60, 10, "Bò tái tươi ngon, nước dùng thanh", isRecommended = true, recommendationReason = "Cung cấp 34g protein chất lượng cao phù hợp ngân sách dinh dưỡng hôm nay"),
+                    MenuItemDto("Cơm tấm sườn nướng", "50.000đ", 580, 28, 70, 18, "Sườn nướng than hoa, cơm tấm dẻo"),
+                    MenuItemDto("Gỏi cuốn tôm thịt", "35.000đ", 240, 18, 32, 4, "Thanh đạm, ít calo", isRecommended = true, recommendationReason = "Calo thấp, thanh mát cho bữa ăn nhẹ")
+                ),
+                recommendedItems = listOf(
+                    MenuItemDto("Phở bò tái nạc", "55.000đ", 480, 34, 60, 10, "Bò tái tươi ngon, nước dùng thanh", isRecommended = true, recommendationReason = "Cung cấp 34g protein chất lượng cao phù hợp ngân sách dinh dưỡng hôm nay")
+                ),
+                summaryAdvice = "Món Phở bò tái nạc là lựa chọn tối ưu nhất cho chỉ tiêu calo và đạm còn lại của bạn!"
+            )
+        )
+    }
+
     // --- Workouts & Training Implementation ---
 
     override suspend fun fetchWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {

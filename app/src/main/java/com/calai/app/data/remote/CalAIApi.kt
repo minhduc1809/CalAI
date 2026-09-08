@@ -199,6 +199,38 @@ interface CalAIApi {
         @Body request: ChatAiRequest
     ): ApiResponse<ChatAiResponseDto>
 
+    @GET("ai/chat/packages")
+    suspend fun getChatPlans(): ApiResponse<List<ChatPlanDto>>
+
+    @POST("ai/chat/purchase")
+    suspend fun purchaseChatPlan(
+        @Body request: PurchaseChatPlanRequest
+    ): ApiResponse<ChatQuotaInfoDto>
+
+    @GET("ai/chat/quota")
+    suspend fun getChatQuota(): ApiResponse<ChatQuotaInfoDto>
+
+    @GET("ai/chat/history")
+    suspend fun getChatHistory(): ApiResponse<ChatHistoryResponseDto>
+
+    @DELETE("ai/chat/history")
+    suspend fun clearChatHistory(): ApiResponse<Any?>
+
+    @GET("ai/suggest-meal")
+    suspend fun getSuggestMeal(): ApiResponse<SuggestMealResponseDto>
+
+    @Multipart
+    @POST("ai/scan-menu")
+    suspend fun scanMenu(
+        @Part image: MultipartBody.Part,
+        @Part note: MultipartBody.Part? = null
+    ): ApiResponse<ScanMenuResponseDto>
+
+    @POST("ai/scan-menu-base64")
+    suspend fun scanMenuBase64(
+        @Body request: ScanMenuBase64Request
+    ): ApiResponse<ScanMenuResponseDto>
+
     companion object {
         // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)
         // Nếu dùng thiết bị thật qua Wi-Fi LAN, đổi thành IP máy tính (VD: http://192.168.1.x:3000/api/v1/)

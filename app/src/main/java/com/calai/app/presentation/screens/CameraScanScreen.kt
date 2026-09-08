@@ -37,9 +37,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.calai.app.data.remote.dto.MenuItemDto
 import com.calai.app.domain.util.MealTimeHelper
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.CameraScanViewModel
+import com.calai.app.presentation.viewmodel.ScanMode
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +77,7 @@ fun CameraScanScreen(
         } else {
             Toast.makeText(
                 context,
-                "Vui lòng cấp quyền Camera để chụp ảnh nhận diện món ăn",
+                "Vui lòng cấp quyền Camera để chụp ảnh",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -91,6 +93,7 @@ fun CameraScanScreen(
 
     LaunchedEffect(uiState.isSaveSuccess) {
         if (uiState.isSaveSuccess) {
+            Toast.makeText(context, "Đã lưu bữa ăn vào nhật ký thành công!", Toast.LENGTH_SHORT).show()
             onBack()
         }
     }
@@ -99,7 +102,14 @@ fun CameraScanScreen(
         containerColor = ObsidianBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Quét Món Ăn Bằng AI", fontWeight = FontWeight.Bold, color = TextWhite) },
+                title = {
+                    Text(
+                        text = if (uiState.scanMode == ScanMode.FOOD) "Quét Món Ăn Bằng AI" else "Quét Thực Đơn Quán Ăn",
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite,
+                        fontSize = 18.sp
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = TextWhite)
@@ -116,6 +126,53 @@ fun CameraScanScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Thanh chuyển Tab chế độ quét (Món Ăn vs Thực Đơn)
+            if (uiState.selectedImageUri == null) {
+                Surface(
+                    color = CharcoalSurface,
+                    shape = RoundedCornerShape(20.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val isFood = uiState.scanMode == ScanMode.FOOD
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isFood) VividOrange else Color.Transparent)
+                                .clickable { viewModel.setScanMode(ScanMode.FOOD) }
+                                .padding(horizontal = 18.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "🍲 Đĩa Món Ăn",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isFood) TextWhite else TextMuted
+                            )
+                        }
+
+                        val isMenu = uiState.scanMode == ScanMode.MENU
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isMenu) VividOrange else Color.Transparent)
+                                .clickable { viewModel.setScanMode(ScanMode.MENU) }
+                                .padding(horizontal = 18.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "📋 Thực Đơn (Menu)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isMenu) TextWhite else TextMuted
+                            )
+                        }
+                    }
+                }
+            }
+
             uiState.errorMessage?.let { errorMsg ->
                 Card(
                     modifier = Modifier
@@ -141,9 +198,36 @@ fun CameraScanScreen(
             }
 
             if (uiState.selectedImageUri == null) {
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Khung ngắm Camera góc bo tròn
+                // Badge hạn mức
+                Surface(
+                    color = CharcoalSurface,
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                    modifier = Modifier.padding(bottom = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = VividOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Hạn mức AI: 5 lượt chụp ảnh miễn phí / ngày",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextWhite
+                        )
+                    }
+                }
+
+                // Khung ngắm Camera
                 Box(
                     modifier = Modifier
                         .size(280.dp)
@@ -164,7 +248,7 @@ fun CameraScanScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Default.CameraAlt,
+                                if (uiState.scanMode == ScanMode.FOOD) Icons.Default.CameraAlt else Icons.Default.MenuBook,
                                 contentDescription = null,
                                 tint = VividOrange,
                                 modifier = Modifier.size(36.dp)
@@ -172,7 +256,7 @@ fun CameraScanScreen(
                         }
                         Spacer(modifier = Modifier.height(18.dp))
                         Text(
-                            text = "Đưa món ăn vào khung hình",
+                            text = if (uiState.scanMode == ScanMode.FOOD) "Đưa món ăn vào khung hình" else "Chụp toàn bộ thực đơn quán ăn",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextWhite,
@@ -180,7 +264,10 @@ fun CameraScanScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Gemini AI sẽ tự động phân tích đĩa thức ăn và tính toán calo chuẩn xác",
+                            text = if (uiState.scanMode == ScanMode.FOOD)
+                                "Gemini AI sẽ nhận diện món ăn và tính toán calo chuẩn xác"
+                            else
+                                "AI sẽ bóc tách danh sách món và gợi ý món tối ưu nhất cho calo hôm nay của bạn",
                             fontSize = 12.sp,
                             color = TextMuted,
                             textAlign = TextAlign.Center
@@ -188,7 +275,7 @@ fun CameraScanScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 Row(
                     modifier = Modifier
@@ -256,7 +343,10 @@ fun CameraScanScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Mẹo: Chụp từ góc nhìn xiên 45° với ánh sáng rõ ràng để AI ước tính kích thước đĩa và khẩu phần chính xác nhất.",
+                            text = if (uiState.scanMode == ScanMode.FOOD)
+                                "Mẹo: Chụp từ góc nghiêng 45° với ánh sáng rõ ràng để AI ước tính kích thước đĩa và khẩu phần chính xác nhất."
+                            else
+                                "Mẹo: Đặt thực đơn thẳng và phẳng, đủ ánh sáng để AI đọc rõ tên món và giá tiền.",
                             fontSize = 12.sp,
                             color = TextMuted
                         )
@@ -267,13 +357,13 @@ fun CameraScanScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(270.dp)
+                        .height(260.dp)
                         .padding(horizontal = 20.dp, vertical = 10.dp)
                         .clip(RoundedCornerShape(24.dp))
                 ) {
                     AsyncImage(
                         model = uiState.selectedImageUri,
-                        contentDescription = "Ảnh món ăn",
+                        contentDescription = "Ảnh đã chụp",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -282,7 +372,7 @@ fun CameraScanScreen(
                         val infiniteTransition = rememberInfiniteTransition(label = "laser")
                         val scanOffsetY by infiniteTransition.animateFloat(
                             initialValue = 0f,
-                            targetValue = 240f,
+                            targetValue = 230f,
                             animationSpec = infiniteRepeatable(
                                 animation = tween(1200, easing = LinearEasing),
                                 repeatMode = RepeatMode.Reverse
@@ -312,155 +402,77 @@ fun CameraScanScreen(
                         CircularProgressIndicator(modifier = Modifier.size(36.dp), color = VividOrange)
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = "Gemini AI đang phân tích món ăn...",
+                            text = if (uiState.scanMode == ScanMode.FOOD) "Gemini AI đang phân tích món ăn..." else "AI đang đọc thực đơn quán ăn...",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextWhite
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Nhận diện đĩa thức ăn và tính toán calo chuẩn xác",
-                            fontSize = 12.sp,
-                            color = TextMuted
-                        )
                     }
                 }
 
-                uiState.result?.let { result ->
+                // KẾT QUẢ 1: Quét món ăn (FOOD RESULT)
+                uiState.result?.let { food ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = CharcoalSurface)
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        colors = CardDefaults.cardColors(containerColor = CharcoalSurface),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
+                        Column(modifier = Modifier.padding(20.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = result.foodName,
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextWhite
-                                    )
-                                    Text(
-                                        text = "Khẩu phần: ${result.servingSize}",
-                                        fontSize = 13.sp,
-                                        color = TextMuted
-                                    )
+                                    Text(food.foodName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                    Text(food.servingSize, fontSize = 13.sp, color = TextMuted)
                                 }
-
                                 Surface(
-                                    color = EmeraldSuccess.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    color = VividOrange.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
-                                        text = "${(result.confidenceScore * 100).toInt()}% Tin cậy",
-                                        color = EmeraldSuccess,
-                                        fontSize = 12.sp,
+                                        "${food.totalCalories.toInt()} kcal",
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        color = VividOrange,
+                                        fontSize = 16.sp
                                     )
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Thẻ Calo lớn màu cam
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(CharcoalCard)
-                                    .padding(16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceAround,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            text = "${result.totalCalories.toInt()}",
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = VividOrange
-                                        )
-                                        Text("Calories", fontSize = 11.sp, color = TextMuted)
-                                    }
-
-                                    MacroTag("Đạm", "${result.totalProtein.toInt()}g", PastelMint)
-                                    MacroTag("Carb", "${result.totalCarb.toInt()}g", PastelButtercup)
-                                    MacroTag("Béo", "${result.totalFat.toInt()}g", PastelRose)
-                                }
-                            }
-
-                            if (result.items.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Thành phần bóc tách:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                result.items.forEach { item ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 3.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("• ${item.name}", fontSize = 12.sp, color = TextLightGrey)
-                                        Text("${item.calories.toInt()} kcal", fontSize = 12.sp, color = TextMuted)
-                                    }
-                                }
-                            }
-
-                            if (result.healthTip.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lightbulb,
-                                        contentDescription = null,
-                                        tint = PastelLavender,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = result.healthTip,
-                                        fontSize = 12.sp,
-                                        color = PastelLavender,
-                                        lineHeight = 16.sp
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Gợi ý bữa ăn theo giờ chụp
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
                             ) {
-                                Icon(
-                                    Icons.Default.AccessTime,
-                                    contentDescription = null,
-                                    tint = VividOrange,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (uiState.detectedTimeStr != null) {
-                                        "Đề xuất theo giờ chụp (${uiState.detectedTimeStr} • ${MealTimeHelper.getMealTypeLabel(uiState.mealType)}):"
-                                    } else {
-                                        "Bữa ăn:"
-                                    },
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextMuted
-                                )
+                                MacroTag("Đạm (P)", "${food.totalProtein.toInt()}g", PastelLavender)
+                                MacroTag("Tinh bột (C)", "${food.totalCarb.toInt()}g", PastelButtercup)
+                                MacroTag("Chất béo (F)", "${food.totalFat.toInt()}g", PastelRose)
                             }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Lời khuyên sức khỏe
+                            if (food.healthTip.isNotBlank()) {
+                                Surface(
+                                    color = ObsidianBackground.copy(alpha = 0.6f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "💡 ${food.healthTip}",
+                                        fontSize = 12.5.sp,
+                                        color = TextMuted,
+                                        modifier = Modifier.padding(12.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
 
                             // Chọn bữa ăn
                             Row(
@@ -491,10 +503,8 @@ fun CameraScanScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 OutlinedButton(
-                                    onClick = { viewModel.resetScan() },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(50.dp),
+                                    onClick = { viewModel.resetState() },
+                                    modifier = Modifier.weight(1f).height(50.dp),
                                     shape = RoundedCornerShape(14.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
@@ -505,9 +515,7 @@ fun CameraScanScreen(
                                 Button(
                                     onClick = { viewModel.saveRecognizedMeal() },
                                     enabled = !uiState.isSaving,
-                                    modifier = Modifier
-                                        .weight(1.5f)
-                                        .height(50.dp),
+                                    modifier = Modifier.weight(1.5f).height(50.dp),
                                     shape = RoundedCornerShape(14.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
                                 ) {
@@ -521,9 +529,157 @@ fun CameraScanScreen(
                         }
                     }
                 }
+
+                // KẾT QUẢ 2: Quét thực đơn (MENU SCAN RESULT)
+                uiState.menuResult?.let { menu ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                    ) {
+                        menu.restaurantName?.let { name ->
+                            Text(
+                                text = "Quán: $name",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite
+                            )
+                        }
+
+                        Surface(
+                            color = PastelLavender.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PastelLavender.copy(alpha = 0.3f)),
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = "✨ ${menu.summaryAdvice}",
+                                fontSize = 13.sp,
+                                color = TextWhite,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "DANH SÁCH MÓN ĂN NHẬN DIỆN:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextMuted,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        menu.items.forEach { item ->
+                            MenuItemCard(
+                                item = item,
+                                isSaving = uiState.isSaving,
+                                onSelect = { viewModel.saveMenuItemAsMeal(item) }
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.resetState() },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
+                        ) {
+                            Text("Chụp Menu Khác")
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(30.dp))
+        }
+    }
+}
+
+@Composable
+private fun MenuItemCard(
+    item: MenuItemDto,
+    isSaving: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        color = CharcoalSurface,
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            if (item.isRecommended) 1.5.dp else 1.dp,
+            if (item.isRecommended) VividOrange else CharcoalBorder
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                        if (item.isRecommended) {
+                            Surface(
+                                color = VividOrange.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("Gợi ý", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VividOrange, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+                    }
+                    item.price?.let {
+                        Text(it, fontSize = 13.sp, color = MintJade, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                Surface(
+                    color = CharcoalCard,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        "${item.estimatedCalories} kcal",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VividOrange,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("P: ${item.protein}g", fontSize = 12.sp, color = PastelLavender, fontWeight = FontWeight.Medium)
+                Text("C: ${item.carbs}g", fontSize = 12.sp, color = PastelButtercup, fontWeight = FontWeight.Medium)
+                Text("F: ${item.fat}g", fontSize = 12.sp, color = PastelRose, fontWeight = FontWeight.Medium)
+            }
+
+            item.recommendationReason?.let { reason ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text("🎯 $reason", fontSize = 12.sp, color = TextMuted)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = onSelect,
+                enabled = !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (item.isRecommended) VividOrange else CharcoalCard,
+                    contentColor = TextWhite
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().height(40.dp)
+            ) {
+                Text(
+                    if (item.isRecommended) "Chọn Món Gợi Ý Này" else "Lưu Món Này",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
