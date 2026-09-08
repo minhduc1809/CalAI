@@ -22,6 +22,7 @@ reports/
 # Gradle files & caches
 .gradle/
 **/.gradle/
+.kotlin/
 buildOutputCleanup/
 
 # Kotlin compiler daemon cache
