@@ -20,6 +20,10 @@ data class FoodRecognitionResultDto(
     val items: List<FoodItemRecognitionDto> = emptyList(),
     val healthTip: String = "",
     val isFallback: Boolean = false,
+    val usedQuotaType: String? = null,
+    val freeRemaining: Int? = null,
+    val purchasedCredits: Int? = null,
+    val totalRemaining: Int? = null,
     val remainingDailyQuota: Int? = null,
     val dailyLimit: Int? = null
 )

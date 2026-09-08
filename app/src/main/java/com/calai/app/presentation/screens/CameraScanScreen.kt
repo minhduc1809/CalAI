@@ -379,9 +379,19 @@ fun CameraScanScreen(
                                         fontSize = 13.sp,
                                         color = TextMuted
                                     )
-                                    if (result.remainingDailyQuota != null) {
+                                    val quotaText = if (result.freeRemaining != null) {
+                                        if ((result.purchasedCredits ?: 0) > 0) {
+                                            "Free hôm nay: ${result.freeRemaining}/5 · Lượt mua còn: ${result.purchasedCredits}"
+                                        } else {
+                                            "Còn ${result.freeRemaining}/5 lượt miễn phí hôm nay"
+                                        }
+                                    } else if (result.remainingDailyQuota != null) {
+                                        "Còn ${result.remainingDailyQuota}/5 lượt chụp hôm nay"
+                                    } else null
+
+                                    if (quotaText != null) {
                                         Text(
-                                            text = "Còn ${result.remainingDailyQuota}/5 lượt chụp hôm nay",
+                                            text = quotaText,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = VividOrange
