@@ -15,10 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
-<<<<<<< HEAD
-=======
 
->>>>>>> ef4ce2c1a328dabd7c45f614d2da5cc1a5e4487a
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
