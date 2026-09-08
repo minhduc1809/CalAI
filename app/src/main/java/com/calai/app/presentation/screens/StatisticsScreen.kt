@@ -3,6 +3,19 @@ package com.calai.app.presentation.screens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -202,6 +215,45 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
 }
 
 @Composable
+private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .clip(RoundedCornerShape(24.dp))
+            .background(if (isDarkTheme) PastelLavender else LavenderGradientStartLight)
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.65f), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .padding(18.dp)
+    ) {
+        Column {
+            Text(
+                text = "Xu hướng Calo (Calorie Trends)",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDeepInk
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Trung bình: ${uiState.averageCalories} kcal/ngày · Mục tiêu ${uiState.targetCalories} kcal",
+                fontSize = 13.sp,
+                color = TextDeepInk.copy(alpha = 0.65f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Biểu đồ đường cong calo thực tế (GET /meals/statistics) — animate vẽ dần khi đổi preset/dữ liệu
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,6 +266,69 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                         drawProgress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = LinearEasing))
                     }
 
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val width = size.width
+                        val height = size.height
+                        val calories = uiState.weeklyStats.map { it.calories }
+                        val minCal = minOf(calories.min(), uiState.targetCalories)
+                        val maxCal = maxOf(calories.max(), uiState.targetCalories)
+                        val range = (maxCal - minCal).takeIf { it > 0 } ?: 1
+
+                        // Trục dọc đảo chiều (calo cao -> gần đỉnh), chừa lề trên/dưới 15%
+                        fun yFor(value: Int): Float {
+                            val t = (value - minCal).toFloat() / range
+                            return height * (0.85f - t * 0.70f)
+                        }
+
+                        // Đường mục tiêu đứt nét — đúng vị trí Target Calories thật của người dùng
+                        val targetY = yFor(uiState.targetCalories)
+                        drawLine(
+                            color = TextDeepInk.copy(alpha = 0.25f),
+                            start = Offset(0f, targetY),
+                            end = Offset(width, targetY),
+                            strokeWidth = 2.dp.toPx()
+                        )
+
+                        // Vẽ đường cong calo các ngày từ dữ liệu thật
+                        val n = uiState.weeklyStats.size
+                        val points = uiState.weeklyStats.mapIndexed { index, day ->
+                            val x = if (n == 1) width / 2f else width * index / (n - 1).toFloat()
+                            Offset(x, yFor(day.calories))
+                        }
+
+                        val path = Path()
+                        path.moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            val prev = points[i - 1]
+                            val curr = points[i]
+                            val midX = (prev.x + curr.x) / 2
+                            path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                        }
+
+                        // Cắt path theo tiến độ animate (đường "tự vẽ" từ trái sang phải)
+                        val pathMeasure = PathMeasure()
+                        pathMeasure.setPath(path, false)
+                        val animatedPath = Path()
+                        pathMeasure.getSegment(0f, pathMeasure.length * drawProgress.value, animatedPath, true)
+
+                        // Gradient fill phía dưới đường cong
+                        val fillPath = Path().apply {
+                            addPath(animatedPath)
+                            lineTo(width * drawProgress.value, height)
+                            lineTo(0f, height)
+                            close()
+                        }
+                        drawPath(
+                            path = fillPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(TextDeepInk.copy(alpha = 0.20f), Color.Transparent),
+                                startY = 0f,
+                                endY = height
+                            )
+                        )
+
+                        drawPath(
+                            path = animatedPath,
                             color = TextDeepInk,
                             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                         )

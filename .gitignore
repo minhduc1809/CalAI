@@ -22,6 +22,7 @@ reports/
 # Gradle files & caches
 .gradle/
 **/.gradle/
+.kotlin/
 buildOutputCleanup/
 
 # Local configuration file (contains SDK path)
