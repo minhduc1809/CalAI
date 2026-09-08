@@ -120,6 +120,9 @@ dependencies {
     // Coil (Image Loading)
     implementation(libs.coil.compose)
 
+    // WorkManager (Nhắc nhở bữa ăn/uống nước chạy thật, kể cả khi app bị đóng)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // Unit Testing & UI Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
