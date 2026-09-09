@@ -72,3 +72,42 @@ data class PurchaseChatPlanRequest(
     @SerializedName("packageId")
     val packageId: String // PLUS, PRO, MAX
 )
+
+data class AiQuotaDto(
+    @SerializedName("feature")
+    val feature: String = "food_recognition",
+    @SerializedName("dailyFreeLimit")
+    val dailyFreeLimit: Int = 5,
+    @SerializedName("freeUsedToday")
+    val freeUsedToday: Int = 0,
+    @SerializedName("freeRemaining")
+    val freeRemaining: Int = 5,
+    @SerializedName("purchasedCredits")
+    val purchasedCredits: Int = 0,
+    @SerializedName("totalRemaining")
+    val totalRemaining: Int = 5,
+    @SerializedName("resetsAt")
+    val resetsAt: String? = null
+)
+
+data class AiPackageDto(
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("credits")
+    val credits: Int,
+    @SerializedName("priceVnd")
+    val priceVnd: Long,
+    @SerializedName("description")
+    val description: String,
+    @SerializedName("isPopular")
+    val isPopular: Boolean = false,
+    @SerializedName("bestValue")
+    val bestValue: Boolean = false
+)
+
+data class PurchaseAiQuotaRequest(
+    @SerializedName("packageId")
+    val packageId: String
+)

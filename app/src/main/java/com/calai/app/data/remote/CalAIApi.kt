@@ -210,6 +210,17 @@ interface CalAIApi {
     @GET("ai/chat/quota")
     suspend fun getChatQuota(): ApiResponse<ChatQuotaInfoDto>
 
+    @GET("ai/quota")
+    suspend fun getAiQuota(): ApiResponse<AiQuotaDto>
+
+    @GET("ai/packages")
+    suspend fun getAiPackages(): ApiResponse<List<AiPackageDto>>
+
+    @POST("ai/purchase-credits")
+    suspend fun purchaseAiCredits(
+        @Body request: PurchaseAiQuotaRequest
+    ): ApiResponse<AiQuotaDto>
+
     @GET("ai/chat/history")
     suspend fun getChatHistory(): ApiResponse<ChatHistoryResponseDto>
 

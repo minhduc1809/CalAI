@@ -4,10 +4,11 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.calai.app.data.remote.dto.AiPackageDto
+import com.calai.app.data.remote.dto.AiQuotaDto
 import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
 import com.calai.app.data.remote.dto.FoodRecognitionResultDto
-import com.calai.app.data.remote.dto.MenuItemDto
 import com.calai.app.data.remote.dto.ScanMenuResponseDto
 import com.calai.app.domain.repository.CalAIRepository
 import com.calai.app.domain.util.MealTimeHelper
@@ -40,7 +41,13 @@ data class CameraScanUiState(
     val detectedTimeStr: String? = null,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val aiQuota: AiQuotaDto? = null,
+    val aiPackages: List<AiPackageDto> = emptyList(),
+    val isQuotaExhausted: Boolean = false,
+    val showPurchaseSheet: Boolean = false,
+    val isPurchasingCredits: Boolean = false,
+    val selectedMenuItemIndices: Set<Int> = emptySet()
 )
 
 @HiltViewModel
@@ -50,6 +57,55 @@ class CameraScanViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CameraScanUiState())
     val uiState: StateFlow<CameraScanUiState> = _uiState.asStateFlow()
+
+    init {
+        loadAiQuota()
+    }
+
+    fun loadAiQuota() {
+        viewModelScope.launch {
+            repository.fetchAiQuota().onSuccess { quota ->
+                _uiState.value = _uiState.value.copy(
+                    aiQuota = quota,
+                    isQuotaExhausted = quota.totalRemaining <= 0
+                )
+            }
+        }
+    }
+
+    fun openPurchaseSheet() {
+        _uiState.value = _uiState.value.copy(showPurchaseSheet = true)
+        if (_uiState.value.aiPackages.isEmpty()) {
+            viewModelScope.launch {
+                repository.fetchAiPackages().onSuccess { packages ->
+                    _uiState.value = _uiState.value.copy(aiPackages = packages)
+                }
+            }
+        }
+    }
+
+    fun dismissPurchaseSheet() {
+        _uiState.value = _uiState.value.copy(showPurchaseSheet = false)
+    }
+
+    fun purchaseAiCredits(packageId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isPurchasingCredits = true, errorMessage = null)
+            repository.purchaseAiCredits(packageId).onSuccess { quota ->
+                _uiState.value = _uiState.value.copy(
+                    isPurchasingCredits = false,
+                    showPurchaseSheet = false,
+                    aiQuota = quota,
+                    isQuotaExhausted = quota.totalRemaining <= 0
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isPurchasingCredits = false,
+                    errorMessage = error.message ?: "Không thể mua thêm lượt chụp, vui lòng thử lại"
+                )
+            }
+        }
+    }
 
     fun setScanMode(mode: ScanMode) {
         _uiState.value = _uiState.value.copy(
@@ -65,6 +121,11 @@ class CameraScanViewModel @Inject constructor(
     }
 
     fun onImageCapturedOrSelected(uri: Uri, context: Context) {
+        if (_uiState.value.scanMode == ScanMode.FOOD && _uiState.value.isQuotaExhausted) {
+            _uiState.value = _uiState.value.copy(showPurchaseSheet = true)
+            return
+        }
+
         val (autoMealType, timeStr) = MealTimeHelper.detectMealTypeFromImage(context, uri)
 
         _uiState.value = _uiState.value.copy(
@@ -98,6 +159,7 @@ class CameraScanViewModel @Inject constructor(
                             result = data,
                             errorMessage = null
                         )
+                        loadAiQuota()
                     }.onFailure { error ->
                         _uiState.value = _uiState.value.copy(
                             isAnalyzing = false,
@@ -181,7 +243,21 @@ class CameraScanViewModel @Inject constructor(
         }
     }
 
-    fun saveMenuItemAsMeal(item: MenuItemDto) {
+    fun toggleMenuItemSelection(index: Int) {
+        _uiState.value = _uiState.value.copy(
+            selectedMenuItemIndices = _uiState.value.selectedMenuItemIndices.let { current ->
+                if (index in current) current - index else current + index
+            }
+        )
+    }
+
+    fun saveSelectedMenuItems() {
+        val menu = _uiState.value.menuResult ?: return
+        val selectedItems = _uiState.value.selectedMenuItemIndices
+            .sorted()
+            .mapNotNull { index -> menu.items.getOrNull(index) }
+        if (selectedItems.isEmpty()) return
+
         val currentState = _uiState.value
         _uiState.value = currentState.copy(isSaving = true, errorMessage = null)
 
@@ -193,7 +269,7 @@ class CameraScanViewModel @Inject constructor(
                 val request = CreateMealRequest(
                     mealType = currentState.mealType,
                     date = nowStr,
-                    items = listOf(
+                    items = selectedItems.map { item ->
                         CreateMealItemDto(
                             name = item.name,
                             servingSize = "1 phần",
@@ -205,19 +281,20 @@ class CameraScanViewModel @Inject constructor(
                             carb = item.carbs.toFloat(),
                             fat = item.fat.toFloat()
                         )
-                    )
+                    }
                 )
 
                 val saveResult = repository.createRemoteMeal(request)
                 saveResult.onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
-                        isSaveSuccess = true
+                        isSaveSuccess = true,
+                        selectedMenuItemIndices = emptySet()
                     )
                 }.onFailure { err ->
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
-                        errorMessage = "Lỗi khi lưu món ăn từ menu: ${err.message}"
+                        errorMessage = "Lỗi khi lưu các món đã chọn: ${err.message}"
                     )
                 }
             } catch (e: Exception) {

@@ -219,12 +219,18 @@ fun CameraScanScreen(
             if (uiState.selectedImageUri == null) {
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Badge hạn mức
+                // Badge hạn mức — dữ liệu thật từ ai/quota, bấm vào để mua thêm lượt
+                val quota = uiState.aiQuota
                 Surface(
                     color = CharcoalSurface,
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
-                    modifier = Modifier.padding(bottom = 14.dp)
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (uiState.isQuotaExhausted) CrimsonError.copy(alpha = 0.6f) else CharcoalBorder
+                    ),
+                    modifier = Modifier
+                        .padding(bottom = 14.dp)
+                        .clickable { viewModel.openPurchaseSheet() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -234,14 +240,18 @@ fun CameraScanScreen(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = VividOrange,
+                            tint = if (uiState.isQuotaExhausted) CrimsonError else VividOrange,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Hạn mức AI: 5 lượt chụp ảnh miễn phí / ngày",
+                            text = when {
+                                quota == null -> "Đang tải hạn mức chụp ảnh AI..."
+                                uiState.isQuotaExhausted -> "Đã hết lượt chụp hôm nay — bấm để mua thêm"
+                                else -> "Còn ${quota.totalRemaining} lượt chụp AI (${quota.freeRemaining} miễn phí hôm nay)"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextWhite
+                            color = if (uiState.isQuotaExhausted) CrimsonError else TextWhite
                         )
                     }
                 }
@@ -597,16 +607,32 @@ fun CameraScanScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
 
-                        menu.items.forEach { item ->
+                        menu.items.forEachIndexed { index, item ->
                             MenuItemCard(
                                 item = item,
                                 isSaving = uiState.isSaving,
-                                onSelect = { viewModel.saveMenuItemAsMeal(item) }
+                                isSelected = index in uiState.selectedMenuItemIndices,
+                                onToggleSelect = { viewModel.toggleMenuItemSelection(index) }
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        if (uiState.selectedMenuItemIndices.isNotEmpty()) {
+                            Button(
+                                onClick = { viewModel.saveSelectedMenuItems() },
+                                enabled = !uiState.isSaving,
+                                colors = ButtonDefaults.buttonColors(containerColor = VividOrange, contentColor = TextWhite),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                            ) {
+                                Text(
+                                    "Lưu ${uiState.selectedMenuItemIndices.size} Món Đã Chọn",
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+
                         OutlinedButton(
                             onClick = { viewModel.resetState() },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -623,22 +649,95 @@ fun CameraScanScreen(
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
+
+    if (uiState.showPurchaseSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.dismissPurchaseSheet() },
+            containerColor = ObsidianBackground
+        ) {
+            Column(modifier = Modifier.padding(20.dp).padding(bottom = 24.dp)) {
+                Text(
+                    "Mua Thêm Lượt Chụp Ảnh AI",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Lượt mua không bao giờ hết hạn, dùng sau khi hết 5 lượt miễn phí mỗi ngày",
+                    fontSize = 13.sp,
+                    color = TextMuted
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (uiState.aiPackages.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = VividOrange)
+                    }
+                } else {
+                    uiState.aiPackages.forEach { pkg ->
+                        Surface(
+                            color = CharcoalSurface,
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                if (pkg.isPopular || pkg.bestValue) 1.5.dp else 1.dp,
+                                if (pkg.isPopular || pkg.bestValue) VividOrange else CharcoalBorder
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                                .clickable(enabled = !uiState.isPurchasingCredits) {
+                                    viewModel.purchaseAiCredits(pkg.id)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(pkg.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                    Text("${pkg.credits} lượt chụp", fontSize = 12.sp, color = TextMuted)
+                                }
+                                Text(
+                                    "${pkg.priceVnd}đ",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VividOrange
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (uiState.isPurchasingCredits) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = VividOrange, modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun MenuItemCard(
     item: MenuItemDto,
     isSaving: Boolean,
-    onSelect: () -> Unit
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit
 ) {
     Surface(
         color = CharcoalSurface,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(
-            if (item.isRecommended) 1.5.dp else 1.dp,
-            if (item.isRecommended) VividOrange else CharcoalBorder
+            if (isSelected) 1.5.dp else if (item.isRecommended) 1.5.dp else 1.dp,
+            if (isSelected) MintJade else if (item.isRecommended) VividOrange else CharcoalBorder
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isSaving) { onToggleSelect() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -646,7 +745,14 @@ private fun MenuItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleSelect() },
+                        enabled = !isSaving,
+                        colors = CheckboxDefaults.colors(checkedColor = MintJade)
+                    )
+                    Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextWhite)
                         if (item.isRecommended) {
@@ -660,6 +766,7 @@ private fun MenuItemCard(
                     }
                     item.price?.let {
                         Text(it, fontSize = 13.sp, color = MintJade, fontWeight = FontWeight.SemiBold)
+                    }
                     }
                 }
 
@@ -694,24 +801,6 @@ private fun MenuItemCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Button(
-                onClick = onSelect,
-                enabled = !isSaving,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (item.isRecommended) VividOrange else CharcoalCard,
-                    contentColor = TextWhite
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth().height(40.dp)
-            ) {
-                Text(
-                    if (item.isRecommended) "Chọn Món Gợi Ý Này" else "Lưu Món Này",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
     }
 }
