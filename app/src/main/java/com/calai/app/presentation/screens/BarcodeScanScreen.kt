@@ -4,25 +4,39 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +56,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Quét mã vạch sản phẩm bằng camera (CameraX + ML Kit Barcode Scanning), tra cứu dinh dưỡng
@@ -151,11 +166,60 @@ private fun BarcodeCameraPreview(
     onDetected: (String) -> Unit,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner
 ) {
+    // Zoom mặc định để vùng khung quét chiếm phần lớn khung hình phân tích — mã vạch
+    // decode nhanh hơn nhiều so với để camera quét nguyên khung hình rộng (gốc của defect
+    // "phải căn rất lâu mới quét được" — mã vạch quá nhỏ trong ảnh gửi cho ML Kit).
+    val roiZoomRatio = 0.35f
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    var isTorchOn by remember { mutableStateOf(false) }
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
+
+    // Animation pulsing cho khung quét trong lúc đang cố dò mã — trước đây khung tĩnh
+    // hoàn toàn khiến người dùng không biết camera có đang hoạt động hay không.
+    val infiniteTransition = rememberInfiniteTransition(label = "barcode-scan-pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    val scanLineOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "scanLineOffset"
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    // Tap-to-focus: khắc phục auto-focus mặc định lấy nét chậm ở khoảng
+                    // cách gần (10-15cm), đúng khoảng cách quét mã vạch thực tế.
+                    detectTapGestures { offset ->
+                        val view = previewView ?: return@detectTapGestures
+                        val cam = camera ?: return@detectTapGestures
+                        val factory = SurfaceOrientedMeteringPointFactory(
+                            view.width.toFloat(),
+                            view.height.toFloat()
+                        )
+                        val point = factory.createPoint(offset.x, offset.y)
+                        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+                            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                            .build()
+                        cam.cameraControl.startFocusAndMetering(action)
+                    }
+                },
             factory = { ctx ->
-                val previewView = PreviewView(ctx)
+                val view = PreviewView(ctx)
+                previewView = view
                 val scanner = BarcodeScanning.getClient(
                     BarcodeScannerOptions.Builder()
                         .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
@@ -167,7 +231,7 @@ private fun BarcodeCameraPreview(
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
                     val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
+                        it.setSurfaceProvider(view.surfaceProvider)
                     }
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -187,18 +251,27 @@ private fun BarcodeCameraPreview(
                     }
                     try {
                         cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
+                        val boundCamera = cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             CameraSelector.DEFAULT_BACK_CAMERA,
                             preview,
                             analysis
                         )
+                        // Zoom vào vùng trung tâm (khớp khung quét hiển thị) + lấy nét gần
+                        // ngay khi mở camera, không đợi người dùng phải tự tap.
+                        boundCamera.cameraControl.setLinearZoom(roiZoomRatio)
+                        val centerFactory = SurfaceOrientedMeteringPointFactory(1f, 1f)
+                        val centerPoint = centerFactory.createPoint(0.5f, 0.5f)
+                        boundCamera.cameraControl.startFocusAndMetering(
+                            FocusMeteringAction.Builder(centerPoint, FocusMeteringAction.FLAG_AF).build()
+                        )
+                        camera = boundCamera
                     } catch (_: Exception) {
                         // Camera đã unbind (màn hình bị rời khỏi lifecycle) — bỏ qua an toàn.
                     }
                 }, ContextCompat.getMainExecutor(ctx))
 
-                previewView
+                view
             }
         )
 
@@ -206,11 +279,43 @@ private fun BarcodeCameraPreview(
             modifier = Modifier
                 .align(Alignment.Center)
                 .size(260.dp, 150.dp)
-                .border(2.dp, VividOrange, RoundedCornerShape(16.dp))
-        )
+                .border(2.dp, VividOrange.copy(alpha = pulseAlpha), RoundedCornerShape(16.dp))
+        ) {
+            // Vạch quét chạy dọc trong lúc đang dò mã — báo hiệu camera đang hoạt động,
+            // trước đây không có gì khiến người dùng tưởng app bị đứng.
+            if (!isLookingUp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopStart)
+                        .offset(y = (scanLineOffset * 150).dp)
+                        .height(2.dp)
+                        .background(VividOrange.copy(alpha = 0.9f))
+                )
+            }
+        }
+
+        IconButton(
+            onClick = {
+                val cam = camera ?: return@IconButton
+                isTorchOn = !isTorchOn
+                cam.cameraControl.enableTorch(isTorchOn)
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .clip(CircleShape)
+                .background(ObsidianBackground.copy(alpha = 0.6f))
+        ) {
+            Icon(
+                imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                contentDescription = "Bật/tắt đèn flash",
+                tint = if (isTorchOn) VividOrange else TextWhite
+            )
+        }
 
         Text(
-            "Đưa mã vạch sản phẩm vào khung để quét",
+            "Đưa mã vạch sản phẩm vào khung để quét — chạm để lấy nét",
             color = TextWhite,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,

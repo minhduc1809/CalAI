@@ -1,5 +1,6 @@
 package com.calai.app.presentation.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -24,9 +25,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +52,7 @@ fun ChatbotScreen(
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val context = LocalContext.current
 
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
@@ -57,6 +61,22 @@ fun ChatbotScreen(
     LaunchedEffect(uiState.messages.size, uiState.isTyping) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
+        }
+    }
+
+    // Báo kết quả nâng cấp gói — trước đây sheet đóng ngay khi bấm chọn mà không hiện
+    // thông báo gì, người dùng không biết mua thành công hay chưa (CALAI-CHAT-001).
+    LaunchedEffect(uiState.upgradeSuccessMessage) {
+        uiState.upgradeSuccessMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            showUpgradeSheet = false
+            viewModel.dismissUpgradeSuccess()
+        }
+    }
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.dismissError()
         }
     }
 
@@ -368,12 +388,14 @@ fun ChatbotScreen(
                         PlanCard(
                             plan = plan,
                             isCurrent = uiState.quota.currentTier == plan.id,
-                            onSelect = {
-                                viewModel.purchasePlan(plan.id)
-                                showUpgradeSheet = false
-                            }
+                            enabled = !uiState.isUpgrading,
+                            onSelect = { viewModel.purchasePlan(plan.id) }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    if (uiState.isUpgrading) {
+                        CircularProgressIndicator(color = VividOrange, modifier = Modifier.padding(top = 4.dp))
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -419,6 +441,7 @@ fun ChatbotScreen(
 private fun PlanCard(
     plan: com.calai.app.data.remote.dto.ChatPlanDto,
     isCurrent: Boolean,
+    enabled: Boolean = true,
     onSelect: () -> Unit
 ) {
     val borderColor = when {
@@ -433,7 +456,8 @@ private fun PlanCard(
         border = androidx.compose.foundation.BorderStroke(if (plan.isPopular || plan.bestValue) 1.5.dp else 1.dp, borderColor),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isCurrent) { onSelect() }
+            .clickable(enabled = enabled && !isCurrent) { onSelect() }
+            .alpha(if (enabled) 1f else 0.5f)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

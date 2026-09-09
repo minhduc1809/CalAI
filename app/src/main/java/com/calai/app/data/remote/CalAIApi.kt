@@ -232,8 +232,10 @@ interface CalAIApi {
     ): ApiResponse<ScanMenuResponseDto>
 
     companion object {
-        // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)
-        // Nếu dùng thiết bị thật qua Wi-Fi LAN, đổi thành IP máy tính (VD: http://192.168.1.x:3000/api/v1/)
-        const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
+        // Dùng "adb reverse tcp:3000 tcp:3000" để tunnel cổng qua cáp USB — nhờ đó
+        // localhost luôn đúng bất kể IP Wi-Fi của máy tính đổi thế nào, không cần
+        // sửa lại IP thủ công mỗi lần đổi mạng. Yêu cầu: cắm USB + bật USB debugging.
+        // (Nếu chạy bằng Android Emulator, đổi lại thành http://10.0.2.2:3000/api/v1/)
+        const val BASE_URL = "http://127.0.0.1:3000/api/v1/"
     }
 }

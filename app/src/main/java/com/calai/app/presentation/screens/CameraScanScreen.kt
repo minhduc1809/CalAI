@@ -39,6 +39,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.calai.app.data.remote.dto.MenuItemDto
 import com.calai.app.domain.util.MealTimeHelper
+import com.calai.app.presentation.components.DuotoneCheckmarkIcon
+import com.calai.app.presentation.components.DuotoneDietIcon
+import com.calai.app.presentation.components.DuotoneMenuListIcon
+import com.calai.app.presentation.components.DuotoneSparkleIcon
+import com.calai.app.presentation.components.DuotoneTipIcon
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.CameraScanViewModel
 import com.calai.app.presentation.viewmodel.ScanMode
@@ -146,12 +151,19 @@ fun CameraScanScreen(
                                 .clickable { viewModel.setScanMode(ScanMode.FOOD) }
                                 .padding(horizontal = 18.dp, vertical = 8.dp)
                         ) {
-                            Text(
-                                text = "🍲 Đĩa Món Ăn",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isFood) TextWhite else TextMuted
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DuotoneDietIcon(
+                                    size = 16.dp,
+                                    outlineColor = if (isFood) TextWhite else TextMuted,
+                                    accentColor = if (isFood) TextWhite else VividOrange
+                                )
+                                Text(
+                                    text = "Đĩa Món Ăn",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isFood) TextWhite else TextMuted
+                                )
+                            }
                         }
 
                         val isMenu = uiState.scanMode == ScanMode.MENU
@@ -162,12 +174,19 @@ fun CameraScanScreen(
                                 .clickable { viewModel.setScanMode(ScanMode.MENU) }
                                 .padding(horizontal = 18.dp, vertical = 8.dp)
                         ) {
-                            Text(
-                                text = "📋 Thực Đơn (Menu)",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isMenu) TextWhite else TextMuted
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DuotoneMenuListIcon(
+                                    size = 16.dp,
+                                    outlineColor = if (isMenu) TextWhite else TextMuted,
+                                    accentColor = if (isMenu) TextWhite else VividOrange
+                                )
+                                Text(
+                                    text = "Thực Đơn (Menu)",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isMenu) TextWhite else TextMuted
+                                )
+                            }
                         }
                     }
                 }
@@ -463,12 +482,17 @@ fun CameraScanScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = "💡 ${food.healthTip}",
-                                        fontSize = 12.5.sp,
-                                        color = TextMuted,
-                                        modifier = Modifier.padding(12.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        DuotoneTipIcon(size = 16.dp, outlineColor = TextMuted, accentColor = VividOrange)
+                                        Text(
+                                            text = food.healthTip,
+                                            fontSize = 12.5.sp,
+                                            color = TextMuted
+                                        )
+                                    }
                                 }
                             }
 
@@ -552,12 +576,17 @@ fun CameraScanScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, PastelLavender.copy(alpha = 0.3f)),
                             modifier = Modifier.padding(vertical = 10.dp)
                         ) {
-                            Text(
-                                text = "✨ ${menu.summaryAdvice}",
-                                fontSize = 13.sp,
-                                color = TextWhite,
-                                modifier = Modifier.padding(14.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                DuotoneSparkleIcon(size = 16.dp, outlineColor = TextWhite, accentColor = PastelLavender)
+                                Text(
+                                    text = menu.summaryAdvice,
+                                    fontSize = 13.sp,
+                                    color = TextWhite
+                                )
+                            }
                         }
 
                         Text(
@@ -659,7 +688,10 @@ private fun MenuItemCard(
 
             item.recommendationReason?.let { reason ->
                 Spacer(modifier = Modifier.height(6.dp))
-                Text("🎯 $reason", fontSize = 12.sp, color = TextMuted)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    DuotoneCheckmarkIcon(size = 13.dp, outlineColor = PastelMint)
+                    Text(reason, fontSize = 12.sp, color = TextMuted)
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
