@@ -157,8 +157,8 @@ fun WorkoutHubScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = TextWhite, modifier = Modifier.size(16.dp))
-                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(16.dp))
+                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             }
@@ -310,7 +310,7 @@ fun ProgramTabContent(
                         .background(PastelLavender.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    DuotoneCalendarIcon(size = 22.dp, outlineColor = TextWhite, accentColor = PastelLavender)
+                    DuotoneCalendarIcon(size = 22.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelLavender)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -318,12 +318,12 @@ fun ProgramTabContent(
                         text = plan?.title ?: "Lộ trình Tập Luyện Chuẩn 4 Tuần",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "${plan?.suitableForBmi ?: "Mọi thể trạng"} • ${plan?.goal ?: "Tăng cơ & Giảm mỡ"}",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -356,7 +356,7 @@ fun ProgramTabContent(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Đang tải lộ trình tập luyện...", color = TextMuted, fontSize = 13.sp)
+                Text(text = "Đang tải lộ trình tập luyện...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         } else {
             schedule.forEach { dayItem ->
@@ -392,9 +392,9 @@ fun ProgramTabContent(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isRest) {
-                                        DuotoneCalendarIcon(size = 16.dp, outlineColor = TextMuted, accentColor = LavenderGradientStart)
+                                        DuotoneCalendarIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = LavenderGradientStart)
                                     } else {
-                                        DuotoneDumbbellIcon(size = 16.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                                        DuotoneDumbbellIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                                     }
                                 }
 
@@ -403,12 +403,12 @@ fun ProgramTabContent(
                                         text = dayItem.dayName,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite
+                                        color = MaterialTheme.colorScheme.onBackground
                                     )
                                     Text(
                                         text = dayItem.focus,
                                         fontSize = 12.sp,
-                                        color = if (isRest) TextMuted else PastelMint
+                                        color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else PastelMint
                                     )
                                 }
                             }
@@ -452,7 +452,7 @@ fun ProgramTabContent(
                                         Text(
                                             text = "${exItem.name} (${exItem.sets}x${exItem.repsOrDuration})",
                                             fontSize = 12.sp,
-                                            color = TextWhite.copy(alpha = 0.9f)
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                                         )
                                     }
                                 }
@@ -503,7 +503,7 @@ fun HistoryTabContent(
                     text = "VẬN ĐỘNG HÔM NAY",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
                 )
 
@@ -518,7 +518,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = VividOrange
                         )
-                        Text(text = "Active kcal", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Active kcal", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column {
@@ -528,7 +528,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = PastelMint
                         )
-                        Text(text = "Thời lượng", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Thời lượng", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column {
@@ -538,7 +538,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = PastelLavender
                         )
-                        Text(text = "Buổi tập", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Buổi tập", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -548,7 +548,7 @@ fun HistoryTabContent(
             text = "CÁC BUỔI TẬP ĐÃ HOÀN THÀNH (${workoutList.size})",
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp
         )
 
@@ -566,8 +566,8 @@ fun HistoryTabContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DuotoneDumbbellIcon(size = 36.dp, outlineColor = TextMuted, accentColor = VividOrange)
-                    Text(text = "Chưa có buổi tập nào được ghi nhận", fontSize = 14.sp, color = TextMuted)
+                    DuotoneDumbbellIcon(size = 36.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = VividOrange)
+                    Text(text = "Chưa có buổi tập nào được ghi nhận", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -598,7 +598,7 @@ fun HistoryTabContent(
                                         .background(VividOrange.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    DuotoneEnergyIcon(size = 18.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                                    DuotoneEnergyIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                                 }
 
                                 Column {
@@ -606,14 +606,14 @@ fun HistoryTabContent(
                                         text = workout.name,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = "${workout.date.take(10)} • ${workout.durationMinutes} phút • RPE ${workout.rpe ?: 8}",
                                         fontSize = 12.sp,
-                                        color = TextMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -648,7 +648,7 @@ fun HistoryTabContent(
                                 Text(
                                     text = "${workout.exercises.size} bài tập (${workout.exercises.sumOf { it.sets.size }} sets)",
                                     fontSize = 12.sp,
-                                    color = TextMuted
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = "Volume: ${(workout.totalVolumeKg ?: 0f).toInt()} kg",
@@ -667,13 +667,13 @@ fun HistoryTabContent(
                                 Icon(
                                     imageVector = Icons.Default.Notes,
                                     contentDescription = null,
-                                    tint = TextMuted.copy(alpha = 0.8f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
                                     text = workout.note,
                                     fontSize = 12.sp,
-                                    color = TextMuted.copy(alpha = 0.8f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -824,12 +824,12 @@ fun WorkoutDetailSheetContent(
                     text = workout.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "${workout.date.take(10)} • ${workout.durationMinutes} phút • ${workout.caloriesBurned.toInt()} kcal",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -853,7 +853,7 @@ fun WorkoutDetailSheetContent(
                 text = "DANH SÁCH BÀI TẬP (${workout.exercises.size})",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
 
@@ -871,7 +871,7 @@ fun WorkoutDetailSheetContent(
                             text = ex.name,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -909,7 +909,7 @@ fun WorkoutDetailSheetContent(
                 Text(
                     text = "Ghi chú: ${workout.note}",
                     fontSize = 12.sp,
-                    color = TextWhite.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                 )
             }
         }

@@ -93,10 +93,10 @@ fun BarcodeScanScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Quét Mã Vạch", fontWeight = FontWeight.Bold, color = TextWhite) },
+                title = { Text("Quét Mã Vạch", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = TextWhite)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -116,8 +116,8 @@ fun BarcodeScanScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = TextMuted, modifier = Modifier.size(40.dp))
-                        Text("Cần quyền Camera để quét mã vạch", color = TextWhite, textAlign = TextAlign.Center)
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                        Text("Cần quyền Camera để quét mã vạch", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
                         Button(
                             onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                             colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
@@ -133,8 +133,8 @@ fun BarcodeScanScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Default.SearchOff, contentDescription = null, tint = TextMuted, modifier = Modifier.size(40.dp))
-                        Text("Không tìm thấy sản phẩm với mã vạch này", color = TextWhite, textAlign = TextAlign.Center)
+                        Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                        Text("Không tìm thấy sản phẩm với mã vạch này", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
                         Button(
                             onClick = { viewModel.resetScan() },
                             colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
@@ -316,7 +316,7 @@ private fun BarcodeCameraPreview(
 
         Text(
             "Đưa mã vạch sản phẩm vào khung để quét — chạm để lấy nét",
-            color = TextWhite,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -361,10 +361,10 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
                     )
                 }
                 Column {
-                    Text(product.name, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(product.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text(
                         "${(product.calories * uiState.quantity).toInt()} kcal · ${product.servingSize ?: "100g"}",
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 }
@@ -372,7 +372,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Số lượng khẩu phần", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+            Text("Số lượng khẩu phần", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(0.5f, 1f, 1.5f, 2f).forEach { mult ->
                     val isSelected = uiState.quantity == mult
@@ -386,7 +386,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
                     ) {
                         Text(
                             "${mult}x",
-                            color = if (isSelected) TextWhite else TextMuted,
+                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.5.sp,
                             textAlign = TextAlign.Center,
@@ -398,7 +398,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Thêm vào bữa nào?", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+            Text("Thêm vào bữa nào?", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("BREAKFAST" to "Sáng", "LUNCH" to "Trưa", "DINNER" to "Tối", "SNACK" to "Phụ").forEach { (key, label) ->
                     SelectionPill(
@@ -430,12 +430,12 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
             if (uiState.isSaving) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
             } else {
-                Text("Lưu Vào Nhật Ký", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Lưu Vào Nhật Ký", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextWhite)
             }
         }
 
         TextButton(onClick = { viewModel.resetScan() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Quét sản phẩm khác", color = TextMuted)
+            Text("Quét sản phẩm khác", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

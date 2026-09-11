@@ -111,13 +111,13 @@ fun CameraScanScreen(
                     Text(
                         text = if (uiState.scanMode == ScanMode.FOOD) "Quét Món Ăn Bằng AI" else "Quét Thực Đơn Quán Ăn",
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 18.sp
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = TextWhite)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -154,14 +154,14 @@ fun CameraScanScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 DuotoneDietIcon(
                                     size = 16.dp,
-                                    outlineColor = if (isFood) TextWhite else TextMuted,
+                                    outlineColor = if (isFood) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                                     accentColor = if (isFood) TextWhite else VividOrange
                                 )
                                 Text(
                                     text = "Đĩa Món Ăn",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isFood) TextWhite else TextMuted
+                                    color = if (isFood) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -177,14 +177,14 @@ fun CameraScanScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 DuotoneMenuListIcon(
                                     size = 16.dp,
-                                    outlineColor = if (isMenu) TextWhite else TextMuted,
+                                    outlineColor = if (isMenu) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                                     accentColor = if (isMenu) TextWhite else VividOrange
                                 )
                                 Text(
                                     text = "Thực Đơn (Menu)",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isMenu) TextWhite else TextMuted
+                                    color = if (isMenu) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -208,7 +208,7 @@ fun CameraScanScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = errorMsg,
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f)
                         )
@@ -288,7 +288,7 @@ fun CameraScanScreen(
                             text = if (uiState.scanMode == ScanMode.FOOD) "Đưa món ăn vào khung hình" else "Chụp toàn bộ thực đơn quán ăn",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onBackground,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -298,7 +298,7 @@ fun CameraScanScreen(
                             else
                                 "AI sẽ bóc tách danh sách món và gợi ý món tối ưu nhất cho calo hôm nay của bạn",
                             fontSize = 12.sp,
-                            color = TextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -343,7 +343,7 @@ fun CameraScanScreen(
                             .height(54.dp),
                         shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground)
                     ) {
                         Icon(Icons.Default.PhotoLibrary, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -377,7 +377,7 @@ fun CameraScanScreen(
                             else
                                 "Mẹo: Đặt thực đơn thẳng và phẳng, đủ ánh sáng để AI đọc rõ tên món và giá tiền.",
                             fontSize = 12.sp,
-                            color = TextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -434,7 +434,7 @@ fun CameraScanScreen(
                             text = if (uiState.scanMode == ScanMode.FOOD) "Gemini AI đang phân tích món ăn..." else "AI đang đọc thực đơn quán ăn...",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -455,8 +455,8 @@ fun CameraScanScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(food.foodName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-                                    Text(food.servingSize, fontSize = 13.sp, color = TextMuted)
+                                    Text(food.foodName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    Text(food.servingSize, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Surface(
                                     color = VividOrange.copy(alpha = 0.15f),
@@ -496,11 +496,11 @@ fun CameraScanScreen(
                                         modifier = Modifier.padding(12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        DuotoneTipIcon(size = 16.dp, outlineColor = TextMuted, accentColor = VividOrange)
+                                        DuotoneTipIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = VividOrange)
                                         Text(
                                             text = food.healthTip,
                                             fontSize = 12.5.sp,
-                                            color = TextMuted
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -525,7 +525,7 @@ fun CameraScanScreen(
                                             .clickable { viewModel.onMealTypeSelect(type) }
                                             .padding(horizontal = 14.dp, vertical = 8.dp)
                                     ) {
-                                        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else TextMuted)
+                                        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -541,7 +541,7 @@ fun CameraScanScreen(
                                     modifier = Modifier.weight(1f).height(50.dp),
                                     shape = RoundedCornerShape(14.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground)
                                 ) {
                                     Text("Quét Lại")
                                 }
@@ -556,7 +556,7 @@ fun CameraScanScreen(
                                     if (uiState.isSaving) {
                                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
                                     } else {
-                                        Text("Lưu Bữa Ăn", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text("Lưu Bữa Ăn", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextWhite)
                                     }
                                 }
                             }
@@ -576,7 +576,7 @@ fun CameraScanScreen(
                                 text = "Quán: $name",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextWhite
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
 
@@ -590,11 +590,11 @@ fun CameraScanScreen(
                                 modifier = Modifier.padding(14.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                DuotoneSparkleIcon(size = 16.dp, outlineColor = TextWhite, accentColor = PastelLavender)
+                                DuotoneSparkleIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelLavender)
                                 Text(
                                     text = menu.summaryAdvice,
                                     fontSize = 13.sp,
-                                    color = TextWhite
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                             }
                         }
@@ -603,7 +603,7 @@ fun CameraScanScreen(
                             text = "DANH SÁCH MÓN ĂN NHẬN DIỆN:",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
 
@@ -638,7 +638,7 @@ fun CameraScanScreen(
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground)
                         ) {
                             Text("Chụp Menu Khác")
                         }
@@ -660,13 +660,13 @@ fun CameraScanScreen(
                     "Mua Thêm Lượt Chụp Ảnh AI",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Lượt mua không bao giờ hết hạn, dùng sau khi hết 5 lượt miễn phí mỗi ngày",
                     fontSize = 13.sp,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -696,8 +696,8 @@ fun CameraScanScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(pkg.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-                                    Text("${pkg.credits} lượt chụp", fontSize = 12.sp, color = TextMuted)
+                                    Text(pkg.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    Text("${pkg.credits} lượt chụp", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Text(
                                     "${pkg.priceVnd}đ",
@@ -754,7 +754,7 @@ private fun MenuItemCard(
                     )
                     Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                        Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                         if (item.isRecommended) {
                             Surface(
                                 color = VividOrange.copy(alpha = 0.2f),
@@ -797,7 +797,7 @@ private fun MenuItemCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     DuotoneCheckmarkIcon(size = 13.dp, outlineColor = PastelMint)
-                    Text(reason, fontSize = 12.sp, color = TextMuted)
+                    Text(reason, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -809,7 +809,7 @@ private fun MenuItemCard(
 private fun MacroTag(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = color)
-        Text(label, fontSize = 11.sp, color = TextMuted)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

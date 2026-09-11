@@ -170,7 +170,7 @@ fun LogWorkoutScreen(
                             text = "LOẠI HÌNH TẬP LUYỆN",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
 
@@ -219,13 +219,13 @@ fun LogWorkoutScreen(
                                         if (cat == WorkoutCategory.STRENGTH) {
                                             DuotoneDumbbellIcon(
                                                 size = 14.dp,
-                                                outlineColor = if (isSelected) TextWhite else TextMuted,
+                                                outlineColor = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 accentColor = if (isSelected) TextWhite else VividOrange
                                             )
                                         } else {
                                             DuotoneEnergyIcon(
                                                 size = 14.dp,
-                                                outlineColor = if (isSelected) TextWhite else TextMuted,
+                                                outlineColor = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 accentColor = if (isSelected) TextWhite else VividOrange
                                             )
                                         }
@@ -233,7 +233,7 @@ fun LogWorkoutScreen(
                                             text = label,
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) TextWhite else TextMuted
+                                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -258,7 +258,7 @@ fun LogWorkoutScreen(
                                 Text(
                                     text = "Tên buổi tập / Hoạt động",
                                     fontSize = 12.sp,
-                                    color = TextMuted
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 OutlinedTextField(
                                     value = uiState.workoutName,
@@ -266,7 +266,7 @@ fun LogWorkoutScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     textStyle = LocalTextStyle.current.copy(
-                                        color = TextWhite,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium
                                     ),
@@ -293,7 +293,7 @@ fun LogWorkoutScreen(
                                     Text(
                                         text = "Thời lượng (phút)",
                                         fontSize = 12.sp,
-                                        color = TextMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Row(
                                         modifier = Modifier
@@ -310,13 +310,13 @@ fun LogWorkoutScreen(
                                             onClick = { viewModel.setDuration(uiState.durationMinutes - 5) },
                                             modifier = Modifier.size(32.dp)
                                         ) {
-                                            Text("-", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                                            Text("-", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                         Text(
                                             text = "${uiState.durationMinutes}p",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = TextWhite
+                                            color = MaterialTheme.colorScheme.onBackground
                                         )
                                         IconButton(
                                             onClick = { viewModel.setDuration(uiState.durationMinutes + 5) },
@@ -335,7 +335,7 @@ fun LogWorkoutScreen(
                                     Text(
                                         text = "Gắng sức (RPE 1-10)",
                                         fontSize = 12.sp,
-                                        color = TextMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Row(
                                         modifier = Modifier
@@ -352,7 +352,7 @@ fun LogWorkoutScreen(
                                             onClick = { viewModel.setRpe(uiState.rpe - 1) },
                                             modifier = Modifier.size(32.dp)
                                         ) {
-                                            Text("-", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                                            Text("-", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                         Text(
                                             text = "RPE ${uiState.rpe}",
@@ -385,7 +385,7 @@ fun LogWorkoutScreen(
                                 text = "BÀI TẬP & SETS CHI TIẾT",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 letterSpacing = 1.sp
                             )
 
@@ -418,11 +418,11 @@ fun LogWorkoutScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    DuotoneDumbbellIcon(size = 32.dp, outlineColor = TextMuted, accentColor = VividOrange)
+                                    DuotoneDumbbellIcon(size = 32.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = VividOrange)
                                     Text(
                                         text = "Chưa có bài tập nào trong buổi",
                                         fontSize = 14.sp,
-                                        color = TextMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Button(
                                         onClick = { showAddExerciseDialog = true },
@@ -460,7 +460,7 @@ fun LogWorkoutScreen(
                             text = "GHI CHÚ BUỔI TẬP",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
 
@@ -470,8 +470,8 @@ fun LogWorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(88.dp),
-                            placeholder = { Text("VD: Đẩy ngực lên tạ mới 80kg rất tốt, form chuẩn...", color = TextMuted.copy(alpha = 0.6f), fontSize = 13.sp) },
-                            textStyle = LocalTextStyle.current.copy(color = TextWhite, fontSize = 13.sp),
+                            placeholder = { Text("VD: Đẩy ngực lên tạ mới 80kg rất tốt, form chuẩn...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontSize = 13.sp) },
+                            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = VividOrange,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -544,12 +544,12 @@ fun LogWorkoutScreen(
                             text = "Đang nghỉ ngơi phục hồi",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Chuẩn bị cho Set tiếp theo...",
                             fontSize = 11.sp,
-                            color = TextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -560,7 +560,7 @@ fun LogWorkoutScreen(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Bỏ qua nghỉ",
-                            tint = TextMuted,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -597,7 +597,7 @@ fun LogWorkoutScreen(
             ) {
                 if (uiState.isSubmitting) {
                     CircularProgressIndicator(
-                        color = TextWhite,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.dp
                     )
@@ -606,12 +606,12 @@ fun LogWorkoutScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        DuotoneCheckmarkIcon(size = 18.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                        DuotoneCheckmarkIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
                         Text(
                             text = "Hoàn Thành & Lưu Buổi Tập",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -628,7 +628,7 @@ fun LogWorkoutScreen(
                         text = "Thêm bài tập",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 text = {
@@ -636,14 +636,14 @@ fun LogWorkoutScreen(
                         Text(
                             text = "Nhập tên bài tập hoặc chọn từ danh sách mẫu:",
                             fontSize = 13.sp,
-                            color = TextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         OutlinedTextField(
                             value = newExerciseName,
                             onValueChange = { newExerciseName = it },
-                            placeholder = { Text("VD: Incline Dumbbell Press", color = TextMuted) },
+                            placeholder = { Text("VD: Incline Dumbbell Press", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             singleLine = true,
-                            textStyle = LocalTextStyle.current.copy(color = TextWhite, fontSize = 14.sp),
+                            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = VividOrange,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -671,7 +671,7 @@ fun LogWorkoutScreen(
                                         .clickable { newExerciseName = pick }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
-                                    Text(text = pick, fontSize = 11.sp, color = TextMuted)
+                                    Text(text = pick, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -694,7 +694,7 @@ fun LogWorkoutScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddExerciseDialog = false }) {
-                        Text("Hủy", color = TextMuted)
+                        Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )
@@ -772,13 +772,13 @@ fun ExerciseCardItem(
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "SET", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
+                Text(text = "SET", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "MỨC TẠ (KG)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(text = "MỨC TẠ (KG)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "REPS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(text = "REPS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "XONG", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.width(42.dp), textAlign = TextAlign.Center)
+                Text(text = "XONG", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(42.dp), textAlign = TextAlign.Center)
             }
 
             // Danh sách các dòng Sets
@@ -824,7 +824,7 @@ fun ExerciseCardItem(
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         textStyle = LocalTextStyle.current.copy(
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -849,7 +849,7 @@ fun ExerciseCardItem(
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = LocalTextStyle.current.copy(
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -886,7 +886,7 @@ fun ExerciseCardItem(
                                 text = "Lưu",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -906,7 +906,7 @@ fun ExerciseCardItem(
                     text = "+ Thêm Set ${exercise.sets.size + 1}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

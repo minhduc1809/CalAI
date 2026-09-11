@@ -171,7 +171,7 @@ fun ChatbotScreen(
                                 "MAX" -> VividOrange
                                 "PRO" -> PastelLavender
                                 "PLUS" -> MintJade
-                                else -> TextMuted
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             },
                             modifier = Modifier.size(14.dp)
                         )
@@ -179,7 +179,7 @@ fun ChatbotScreen(
                             text = uiState.quota.tierName,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -192,7 +192,7 @@ fun ChatbotScreen(
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Xóa lịch sử",
-                        tint = TextMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -209,7 +209,7 @@ fun ChatbotScreen(
                 Text(
                     text = uiState.quota.statusMessage,
                     fontSize = 11.5.sp,
-                    color = if (uiState.quota.status == "LOW" || uiState.quota.status == "EXHAUSTED") CrimsonError else TextMuted
+                    color = if (uiState.quota.status == "LOW" || uiState.quota.status == "EXHAUSTED") CrimsonError else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Hạn mức: ${uiState.quota.remainingPercent}%",
@@ -343,7 +343,7 @@ fun ChatbotScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Gửi",
-                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.background else TextMuted,
+                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -367,12 +367,12 @@ fun ChatbotScreen(
                         text = "Nâng Cấp Bản AI Coach",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Chọn gói trải nghiệm để trò chuyện thoải mái và đồng hành dài hạn",
                         fontSize = 13.sp,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
                     )
 
@@ -421,7 +421,7 @@ fun ChatbotScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { showClearConfirmDialog = false }) {
-                        Text("Hủy", color = TextWhite)
+                        Text("Hủy", color = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.surface
@@ -473,7 +473,7 @@ private fun PlanCard(
                         text = plan.name,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     if (plan.isPopular) {
                         Surface(
@@ -517,7 +517,7 @@ private fun PlanCard(
             Text(
                 text = plan.description,
                 fontSize = 12.5.sp,
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp, bottom = 10.dp)
             )
 

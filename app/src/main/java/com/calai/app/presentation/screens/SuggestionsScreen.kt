@@ -522,7 +522,7 @@ private fun MonthlyDietSection(
                         "Ngày ${day.dayNumber}",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) TextWhite else TextMuted
+                        color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -544,11 +544,11 @@ private fun MonthlyDietSection(
                         plan.dayTitle,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite,
+                        color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = (-0.2).sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(plan.focusMessage, fontSize = 12.5.sp, color = TextMuted, lineHeight = 17.sp)
+                    Text(plan.focusMessage, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -572,7 +572,7 @@ private fun MiniStatPillDark(text: String) {
             .border(0.75.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
-        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
@@ -763,7 +763,7 @@ private fun DayRow(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
                             Text("Bắt đầu & Ghi buổi tập này", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -911,7 +911,7 @@ private fun ExerciseCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
                         Text("+ Ghi bài tập này vào buổi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
