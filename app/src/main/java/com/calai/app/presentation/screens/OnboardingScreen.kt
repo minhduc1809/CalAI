@@ -116,6 +116,7 @@ fun OnboardingScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .imePadding()
                         .padding(horizontal = 20.dp)
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
