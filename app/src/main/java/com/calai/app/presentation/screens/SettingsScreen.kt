@@ -151,7 +151,7 @@ fun SettingsScreen(
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    text = "Về NutriWise (CalAI)",
+                    text = "Về NutriWise",
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
