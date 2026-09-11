@@ -116,7 +116,7 @@ fun ChatbotScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "CalAI Nutrition Coach",
+                        text = "NutriWise Nutrition Coach",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground

@@ -384,11 +384,13 @@ private fun WelcomePage(isDarkTheme: Boolean) {
         Spacer(Modifier.height(28.dp))
 
         Text(
-            "Chào mừng bạn đến với CalAI",
+            "Chào mừng bạn đến với NutriWise",
             fontSize = 26.sp,
+            lineHeight = 34.sp,
             fontWeight = FontWeight.Black,
             color = textPrimary,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 12.dp)
         )
 
         Spacer(Modifier.height(10.dp))
@@ -625,7 +627,7 @@ private fun GoalPage(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "CalAI tối ưu lượng calo nạp mỗi ngày theo mục tiêu này",
+                "NutriWise tối ưu lượng calo nạp mỗi ngày theo mục tiêu này",
                 fontSize = 14.sp,
                 color = textSecondary,
                 textAlign = TextAlign.Center
@@ -821,7 +823,7 @@ private fun TargetWeightRatePage(
         Text("Mục tiêu cân nặng?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
         Text(
-            "CalAI dùng thông tin này để tính lượng calo mục tiêu mỗi ngày",
+            "NutriWise dùng thông tin này để tính lượng calo mục tiêu mỗi ngày",
             fontSize = 14.sp,
             color = textSecondary,
             textAlign = TextAlign.Center
@@ -838,7 +840,7 @@ private fun TargetWeightRatePage(
                     .padding(18.dp)
             ) {
                 Text(
-                    "Bạn chọn Duy trì vóc dáng — CalAI sẽ giữ cân nặng hiện tại làm mục tiêu.",
+                    "Bạn chọn Duy trì vóc dáng — NutriWise sẽ giữ cân nặng hiện tại làm mục tiêu.",
                     fontSize = 14.sp,
                     color = textPrimary,
                     textAlign = TextAlign.Center,
@@ -903,9 +905,11 @@ private fun QuestionPageHeader(title: String, subtitle: String) {
     Text(
         title,
         fontSize = 24.sp,
+        lineHeight = 31.sp,
         fontWeight = FontWeight.Black,
         color = textPrimary,
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(horizontal = 12.dp)
     )
     Spacer(Modifier.height(8.dp))
     Text(
@@ -963,7 +967,7 @@ private fun SleepHoursPage(sleepHours: Float, onSleepHoursChange: (Float) -> Uni
 
 @Composable
 private fun StressLevelPage(stressLevel: String, onStressSelect: (String) -> Unit, isDarkTheme: Boolean) {
-    QuestionPageScaffold("Mức độ căng thẳng gần đây?", "Giúp CalAI hiểu trạng thái phục hồi tổng thể của bạn") {
+    QuestionPageScaffold("Mức độ căng thẳng gần đây?", "Giúp NutriWise hiểu trạng thái phục hồi tổng thể của bạn") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("LOW" to "Thấp", "MEDIUM" to "Trung bình", "HIGH" to "Cao").forEach { (key, label) ->
                 SelectionPill(label, stressLevel == key, isDarkTheme, Modifier.weight(1f)) { onStressSelect(key) }
@@ -1009,7 +1013,7 @@ private fun ActivityLevelPage(activityLevel: String, onActivitySelect: (String) 
 // ══════════════════════════════════════════════════════════════
 @Composable
 private fun DietTypePage(dietType: String, onDietTypeSelect: (String) -> Unit, isDarkTheme: Boolean) {
-    QuestionPageScaffold("Chế độ ăn của bạn?", "CalAI sẽ lọc mọi gợi ý món ăn theo đúng chế độ này") {
+    QuestionPageScaffold("Chế độ ăn của bạn?", "NutriWise sẽ lọc mọi gợi ý món ăn theo đúng chế độ này") {
         listOf(
             "BALANCED" to ("Cân bằng" to "Đa dạng nhóm thực phẩm"),
             "VEGETARIAN" to ("Ăn chay" to "Không thịt, không cá"),
@@ -1245,10 +1249,10 @@ private fun OneRepMaxPage(
 // ══════════════════════════════════════════════════════════════
 @Composable
 private fun ProgramTypePage(programType: String, onProgramTypeSelect: (String) -> Unit, isDarkTheme: Boolean) {
-    QuestionPageScaffold("Bạn muốn CalAI đồng hành thế nào?", "Quyết định mức tự động hoá khi điều chỉnh mục tiêu") {
+    QuestionPageScaffold("Bạn muốn NutriWise đồng hành thế nào?", "Quyết định mức tự động hoá khi điều chỉnh mục tiêu") {
         listOf(
-            "COACHED" to ("CalAI dẫn dắt" to "Tự động điều chỉnh mục tiêu theo tiến độ"),
-            "COLLABORATIVE" to ("Kết hợp" to "CalAI gợi ý, bạn xác nhận trước khi áp dụng"),
+            "COACHED" to ("NutriWise dẫn dắt" to "Tự động điều chỉnh mục tiêu theo tiến độ"),
+            "COLLABORATIVE" to ("Kết hợp" to "NutriWise gợi ý, bạn xác nhận trước khi áp dụng"),
             "MANUAL" to ("Tự chủ" to "Bạn tự đặt và chỉnh mục tiêu")
         ).forEach { (key, pair) ->
             val (label, desc) = pair
@@ -1276,7 +1280,7 @@ private fun MacroStylePage(macroStyle: String, onMacroStyleSelect: (String) -> U
 
 @Composable
 private fun ProteinPreferencePage(proteinPreference: String, onProteinPreferenceSelect: (String) -> Unit, isDarkTheme: Boolean) {
-    QuestionPageScaffold("Mức ưu tiên Protein?", "Bước cuối cùng trước khi CalAI tính mục tiêu calo & macro cho bạn") {
+    QuestionPageScaffold("Mức ưu tiên Protein?", "Bước cuối cùng trước khi NutriWise tính mục tiêu calo & macro cho bạn") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("LOW" to "Thấp", "MID" to "Vừa", "HIGH" to "Cao", "VERY_HIGH" to "Rất cao").forEach { (key, label) ->
                 SelectionPill(label, proteinPreference == key, isDarkTheme, Modifier.weight(1f)) { onProteinPreferenceSelect(key) }
@@ -1329,7 +1333,7 @@ private fun SummaryStep(
         Spacer(Modifier.height(24.dp))
         Text("Thiết lập thành công!", fontSize = 24.sp, fontWeight = FontWeight.Black, color = textPrimary, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
-        Text("CalAI đã tính mục tiêu dinh dưỡng tối ưu cho bạn.", fontSize = 13.5.sp, color = textSecondary, textAlign = TextAlign.Center)
+        Text("NutriWise đã tính mục tiêu dinh dưỡng tối ưu cho bạn.", fontSize = 13.5.sp, color = textSecondary, textAlign = TextAlign.Center)
 
         Spacer(Modifier.height(28.dp))
 
