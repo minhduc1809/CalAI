@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -277,7 +278,7 @@ fun CameraScanScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                if (uiState.scanMode == ScanMode.FOOD) Icons.Default.CameraAlt else Icons.Default.MenuBook,
+                                if (uiState.scanMode == ScanMode.FOOD) Icons.Default.CameraAlt else Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = null,
                                 tint = VividOrange,
                                 modifier = Modifier.size(36.dp)

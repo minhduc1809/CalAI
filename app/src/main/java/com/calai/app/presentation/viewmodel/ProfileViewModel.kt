@@ -49,7 +49,7 @@ data class ProfileUiState(
 class ProfileViewModel @Inject constructor(
     private val repository: CalAIRepository,
     private val preferencesManager: UserPreferencesManager,
-    @ApplicationContext private val appContext: Context
+    @param:ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
