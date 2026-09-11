@@ -1,6 +1,7 @@
 package com.calai.app.presentation.screens
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -167,7 +168,7 @@ fun OnboardingScreen(
                                 .coerceIn(0f, 1f)
                             Box(
                                 modifier = Modifier
-                                    .weight((segEnd - segStart).toFloat())
+                                    .weight(1f)
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(MaterialTheme.colorScheme.outline)
@@ -187,6 +188,17 @@ fun OnboardingScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Tự động lướt sang câu tiếp theo sau khi chọn (chỉ áp cho câu chọn-1-đáp-án đơn giản,
+                    // không áp cho trang có wheel picker, nhập số, multi-select hay có ô phụ điều kiện).
+                    fun autoAdvance() {
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(220)
+                            if (pagerState.currentPage < ONBOARDING_STEP_COUNT - 1) {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        }
+                    }
+
                     // ── 5 trang nội dung (HorizontalPager) ──
                     HorizontalPager(
                         state = pagerState,
@@ -197,12 +209,12 @@ fun OnboardingScreen(
                     ) { page ->
                         when (page) {
                             0 -> WelcomePage(isDarkTheme)
-                            1 -> GenderPage(uiState.gender, viewModel::selectGender, isDarkTheme)
+                            1 -> GenderPage(uiState.gender, { v -> viewModel.selectGender(v); autoAdvance() }, isDarkTheme)
                             2 -> BirthDatePage(uiState.birthDay, uiState.birthMonth, uiState.birthYear, viewModel::setDateOfBirth, isDarkTheme)
                             3 -> HeightPage(uiState.heightCm.toInt(), { viewModel.setHeightCm(it.toFloat()) }, isDarkTheme)
                             4 -> WeightPage(uiState.weightKg.toInt(), { viewModel.setWeightKg(it.toFloat()) }, isDarkTheme)
                             5 -> BodyFatPage(uiState.bodyFatPercent, viewModel::selectBodyFatPercent, isDarkTheme)
-                            6 -> GoalPage(uiState.goal, viewModel::selectGoal, isDarkTheme)
+                            6 -> GoalPage(uiState.goal, { v -> viewModel.selectGoal(v); autoAdvance() }, isDarkTheme)
                             7 -> TargetWeightRatePage(
                                 goal = uiState.goal,
                                 targetWeightKg = uiState.targetWeightKg,
@@ -211,14 +223,14 @@ fun OnboardingScreen(
                                 onRateSelect = viewModel::selectWeightRate,
                                 isDarkTheme = isDarkTheme
                             )
-                            8 -> SleepHoursPage(uiState.sleepHours, viewModel::setSleepHours, isDarkTheme)
-                            9 -> StressLevelPage(uiState.stressLevel, viewModel::selectStressLevel, isDarkTheme)
-                            10 -> SupplementsPage(uiState.takesSupplements, viewModel::setTakesSupplements, isDarkTheme)
-                            11 -> ActivityLevelPage(uiState.activityLevel, viewModel::selectActivityLevel, isDarkTheme)
-                            12 -> DietTypePage(uiState.dietType, viewModel::selectDietType, isDarkTheme)
-                            13 -> MealsPerDayPage(uiState.mealsPerDay, viewModel::setMealsPerDay, isDarkTheme)
-                            14 -> CookTimePage(uiState.cookTimeMinutes, viewModel::setCookTimeMinutes, isDarkTheme)
-                            15 -> FoodBudgetPage(uiState.foodBudgetLevel, viewModel::selectFoodBudgetLevel, isDarkTheme)
+                            8 -> SleepHoursPage(uiState.sleepHours, { v -> viewModel.setSleepHours(v); autoAdvance() }, isDarkTheme)
+                            9 -> StressLevelPage(uiState.stressLevel, { v -> viewModel.selectStressLevel(v); autoAdvance() }, isDarkTheme)
+                            10 -> SupplementsPage(uiState.takesSupplements, { v -> viewModel.setTakesSupplements(v); autoAdvance() }, isDarkTheme)
+                            11 -> ActivityLevelPage(uiState.activityLevel, { v -> viewModel.selectActivityLevel(v); autoAdvance() }, isDarkTheme)
+                            12 -> DietTypePage(uiState.dietType, { v -> viewModel.selectDietType(v); autoAdvance() }, isDarkTheme)
+                            13 -> MealsPerDayPage(uiState.mealsPerDay, { v -> viewModel.setMealsPerDay(v); autoAdvance() }, isDarkTheme)
+                            14 -> CookTimePage(uiState.cookTimeMinutes, { v -> viewModel.setCookTimeMinutes(v); autoAdvance() }, isDarkTheme)
+                            15 -> FoodBudgetPage(uiState.foodBudgetLevel, { v -> viewModel.selectFoodBudgetLevel(v); autoAdvance() }, isDarkTheme)
                             16 -> IntermittentFastingPage(
                                 isIntermittentFasting = uiState.isIntermittentFasting,
                                 ifWindowStart = uiState.ifWindowStart,
@@ -227,10 +239,10 @@ fun OnboardingScreen(
                                 onIfWindowChange = viewModel::setIfWindow,
                                 isDarkTheme = isDarkTheme
                             )
-                            17 -> TrainingExperiencePage(uiState.trainingExperience, viewModel::selectTrainingExperience, isDarkTheme)
-                            18 -> TrainingGoalPage(uiState.trainingGoal, viewModel::selectTrainingGoal, isDarkTheme)
-                            19 -> SessionsPerWeekPage(uiState.sessionsPerWeek, viewModel::selectSessionsPerWeek, isDarkTheme)
-                            20 -> EquipmentAccessPage(uiState.equipmentAccess, viewModel::selectEquipmentAccess, isDarkTheme)
+                            17 -> TrainingExperiencePage(uiState.trainingExperience, { v -> viewModel.selectTrainingExperience(v); autoAdvance() }, isDarkTheme)
+                            18 -> TrainingGoalPage(uiState.trainingGoal, { v -> viewModel.selectTrainingGoal(v); autoAdvance() }, isDarkTheme)
+                            19 -> SessionsPerWeekPage(uiState.sessionsPerWeek, { v -> viewModel.selectSessionsPerWeek(v); autoAdvance() }, isDarkTheme)
+                            20 -> EquipmentAccessPage(uiState.equipmentAccess, { v -> viewModel.selectEquipmentAccess(v); autoAdvance() }, isDarkTheme)
                             21 -> InjuriesPage(
                                 injuries = uiState.injuries,
                                 injuriesOtherNote = uiState.injuriesOtherNote,
@@ -247,9 +259,9 @@ fun OnboardingScreen(
                                 onDeadliftChange = viewModel::setOneRepMaxDeadlift,
                                 onClearOneRepMax = viewModel::clearOneRepMax
                             )
-                            23 -> ProgramTypePage(uiState.programType, viewModel::selectProgramType, isDarkTheme)
-                            24 -> MacroStylePage(uiState.macroStyle, viewModel::selectMacroStyle, isDarkTheme)
-                            25 -> ProteinPreferencePage(uiState.proteinPreference, viewModel::selectProteinPreference, isDarkTheme)
+                            23 -> ProgramTypePage(uiState.programType, { v -> viewModel.selectProgramType(v); autoAdvance() }, isDarkTheme)
+                            24 -> MacroStylePage(uiState.macroStyle, { v -> viewModel.selectMacroStyle(v); autoAdvance() }, isDarkTheme)
+                            25 -> ProteinPreferencePage(uiState.proteinPreference, { v -> viewModel.selectProteinPreference(v); autoAdvance() }, isDarkTheme)
                         }
                     }
 
@@ -266,35 +278,40 @@ fun OnboardingScreen(
                         )
                     }
 
-                    // ── Nút điều hướng dưới cùng — thanh gradient nổi bật (giống mẫu tham chiếu) ──
+                    // ── Nút điều hướng dưới cùng — 2 khối tách riêng (không còn chung 1 box) ──
                     val isLast = pagerState.currentPage == ONBOARDING_STEP_COUNT - 1
                     val canGo = uiState.canProceed(pagerState.currentPage)
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Brush.horizontalGradient(listOf(VividOrangeDark, VividOrange)))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .padding(vertical = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Nút Quay lại (ẩn ở trang đầu)
+                        // Khối Quay lại — pill viền riêng (ẩn ở trang đầu)
                         if (pagerState.currentPage > 0) {
-                            TextButton(
+                            OutlinedButton(
                                 onClick = {
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(pagerState.currentPage - 1)
                                     }
                                 },
-                                modifier = Modifier.weight(0.8f)
+                                modifier = Modifier
+                                    .weight(0.85f)
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = textPrimary
+                                )
                             ) {
-                                Text("‹ Quay lại", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextWhite)
+                                Text("‹ Quay lại", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             }
                         }
 
-                        // Nút Tiếp theo / Hoàn tất
+                        // Khối Tiếp theo / Hoàn tất — pill cam riêng
                         Button(
                             onClick = {
                                 if (isLast) viewModel.submit()
@@ -304,16 +321,16 @@ fun OnboardingScreen(
                             },
                             enabled = canGo && !uiState.isSaving,
                             modifier = Modifier
-                                .weight(if (pagerState.currentPage > 0) 1.2f else 1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(16.dp),
+                                .weight(if (pagerState.currentPage > 0) 1.15f else 1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = TextWhite,
-                                disabledContainerColor = TextWhite.copy(alpha = 0.6f)
+                                containerColor = VividOrange,
+                                disabledContainerColor = VividOrange.copy(alpha = 0.35f)
                             )
                         ) {
                             if (uiState.isSaving) {
-                                CircularProgressIndicator(Modifier.size(20.dp), VividOrange, strokeWidth = 2.5.dp)
+                                CircularProgressIndicator(Modifier.size(20.dp), TextWhite, strokeWidth = 2.5.dp)
                             } else {
                                 Text(
                                     when {
@@ -323,7 +340,7 @@ fun OnboardingScreen(
                                     },
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
-                                    color = VividOrange
+                                    color = TextWhite
                                 )
                             }
                         }
@@ -831,9 +848,17 @@ private fun TargetWeightRatePage(
         } else {
             SectionLabel("Cân nặng mục tiêu của bạn?", textPrimary)
             Spacer(Modifier.height(10.dp))
+            // Dùng state chuỗi cục bộ — không lấy value trực tiếp từ targetWeightKg.toString(),
+            // tránh vòng lặp Float→String làm con trỏ nhảy lung tung mỗi lần gõ 1 ký tự.
+            var targetWeightText by remember {
+                mutableStateOf(if (targetWeightKg > 0f) targetWeightKg.toInt().toString() else "")
+            }
             OutlinedTextField(
-                value = if (targetWeightKg > 0f) targetWeightKg.toString() else "",
-                onValueChange = { text -> text.toFloatOrNull()?.let(onTargetWeightChange) },
+                value = targetWeightText,
+                onValueChange = { text ->
+                    targetWeightText = text
+                    text.toFloatOrNull()?.let(onTargetWeightChange)
+                },
                 placeholder = { Text("VD: 62", color = textSecondary) },
                 suffix = { Text("kg", color = textSecondary) },
                 singleLine = true,
@@ -1177,32 +1202,39 @@ private fun OneRepMaxPage(
     onClearOneRepMax: () -> Unit
 ) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    // State chuỗi cục bộ cho từng ô — tránh vòng lặp Float→String làm con trỏ nhảy khi gõ.
+    var squatText by remember { mutableStateOf(oneRepMaxSquatKg?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() } ?: "") }
+    var benchText by remember { mutableStateOf(oneRepMaxBenchKg?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() } ?: "") }
+    var deadliftText by remember { mutableStateOf(oneRepMaxDeadliftKg?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() } ?: "") }
     QuestionPageScaffold("1RM hiện tại của bạn (nếu biết)?", "Mức tạ nặng nhất bạn nâng được 1 lần — tính bằng kg, có thể bỏ qua") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
-                value = oneRepMaxSquatKg?.toString() ?: "",
-                onValueChange = { onSquatChange(it.toFloatOrNull()) },
+                value = squatText,
+                onValueChange = { squatText = it; onSquatChange(it.toFloatOrNull()) },
                 label = { Text("Squat", fontSize = 11.sp) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
             OutlinedTextField(
-                value = oneRepMaxBenchKg?.toString() ?: "",
-                onValueChange = { onBenchChange(it.toFloatOrNull()) },
+                value = benchText,
+                onValueChange = { benchText = it; onBenchChange(it.toFloatOrNull()) },
                 label = { Text("Bench", fontSize = 11.sp) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
             OutlinedTextField(
-                value = oneRepMaxDeadliftKg?.toString() ?: "",
-                onValueChange = { onDeadliftChange(it.toFloatOrNull()) },
+                value = deadliftText,
+                onValueChange = { deadliftText = it; onDeadliftChange(it.toFloatOrNull()) },
                 label = { Text("Deadlift", fontSize = 11.sp) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
         }
         Spacer(Modifier.height(12.dp))
-        TextButton(onClick = onClearOneRepMax) {
+        TextButton(onClick = {
+            squatText = ""; benchText = ""; deadliftText = ""
+            onClearOneRepMax()
+        }) {
             Text("Chưa biết", color = textSecondary, fontWeight = FontWeight.SemiBold)
         }
     }
