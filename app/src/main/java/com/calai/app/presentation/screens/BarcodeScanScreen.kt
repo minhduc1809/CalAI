@@ -62,7 +62,7 @@ import java.util.concurrent.TimeUnit
  * Quét mã vạch sản phẩm bằng camera (CameraX + ML Kit Barcode Scanning), tra cứu dinh dưỡng
  * qua OpenFoodFacts (GET recommendations/barcode/:code), rồi lưu thẳng vào nhật ký như CameraScanScreen.
  */
-@OptIn(ExperimentalMaterial3Api::class, androidx.camera.core.ExperimentalGetImage::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarcodeScanScreen(
     onBack: () -> Unit,
