@@ -261,16 +261,10 @@ interface CalAIApi {
         const val USB_REVERSE_HOST = "127.0.0.1"
 
         /**
-         * Tự động điều hướng:
-         * - Máy ảo (Emulator): Sử dụng 10.0.2.2 (alias của host máy tính)
-         * - Máy thật: Sử dụng IP LAN Wi-Fi (172.16.10.170),
-         *   nếu mất mạng hoặc cắm cáp sẽ tự động fallback sang 127.0.0.1 (qua DynamicHostInterceptor).
+         * Mặc định sử dụng 10.0.2.2 (cho Android Emulator).
+         * Khi chạy trên máy thật (qua cáp USB với adb reverse hoặc qua Wi-Fi),
+         * DynamicHostInterceptor sẽ tự động chuyển hướng sang 127.0.0.1 hoặc 172.16.10.170.
          */
-        val BASE_URL: String
-            get() = if (isEmulator) {
-                "http://$EMULATOR_HOST:3000/api/v1/"
-            } else {
-                "http://$PC_LAN_IP:3000/api/v1/"
-            }
+        const val BASE_URL = "http://$EMULATOR_HOST:3000/api/v1/"
     }
 }
