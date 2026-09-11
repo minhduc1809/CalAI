@@ -28,6 +28,17 @@ class TokenManager @Inject constructor(
             .apply()
     }
 
+    /**
+     * Lưu token đồng bộ (blocking) — dùng cho TokenAuthenticator
+     * để đảm bảo token mới được persist trước khi retry request.
+     */
+    fun saveTokensSync(accessToken: String, refreshToken: String) {
+        prefs.edit()
+            .putString(KEY_ACCESS_TOKEN, accessToken)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .commit()
+    }
+
     fun saveUser(userId: String, username: String, name: String? = null) {
         prefs.edit()
             .putString(KEY_USER_ID, userId)
