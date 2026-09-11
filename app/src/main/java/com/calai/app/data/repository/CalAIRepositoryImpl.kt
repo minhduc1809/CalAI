@@ -978,9 +978,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
+                android.util.Log.w("CalAIRepository", "recognizeFood unsuccess: ${response.message}")
                 getMockRecognition()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.e("CalAIRepository", "recognizeFood exception: ${e.message}", e)
             getMockRecognition()
         }
     }
@@ -991,9 +993,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
+                android.util.Log.w("CalAIRepository", "recognizeFoodBase64 unsuccess: ${response.message}")
                 getMockRecognition()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.e("CalAIRepository", "recognizeFoodBase64 exception: ${e.message}", e)
             getMockRecognition()
         }
     }
@@ -1024,9 +1028,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
+                android.util.Log.w("CalAIRepository", "chatAi unsuccess: ${response.message}")
                 getMockChatAi(message)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.e("CalAIRepository", "chatAi exception: ${e.message}", e)
             getMockChatAi(message)
         }
     }
