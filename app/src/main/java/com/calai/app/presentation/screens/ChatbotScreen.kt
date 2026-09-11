@@ -83,7 +83,7 @@ fun ChatbotScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -119,7 +119,7 @@ fun ChatbotScreen(
                         text = "CalAI Nutrition Coach",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -134,7 +134,7 @@ fun ChatbotScreen(
                         Text(
                             text = "Trợ lý dinh dưỡng AI • Trực tuyến",
                             fontSize = 12.sp,
-                            color = if (isDarkTheme) TextMuted else TextInkMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -145,7 +145,7 @@ fun ChatbotScreen(
                         "MAX" -> VividOrange.copy(alpha = 0.2f)
                         "PRO" -> PastelLavender.copy(alpha = 0.2f)
                         "PLUS" -> MintJade.copy(alpha = 0.2f)
-                        else -> CharcoalBorder.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                     },
                     shape = RoundedCornerShape(20.dp),
                     border = androidx.compose.foundation.BorderStroke(
@@ -154,7 +154,7 @@ fun ChatbotScreen(
                             "MAX" -> VividOrange
                             "PRO" -> PastelLavender
                             "PLUS" -> MintJade
-                            else -> CharcoalBorder
+                            else -> MaterialTheme.colorScheme.outline
                         }
                     ),
                     modifier = Modifier.clickable { showUpgradeSheet = true }
@@ -226,7 +226,7 @@ fun ChatbotScreen(
                     .height(3.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = if (uiState.quota.remainingPercent > 20) MintJade else CrimsonError,
-                trackColor = CharcoalBorder.copy(alpha = 0.4f),
+                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -241,11 +241,11 @@ fun ChatbotScreen(
             ) {
                 uiState.suggestedPrompts.forEach { prompt ->
                     Surface(
-                        color = if (isDarkTheme) CharcoalSurface else PearlCard,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(
                             width = 1.dp,
-                            color = if (isDarkTheme) CharcoalBorder else PearlBorder
+                            color = MaterialTheme.colorScheme.outline
                         ),
                         modifier = Modifier.clickable {
                             inputText = prompt
@@ -256,7 +256,7 @@ fun ChatbotScreen(
                         Text(
                             text = prompt,
                             fontSize = 12.sp,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -286,11 +286,11 @@ fun ChatbotScreen(
 
             // 4. KHUNG NHẬP LIỆU (INPUT BAR)
             Surface(
-                color = if (isDarkTheme) CharcoalSurface else PearlCard,
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(24.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = if (isDarkTheme) CharcoalBorder else PearlBorder
+                    color = MaterialTheme.colorScheme.outline
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,7 +309,7 @@ fun ChatbotScreen(
                             Text(
                                 text = "Hỏi AI Coach về thực đơn, calo...",
                                 fontSize = 14.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         colors = TextFieldDefaults.colors(
@@ -317,8 +317,8 @@ fun ChatbotScreen(
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                            unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                         ),
                         modifier = Modifier.weight(1f),
                         maxLines = 4
@@ -337,13 +337,13 @@ fun ChatbotScreen(
                             .clip(CircleShape)
                             .background(
                                 if (inputText.isNotBlank()) PastelLavender
-                                else (if (isDarkTheme) CharcoalBorder else PearlBorder)
+                                else (MaterialTheme.colorScheme.outline)
                             )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Gửi",
-                            tint = if (inputText.isNotBlank()) ObsidianBackground else TextMuted,
+                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.background else TextMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -355,7 +355,7 @@ fun ChatbotScreen(
         if (showUpgradeSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showUpgradeSheet = false },
-                containerColor = ObsidianBackground
+                containerColor = MaterialTheme.colorScheme.background
             ) {
                 Column(
                     modifier = Modifier
@@ -424,7 +424,7 @@ fun ChatbotScreen(
                         Text("Hủy", color = TextWhite)
                     }
                 },
-                containerColor = CharcoalSurface
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
 
@@ -447,11 +447,11 @@ private fun PlanCard(
     val borderColor = when {
         plan.bestValue -> VividOrange
         plan.isPopular -> PastelLavender
-        else -> CharcoalBorder
+        else -> MaterialTheme.colorScheme.outline
     }
 
     Surface(
-        color = CharcoalSurface,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(if (plan.isPopular || plan.bestValue) 1.5.dp else 1.dp, borderColor),
         modifier = Modifier
@@ -525,8 +525,8 @@ private fun PlanCard(
                 onClick = onSelect,
                 enabled = !isCurrent,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrent) CharcoalBorder else PastelLavender,
-                    contentColor = ObsidianBackground
+                    containerColor = if (isCurrent) MaterialTheme.colorScheme.outline else PastelLavender,
+                    contentColor = MaterialTheme.colorScheme.background
                 ),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -572,7 +572,7 @@ private fun MessageBubble(
             color = if (message.isUser) {
                 PastelLavender
             } else {
-                if (isDarkTheme) CharcoalSurface else PearlCard
+                MaterialTheme.colorScheme.surface
             },
             shape = RoundedCornerShape(
                 topStart = 18.dp,
@@ -583,7 +583,7 @@ private fun MessageBubble(
             border = if (!message.isUser) {
                 androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = if (isDarkTheme) CharcoalBorder else PearlBorder
+                    color = MaterialTheme.colorScheme.outline
                 )
             } else null,
             modifier = Modifier.widthIn(max = 280.dp)
@@ -592,7 +592,7 @@ private fun MessageBubble(
                 text = message.text,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
-                color = if (message.isUser) ObsidianBackground else (if (isDarkTheme) TextWhite else TextInkPrimary),
+                color = if (message.isUser) MaterialTheme.colorScheme.background else (MaterialTheme.colorScheme.onBackground),
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
             )
         }

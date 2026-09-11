@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -27,7 +28,7 @@ import com.calai.app.presentation.theme.*
 
 /**
  * Nút chuyển đổi giao diện Sáng / Tối dạng khối xúc giác nổi 3D (Tactile 3D Switch - Spec 10.5)
- * - Track lõm với viền CharcoalBorder
+ * - Track lõm với viền MaterialTheme.colorScheme.outline
  * - Núm tròn (Thumb) nổi khối với shadow mềm và viền phát quang VividOrange
  */
 @Composable
@@ -50,8 +51,8 @@ fun TactileThemeSwitch(
             .width(66.dp)
             .height(36.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
-            .border(1.2.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .border(1.2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -95,7 +96,7 @@ fun TactileThemeSwitch(
             if (isDarkTheme) {
                 DuotoneMoonIcon(
                     size = 15.dp,
-                    outlineColor = TextWhite,
+                    outlineColor = MaterialTheme.colorScheme.onBackground,
                     accentColor = VividOrangeLight
                 )
             } else {

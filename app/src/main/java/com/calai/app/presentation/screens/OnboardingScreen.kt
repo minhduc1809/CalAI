@@ -66,9 +66,9 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ONBOARDING_STEP_COUNT })
     val coroutineScope = rememberCoroutineScope()
 
-    val bg = if (isDarkTheme) ObsidianBackground else IvoryBackground
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val bg = MaterialTheme.colorScheme.background
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Đồng bộ currentStep trong ViewModel khi lướt pager
     LaunchedEffect(pagerState.currentPage) {
@@ -133,7 +133,7 @@ fun OnboardingScreen(
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
                         color = VividOrange,
-                        trackColor = if (isDarkTheme) CharcoalBorder else PearlBorder
+                        trackColor = MaterialTheme.colorScheme.outline
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -309,8 +309,8 @@ fun OnboardingScreen(
 // ══════════════════════════════════════════════════════════════
 @Composable
 private fun WelcomePage(isDarkTheme: Boolean) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -374,8 +374,8 @@ private fun FeatureItem(title: String, desc: String, isDarkTheme: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDarkTheme) CharcoalSurface else PearlSurface)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -390,8 +390,8 @@ private fun FeatureItem(title: String, desc: String, isDarkTheme: Boolean) {
         }
         Spacer(Modifier.width(14.dp))
         Column {
-            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isDarkTheme) TextWhite else TextInkPrimary)
-            Text(desc, fontSize = 12.sp, color = if (isDarkTheme) TextMuted else TextInkMuted, lineHeight = 16.sp)
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+            Text(desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
         }
     }
 }
@@ -457,7 +457,7 @@ private fun BirthDatePage(
     onDateChange: (Int, Int, Int) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val daysInMonth = remember(month, year) { getDaysInMonth(month, year) }
 
@@ -552,8 +552,8 @@ private fun GoalPage(
     onSelect: (String) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val goals = listOf(
         Triple("LOSE_WEIGHT", "Giảm cân", "Giảm mỡ thừa, cơ thể thon gọn và săn chắc") to Icons.AutoMirrored.Filled.TrendingDown,
@@ -594,10 +594,10 @@ private fun GoalPage(
                 val isSelected = selectedGoal == key
 
                 val cardBg = when {
-                    isSelected -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
-                    else -> if (isDarkTheme) CharcoalSurface else PearlSurface
+                    isSelected -> MaterialTheme.colorScheme.surfaceContainerHighest
+                    else -> MaterialTheme.colorScheme.surface
                 }
-                val borderCol = if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder)
+                val borderCol = if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline)
 
                 Row(
                     modifier = Modifier
@@ -613,7 +613,7 @@ private fun GoalPage(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) VividOrangeSoft else (if (isDarkTheme) CharcoalCard else PearlCard)),
+                            .background(if (isSelected) VividOrangeSoft else (MaterialTheme.colorScheme.surfaceVariant)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(icon, null, tint = if (isSelected) VividOrange else textSecondary, modifier = Modifier.size(26.dp))
@@ -647,8 +647,8 @@ private fun GenderPage(
     onSelect: (String) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val options = listOf(
         Triple("MALE", "Nam", "Dùng công thức tính BMR chuẩn Nam giới"),
@@ -676,10 +676,10 @@ private fun GenderPage(
             options.forEach { (key, title, subtitle) ->
                 val isSelected = selectedGender == key
                 val cardBg = when {
-                    isSelected -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
-                    else -> if (isDarkTheme) CharcoalSurface else PearlSurface
+                    isSelected -> MaterialTheme.colorScheme.surfaceContainerHighest
+                    else -> MaterialTheme.colorScheme.surface
                 }
-                val borderCol = if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder)
+                val borderCol = if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline)
 
                 Row(
                     modifier = Modifier
@@ -716,8 +716,8 @@ private fun BodyFatPage(
     onSelect: (Float?) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val ranges = listOf(
         "10–13%" to 11.5f, "14–17%" to 15.5f, "18–21%" to 19.5f,
@@ -776,10 +776,10 @@ private fun TargetWeightRatePage(
     onRateSelect: (Float) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
-    val surface = if (isDarkTheme) CharcoalSurface else PearlCard
-    val border = if (isDarkTheme) CharcoalBorder else PearlBorder
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val surface = MaterialTheme.colorScheme.surface
+    val border = MaterialTheme.colorScheme.outline
 
     Column(
         modifier = Modifier
@@ -870,8 +870,8 @@ private fun LifestylePage(
     onActivitySelect: (String) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -974,8 +974,8 @@ private fun NutritionPage(
     onIfWindowChange: (String, String) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -1103,8 +1103,8 @@ private fun TrainingPage(
     onClearOneRepMax: () -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -1241,8 +1241,8 @@ private fun ProgramSetupPage(
     onProteinPreferenceSelect: (String) -> Unit,
     isDarkTheme: Boolean
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -1322,8 +1322,8 @@ private fun SummaryStep(
     modifier: Modifier = Modifier
 ) {
     val profile = uiState.savedProfile
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -1352,8 +1352,8 @@ private fun SummaryStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                 .padding(20.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -1411,8 +1411,8 @@ private fun PickerPage(
     isDarkTheme: Boolean,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -1458,7 +1458,7 @@ private fun ValueDisplay(value: String, unit: String, isDarkTheme: Boolean) {
             value,
             fontSize = 52.sp,
             fontWeight = FontWeight.Black,
-            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             lineHeight = 56.sp
         )
         if (unit.isNotBlank()) {

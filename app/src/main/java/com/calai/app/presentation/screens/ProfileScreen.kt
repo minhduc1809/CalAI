@@ -153,7 +153,7 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -173,7 +173,7 @@ fun ProfileScreen(
                     text = "Hồ Sơ & Cài Đặt",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = (-0.5).sp
                 )
 
@@ -181,15 +181,15 @@ fun ProfileScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { onOpenSettings() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = "Cài đặt",
-                        tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -206,8 +206,8 @@ fun ProfileScreen(
                         spotColor = if (isDarkTheme) DarkShadow else WarmShadow
                     )
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                     .padding(20.dp)
             ) {
                 Row(
@@ -242,12 +242,12 @@ fun ProfileScreen(
                             text = profile?.name ?: "Người dùng NutriWise",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "@${profile?.username ?: "calai_user"}",
                             fontSize = 13.sp,
-                            color = if (isDarkTheme) TextMuted else TextInkMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         val goalLabel = when (profile?.goal) {
@@ -277,7 +277,7 @@ fun ProfileScreen(
                 text = "Chỉ số sinh học",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Row(
@@ -342,8 +342,8 @@ fun ProfileScreen(
                         spotColor = if (isDarkTheme) DarkShadow else WarmShadow
                     )
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -356,7 +356,7 @@ fun ProfileScreen(
                             text = "Mục tiêu calo & dinh dưỡng",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "${profile?.targetCalories?.toInt() ?: 1810} kcal",
@@ -406,8 +406,8 @@ fun ProfileScreen(
                         spotColor = if (isDarkTheme) DarkShadow else WarmShadow
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
                 Row(
@@ -424,8 +424,8 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(if (isDarkTheme) CharcoalCardElevated else VividOrangeSoft)
-                                .border(1.dp, if (isDarkTheme) CharcoalBorder else VividOrange.copy(alpha = 0.3f), CircleShape),
+                                .background(if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else VividOrangeSoft)
+                                .border(1.dp, if (isDarkTheme) MaterialTheme.colorScheme.outline else VividOrange.copy(alpha = 0.3f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isDarkTheme) {
@@ -440,18 +440,18 @@ fun ProfileScreen(
                                 text = if (isDarkTheme) "Giao diện tối" else "Giao diện sáng",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text = if (isDarkTheme) "Dịu mắt, dễ chịu" else "Sáng rõ, dễ nhìn",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isDarkTheme) TextLightGrey else TextInkSecondary
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
                                 text = if (isDarkTheme) "Phù hợp khi sử dụng vào ban đêm" else "Thoải mái sử dụng vào ban ngày",
                                 fontSize = 11.5.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -474,8 +474,8 @@ fun ProfileScreen(
                         spotColor = if (isDarkTheme) DarkShadow else WarmShadow
                     )
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             ) {
                 ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme, onClick = onOpenGoalSetup)
                 ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme, onClick = { showReminderSheet = true })
@@ -544,8 +544,8 @@ private fun BioMetricCard(
                 spotColor = if (isDark) DarkShadow else WarmShadow
             )
             .clip(RoundedCornerShape(20.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .then(
                 if (onClick != null) Modifier.clickable { onClick() } else Modifier
             )
@@ -557,17 +557,17 @@ private fun BioMetricCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = title, fontSize = 12.sp, color = if (isDark) TextMuted else TextInkMuted)
+                Text(text = title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (canEdit) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Chỉnh sửa $title",
-                        tint = if (isDark) TextMuted.copy(alpha = 0.6f) else TextInkMuted.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(13.dp)
                     )
                 }
             }
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (isDark) TextWhite else TextInkPrimary)
+            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Text(text = unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
         }
     }
@@ -584,13 +584,13 @@ private fun MacroBadgePill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isDark) CharcoalDock else PearlDock)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
             .padding(vertical = 10.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label, fontSize = 11.sp, color = if (isDark) TextMuted else TextInkMuted)
+            Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(2.dp))
             Text(text = amount, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accentColor)
         }
@@ -617,19 +617,19 @@ private fun ActionRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = if (isDark) TextMuted else TextInkMuted, modifier = Modifier.size(20.dp))
-            Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (isDark) TextWhite else TextInkPrimary)
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
         }
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = (if (isDark) TextMuted else TextInkMuted).copy(alpha = 0.5f),
+            tint = (MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
     if (!isLast) {
         HorizontalDivider(
-            color = (if (isDark) CharcoalBorder else PearlBorder).copy(alpha = 0.5f),
+            color = (MaterialTheme.colorScheme.outline).copy(alpha = 0.5f),
             thickness = 1.dp,
             modifier = Modifier.padding(horizontal = 18.dp)
         )
@@ -653,8 +653,8 @@ fun EditBiometricModalSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -668,13 +668,13 @@ fun EditBiometricModalSheet(
                 text = title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = subtitle,
                 fontSize = 13.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -694,7 +694,7 @@ fun EditBiometricModalSheet(
                     text = unit,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isDarkTheme) TextMuted else TextInkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }

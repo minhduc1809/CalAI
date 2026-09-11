@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,8 +51,8 @@ fun DateWheelPicker(
     val months = remember { (1..12).toList() }
     val years = remember(minYear, maxYear) { (minYear..maxYear).toList() }
 
-    val bgCard = if (isDarkTheme) CharcoalSurface else PearlSurface
-    val borderCol = if (isDarkTheme) CharcoalBorder else PearlBorder
+    val bgCard = MaterialTheme.colorScheme.surface
+    val borderCol = MaterialTheme.colorScheme.outline
 
     Box(
         modifier = modifier
@@ -67,7 +68,7 @@ fun DateWheelPicker(
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(if (isDarkTheme) CharcoalCardElevated else PearlBorder.copy(alpha = 0.6f))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f))
         )
 
         Row(
@@ -163,8 +164,8 @@ private fun <T> WheelColumn(
         }
     }
 
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textMuted = if (isDarkTheme) TextMuted else TextInkMuted
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textMuted = MaterialTheme.colorScheme.onSurfaceVariant
 
     LazyColumn(
         state = listState,

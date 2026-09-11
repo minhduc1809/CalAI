@@ -95,7 +95,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -129,7 +129,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .background(CharcoalSurface)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -139,7 +139,7 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .background(if (uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                         .clickable { if (!uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -156,7 +156,7 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (!uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .background(if (!uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                         .clickable { if (uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -209,10 +209,10 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CharcoalSurface,
-                    unfocusedContainerColor = CharcoalSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = CharcoalBorder,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                     focusedTextColor = TextWhite,
                     unfocusedTextColor = TextWhite
                 )
@@ -231,10 +231,10 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = CharcoalSurface,
-                        unfocusedContainerColor = CharcoalSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = CharcoalBorder,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                         focusedTextColor = TextWhite,
                         unfocusedTextColor = TextWhite
                     )
@@ -250,10 +250,10 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = CharcoalSurface,
-                        unfocusedContainerColor = CharcoalSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = CharcoalBorder,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                         focusedTextColor = TextWhite,
                         unfocusedTextColor = TextWhite
                     )
@@ -285,10 +285,10 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CharcoalSurface,
-                    unfocusedContainerColor = CharcoalSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = CharcoalBorder,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                     focusedTextColor = TextWhite,
                     unfocusedTextColor = TextWhite
                 )
@@ -331,14 +331,14 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = CharcoalBorder)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
                 Text(
                     text = "hoặc",
                     color = TextMuted,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = CharcoalBorder)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -351,7 +351,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, CharcoalBorder),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
             ) {
                 Box(
@@ -363,7 +363,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = "G",
-                        color = ObsidianBackground,
+                        color = MaterialTheme.colorScheme.background,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )

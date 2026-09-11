@@ -55,7 +55,7 @@ fun StatisticsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -70,7 +70,7 @@ fun StatisticsScreen(
                 text = "Phân Tích & Xu Hướng",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = (-0.5).sp
             )
 
@@ -125,8 +125,8 @@ fun StatisticsScreen(
                         spotColor = shadowColor
                     )
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
@@ -145,7 +145,7 @@ fun StatisticsScreen(
                             text = period.label,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
+                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -199,7 +199,7 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                 Icon(
                     imageVector = if (insight.type == "PLATEAU") Icons.AutoMirrored.Filled.TrendingFlat else Icons.Default.ReportProblem,
                     contentDescription = null,
-                    tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -207,7 +207,7 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                     fontSize = 12.8.sp,
                     fontWeight = FontWeight.Medium,
                     lineHeight = 17.sp,
-                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
@@ -391,13 +391,13 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .background(MaterialTheme.colorScheme.surface)
             .border(
                 width = 1.dp,
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(
                         if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
-                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                        MaterialTheme.colorScheme.outline
                     )
                 ),
                 shape = RoundedCornerShape(24.dp)
@@ -409,13 +409,13 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 text = "Phân bổ nhóm chất dinh dưỡng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Duy trì tỉ lệ đạm cao giúp bảo vệ khối cơ bắp khi thâm hụt calo.",
                 fontSize = 12.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -451,13 +451,13 @@ private fun MacroLegendRow(label: String, percent: String, dotColor: Color, isDa
             text = label,
             fontSize = 12.5.sp,
             fontWeight = FontWeight.SemiBold,
-            color = if (isDarkTheme) TextMuted else TextInkMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = percent,
             fontSize = 13.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = if (isDarkTheme) TextWhite else TextInkPrimary
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
@@ -500,13 +500,13 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+            .background(MaterialTheme.colorScheme.surface)
             .border(
                 width = 1.dp,
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(
                         if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
-                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                        MaterialTheme.colorScheme.outline
                     )
                 ),
                 shape = RoundedCornerShape(24.dp)
@@ -524,12 +524,12 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                         text = "Xu hướng cân nặng EWMA",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Làm mịn biến động nước cơ thể",
                         fontSize = 12.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Surface(
@@ -589,20 +589,20 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Bắt đầu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text("Bắt đầu", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         startWeightDisplay,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Hiện tại", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text("Hiện tại", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(currentWeightDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Mục tiêu", fontSize = 11.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+                    Text("Mục tiêu", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(targetWeightDisplay, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PastelLavender)
                 }
             }
@@ -612,7 +612,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 text = "Đã hoàn thành ${uiState.weightProgressPercent}% mục tiêu cân nặng",
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isDarkTheme) TextMuted else TextInkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )

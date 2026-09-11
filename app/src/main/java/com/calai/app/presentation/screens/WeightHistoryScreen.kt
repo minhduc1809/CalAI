@@ -40,11 +40,11 @@ fun WeightHistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val bg = if (isDarkTheme) ObsidianBackground else IvoryBackground
-    val surface = if (isDarkTheme) CharcoalSurface else PearlCard
-    val border = if (isDarkTheme) CharcoalBorder else PearlBorder
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textSecondary = if (isDarkTheme) TextMuted else TextInkMuted
+    val bg = MaterialTheme.colorScheme.background
+    val surface = MaterialTheme.colorScheme.surface
+    val border = MaterialTheme.colorScheme.outline
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     val inputUnitLabel = if (uiState.weightUnit == "lb") "lb" else "kg"
 

@@ -78,14 +78,14 @@ fun AddMealScreen(
     }
 
     Scaffold(
-        containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Thêm Bữa Ăn",
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
@@ -93,24 +93,24 @@ fun AddMealScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = if (isDarkTheme) TextWhite else TextInkPrimary
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
         bottomBar = {
             if (uiState.selectedFoods.isNotEmpty()) {
                 Surface(
-                    color = if (isDarkTheme) CharcoalSurface else PearlCard,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                     shadowElevation = if (isDarkTheme) 8.dp else 12.dp,
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        color = if (isDarkTheme) CharcoalBorder else PearlBorder
+                        color = MaterialTheme.colorScheme.outline
                     )
                 ) {
                     Column(
@@ -132,7 +132,7 @@ fun AddMealScreen(
                                 Text(
                                     "Đã chọn ${uiState.selectedFoods.size} món",
                                     fontSize = 13.sp,
-                                    color = if (isDarkTheme) TextMuted else TextInkMuted
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = "${totalP.toInt()}g P • ${totalC.toInt()}g C • ${totalF.toInt()}g F",
@@ -199,10 +199,10 @@ fun AddMealScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) VividOrange else if (isDarkTheme) CharcoalSurface else PearlCard)
+                                .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surface)
                                 .border(
                                     width = 1.dp,
-                                    color = if (isSelected) VividOrange else if (isDarkTheme) CharcoalBorder else PearlBorder,
+                                    color = if (isSelected) VividOrange else MaterialTheme.colorScheme.outline,
                                     shape = RoundedCornerShape(14.dp)
                                 )
                                 .clickable { viewModel.onMealTypeSelect(type) }
@@ -212,7 +212,7 @@ fun AddMealScreen(
                                 text = label,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkPrimary
+                                color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -226,7 +226,7 @@ fun AddMealScreen(
                         text = "Khẩu phần món đã chọn",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
@@ -252,7 +252,7 @@ fun AddMealScreen(
                             spotColor = shadowColor
                         )
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
+                        .background(MaterialTheme.colorScheme.surface)
                         .border(1.5.dp, VividOrange.copy(alpha = 0.6f), RoundedCornerShape(22.dp))
                         .clickable { onCameraClick() }
                         .padding(18.dp)
@@ -280,12 +280,12 @@ fun AddMealScreen(
                                 text = "Chụp ảnh đĩa thức ăn",
                                 fontSize = 16.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text = "Gemini AI tự nhận diện món, khẩu phần & calo trong 1s",
                                 fontSize = 12.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -313,8 +313,8 @@ fun AddMealScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                         .clickable { showQuickAddDialog = true }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -325,10 +325,10 @@ fun AddMealScreen(
                         text = "Nhập nhanh Calo / Macro (không cần chọn món)",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.weight(1f)
                     )
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (isDarkTheme) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -338,8 +338,8 @@ fun AddMealScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                         .clickable { onBarcodeClick() }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -350,10 +350,10 @@ fun AddMealScreen(
                         text = "Quét mã vạch sản phẩm đóng gói",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.weight(1f)
                     )
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (isDarkTheme) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -368,7 +368,7 @@ fun AddMealScreen(
                         text = "Món của tôi",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "+ Tạo món riêng",
@@ -384,7 +384,7 @@ fun AddMealScreen(
                     Text(
                         text = "Chưa có món riêng — tạo món bạn hay ăn để thêm nhanh chóng.",
                         fontSize = 12.5.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -404,7 +404,7 @@ fun AddMealScreen(
                     text = "Hoặc tra cứu thủ công từ kho món Việt (120+ món)",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -413,24 +413,24 @@ fun AddMealScreen(
                 OutlinedTextField(
                     value = uiState.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
-                    placeholder = { Text("Tìm phở bò, cơm tấm, ức gà, trứng...", color = if (isDarkTheme) TextMuted else TextInkMuted) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = if (isDarkTheme) TextMuted else TextInkMuted) },
+                    placeholder = { Text("Tìm phở bò, cơm tấm, ức gà, trứng...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     trailingIcon = {
                         if (uiState.searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Xóa", tint = if (isDarkTheme) TextMuted else TextInkMuted)
+                                Icon(Icons.Default.Clear, contentDescription = "Xóa", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-                        unfocusedContainerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
-                        focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                        unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
             }
@@ -449,8 +449,8 @@ fun AddMealScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) PastelLavender else if (isDarkTheme) CharcoalCard else PearlCard)
-                                    .border(1.dp, if (isSelected) PastelLavender else if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) PastelLavender else MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(1.dp, if (isSelected) PastelLavender else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                                     .clickable { viewModel.onCategorySelect(cat) }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
@@ -458,7 +458,7 @@ fun AddMealScreen(
                                     text = cat,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) TextDeepInk else if (isDarkTheme) TextWhite else TextInkPrimary
+                                    color = if (isSelected) TextDeepInk else MaterialTheme.colorScheme.onBackground
                                 )
                             }
                         }
@@ -496,8 +496,8 @@ private fun SelectedFoodServingCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -511,12 +511,12 @@ private fun SelectedFoodServingCard(
                         text = item.name,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Gốc: ${item.servingSize ?: "1 phần"} • ${item.calories.toInt()} kcal",
                         fontSize = 11.5.sp,
-                        color = if (isDark) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -535,7 +535,7 @@ private fun SelectedFoodServingCard(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Xóa món",
-                            tint = if (isDark) TextMuted else TextInkMuted,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -564,7 +564,7 @@ private fun SelectedFoodServingCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isDark) CharcoalDock else PearlDock)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(horizontal = 6.dp, vertical = 4.dp)
                 ) {
                     IconButton(
@@ -574,7 +574,7 @@ private fun SelectedFoodServingCard(
                         },
                         modifier = Modifier.size(28.dp)
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Giảm", tint = if (isDark) TextWhite else TextInkPrimary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Remove, contentDescription = "Giảm", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(16.dp))
                     }
 
                     Text(
@@ -592,7 +592,7 @@ private fun SelectedFoodServingCard(
                         },
                         modifier = Modifier.size(28.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Tăng", tint = if (isDark) TextWhite else TextInkPrimary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Add, contentDescription = "Tăng", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(16.dp))
                     }
                 }
 
@@ -603,7 +603,7 @@ private fun SelectedFoodServingCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isCurrent) VividOrange else if (isDark) CharcoalDock else PearlDock)
+                                .background(if (isCurrent) VividOrange else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { onQuantityChange(mult) }
                                 .padding(horizontal = 9.dp, vertical = 6.dp)
                         ) {
@@ -611,7 +611,7 @@ private fun SelectedFoodServingCard(
                                 text = "${mult}x",
                                 fontSize = 11.5.sp,
                                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isCurrent) TextWhite else if (isDark) TextMuted else TextInkPrimary
+                                color = if (isCurrent) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -626,11 +626,11 @@ private fun ServingMacroChip(label: String, value: String, color: Color, isDark:
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isDark) CharcoalDock else PearlDock)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = label, fontSize = 10.5.sp, color = if (isDark) TextMuted else TextInkMuted)
+            Text(text = label, fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(text = value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
@@ -647,8 +647,8 @@ private fun CustomFoodRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -657,11 +657,11 @@ private fun CustomFoodRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(food.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) TextWhite else TextInkPrimary)
+                Text(food.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Text(
                     text = "${food.servingSize?.ifEmpty { "1 phần" } ?: "1 phần"} • ${food.protein.toInt()}g P • ${food.carb.toInt()}g C • ${food.fat.toInt()}g F",
                     fontSize = 12.sp,
-                    color = if (isDark) TextMuted else TextInkMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -673,16 +673,16 @@ private fun CustomFoodRow(
                     modifier = Modifier.padding(end = 4.dp)
                 )
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Xóa món riêng", tint = if (isDark) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, contentDescription = "Xóa món riêng", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
                 IconButton(
                     onClick = onAdd,
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) CharcoalCard else PearlCard)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Chọn món", tint = if (isDark) TextWhite else TextInkPrimary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Add, contentDescription = "Chọn món", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -701,8 +701,8 @@ private fun FoodSearchResultCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -715,12 +715,12 @@ private fun FoodSearchResultCard(
                     text = food.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "${food.servingSize.ifEmpty { "1 phần" }} • ${food.protein.toInt()}g P • ${food.carb.toInt()}g C • ${food.fat.toInt()}g F",
                     fontSize = 12.sp,
-                    color = if (isDark) TextMuted else TextInkMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -740,7 +740,7 @@ private fun FoodSearchResultCard(
                     Icon(
                         if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = if (isFavorite) "Bỏ yêu thích" else "Đánh dấu yêu thích",
-                        tint = if (isFavorite) VividOrange else if (isDark) TextMuted else TextInkMuted,
+                        tint = if (isFavorite) VividOrange else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(19.dp)
                     )
                 }
@@ -750,12 +750,12 @@ private fun FoodSearchResultCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) CharcoalCard else PearlCard)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Chọn món",
-                        tint = if (isDark) TextWhite else TextInkPrimary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -779,18 +779,18 @@ private fun QuickAddDialog(
 
     @Composable
     fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = if (isDark) CharcoalCard else PearlSurface,
-        unfocusedContainerColor = if (isDark) CharcoalCard else PearlSurface,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         focusedBorderColor = VividOrange,
-        unfocusedBorderColor = if (isDark) CharcoalBorder else PearlBorder,
-        focusedTextColor = if (isDark) TextWhite else TextInkPrimary,
-        unfocusedTextColor = if (isDark) TextWhite else TextInkPrimary
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) CharcoalSurface else PearlCard,
-        title = { Text("Nhập nhanh Calo / Macro", color = if (isDark) TextWhite else TextInkPrimary, fontWeight = FontWeight.Bold) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("Nhập nhanh Calo / Macro", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -859,7 +859,7 @@ private fun QuickAddDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy", color = if (isDark) TextMuted else TextInkMuted)
+                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
@@ -882,18 +882,18 @@ private fun CreateCustomFoodDialog(
 
     @Composable
     fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = if (isDark) CharcoalCard else PearlSurface,
-        unfocusedContainerColor = if (isDark) CharcoalCard else PearlSurface,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         focusedBorderColor = VividOrange,
-        unfocusedBorderColor = if (isDark) CharcoalBorder else PearlBorder,
-        focusedTextColor = if (isDark) TextWhite else TextInkPrimary,
-        unfocusedTextColor = if (isDark) TextWhite else TextInkPrimary
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) CharcoalSurface else PearlCard,
-        title = { Text("Tạo món ăn riêng", color = if (isDark) TextWhite else TextInkPrimary, fontWeight = FontWeight.Bold) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("Tạo món ăn riêng", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -992,7 +992,7 @@ private fun CreateCustomFoodDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy", color = if (isDark) TextMuted else TextInkMuted)
+                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

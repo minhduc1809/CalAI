@@ -56,7 +56,7 @@ fun ExpenditureDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -76,15 +76,15 @@ fun ExpenditureDetailScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Quay lại",
-                        tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -94,13 +94,13 @@ fun ExpenditureDetailScreen(
                         text = "Chi Tiết Tiêu Hao (Expenditure)",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "Thuật toán ước tính trao đổi chất thích ứng",
                         fontSize = 12.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -118,11 +118,11 @@ fun ExpenditureDetailScreen(
                     .clip(RoundedCornerShape(26.dp))
                     .background(
                         Brush.verticalGradient(
-                            colors = if (isDarkTheme) listOf(CharcoalCard, CharcoalSurface)
+                            colors = if (isDarkTheme) listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface)
                             else listOf(PearlCard, IvoryBackground)
                         )
                     )
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(26.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(26.dp))
                     .padding(22.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -173,7 +173,7 @@ fun ExpenditureDetailScreen(
                             Text(
                                 text = "Năng lượng tiêu hao thực tế",
                                 fontSize = 13.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
@@ -188,7 +188,7 @@ fun ExpenditureDetailScreen(
                                     text = "kcal / ngày",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkTheme) TextMuted else TextInkMuted,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(bottom = 6.dp)
                                 )
                             }
@@ -201,13 +201,13 @@ fun ExpenditureDetailScreen(
                             Text(
                                 text = "TDEE ước tính tĩnh",
                                 fontSize = 11.5.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "$staticTdee kcal",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text = "($diffText kcal/ngày)",
@@ -219,14 +219,14 @@ fun ExpenditureDetailScreen(
                     }
 
                     HorizontalDivider(
-                        color = (if (isDarkTheme) CharcoalBorder else PearlBorder).copy(alpha = 0.5f),
+                        color = (MaterialTheme.colorScheme.outline).copy(alpha = 0.5f),
                         thickness = 1.dp
                     )
 
                     Text(
                         text = expenditure?.message ?: "Expenditure được tính toán tự động qua hồi quy năng lượng giữa cân nặng thực tế và calo bạn đã nạp.",
                         fontSize = 12.5.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
                     )
                 }
@@ -237,7 +237,7 @@ fun ExpenditureDetailScreen(
                 text = "Phân tích 4 thành tố tiêu hao năng lượng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             // 4 Bento Cards cho BMR, NEAT, TEF, EAT
@@ -296,7 +296,7 @@ fun ExpenditureDetailScreen(
                 text = "Dữ liệu thực tế trong cửa sổ hồi quy",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Box(
@@ -309,8 +309,8 @@ fun ExpenditureDetailScreen(
                         spotColor = shadowColor
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -352,7 +352,7 @@ fun ExpenditureDetailScreen(
                 text = "Cách hoạt động của hệ thống thích ứng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             StatusExplanationCard(
@@ -393,8 +393,8 @@ private fun EnergyComponentCard(
                 spotColor = if (isDark) DarkShadow else WarmShadow
             )
             .clip(RoundedCornerShape(20.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -413,7 +413,7 @@ private fun EnergyComponentCard(
                     text = calories,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -421,13 +421,13 @@ private fun EnergyComponentCard(
                 text = title,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDark) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = desc,
                 fontSize = 11.5.sp,
-                color = if (isDark) TextMuted else TextInkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 15.sp
             )
         }
@@ -448,13 +448,13 @@ private fun RegressionDataRow(
         Text(
             text = label,
             fontSize = 13.sp,
-            color = if (isDark) TextMuted else TextInkMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isDark) TextWhite else TextInkPrimary
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
@@ -471,8 +471,8 @@ private fun StatusExplanationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -499,12 +499,12 @@ private fun StatusExplanationCard(
                     text = title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = description,
                     fontSize = 12.5.sp,
-                    color = if (isDark) TextMuted else TextInkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 17.sp
                 )
             }

@@ -104,7 +104,7 @@ fun CameraScanScreen(
     }
 
     Scaffold(
-        containerColor = ObsidianBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -120,7 +120,7 @@ fun CameraScanScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = TextWhite)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
@@ -134,9 +134,9 @@ fun CameraScanScreen(
             // Thanh chuyển Tab chế độ quét (Món Ăn vs Thực Đơn)
             if (uiState.selectedImageUri == null) {
                 Surface(
-                    color = CharcoalSurface,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     Row(
@@ -222,11 +222,11 @@ fun CameraScanScreen(
                 // Badge hạn mức — dữ liệu thật từ ai/quota, bấm vào để mua thêm lượt
                 val quota = uiState.aiQuota
                 Surface(
-                    color = CharcoalSurface,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (uiState.isQuotaExhausted) CrimsonError.copy(alpha = 0.6f) else CharcoalBorder
+                        if (uiState.isQuotaExhausted) CrimsonError.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline
                     ),
                     modifier = Modifier
                         .padding(bottom = 14.dp)
@@ -261,8 +261,8 @@ fun CameraScanScreen(
                     modifier = Modifier
                         .size(280.dp)
                         .clip(RoundedCornerShape(28.dp))
-                        .background(CharcoalSurface)
-                        .border(1.5.dp, CharcoalBorder, RoundedCornerShape(28.dp)),
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(28.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -342,7 +342,7 @@ fun CameraScanScreen(
                             .weight(1f)
                             .height(54.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
                     ) {
                         Icon(Icons.Default.PhotoLibrary, contentDescription = null)
@@ -357,7 +357,7 @@ fun CameraScanScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = CharcoalSurface),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Row(
@@ -445,7 +445,7 @@ fun CameraScanScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 10.dp),
-                        colors = CardDefaults.cardColors(containerColor = CharcoalSurface),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
@@ -488,7 +488,7 @@ fun CameraScanScreen(
                             // Lời khuyên sức khỏe
                             if (food.healthTip.isNotBlank()) {
                                 Surface(
-                                    color = ObsidianBackground.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -521,7 +521,7 @@ fun CameraScanScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(12.dp))
-                                            .background(if (isSelected) VividOrange else CharcoalCard)
+                                            .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surfaceVariant)
                                             .clickable { viewModel.onMealTypeSelect(type) }
                                             .padding(horizontal = 14.dp, vertical = 8.dp)
                                     ) {
@@ -540,7 +540,7 @@ fun CameraScanScreen(
                                     onClick = { viewModel.resetState() },
                                     modifier = Modifier.weight(1f).height(50.dp),
                                     shape = RoundedCornerShape(14.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
                                 ) {
                                     Text("Quét Lại")
@@ -637,7 +637,7 @@ fun CameraScanScreen(
                             onClick = { viewModel.resetState() },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CharcoalBorder),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
                         ) {
                             Text("Chụp Menu Khác")
@@ -653,7 +653,7 @@ fun CameraScanScreen(
     if (uiState.showPurchaseSheet) {
         ModalBottomSheet(
             onDismissRequest = { viewModel.dismissPurchaseSheet() },
-            containerColor = ObsidianBackground
+            containerColor = MaterialTheme.colorScheme.background
         ) {
             Column(modifier = Modifier.padding(20.dp).padding(bottom = 24.dp)) {
                 Text(
@@ -677,11 +677,11 @@ fun CameraScanScreen(
                 } else {
                     uiState.aiPackages.forEach { pkg ->
                         Surface(
-                            color = CharcoalSurface,
+                            color = MaterialTheme.colorScheme.surface,
                             shape = RoundedCornerShape(14.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 if (pkg.isPopular || pkg.bestValue) 1.5.dp else 1.dp,
-                                if (pkg.isPopular || pkg.bestValue) VividOrange else CharcoalBorder
+                                if (pkg.isPopular || pkg.bestValue) VividOrange else MaterialTheme.colorScheme.outline
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -729,11 +729,11 @@ private fun MenuItemCard(
     onToggleSelect: () -> Unit
 ) {
     Surface(
-        color = CharcoalSurface,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(
             if (isSelected) 1.5.dp else if (item.isRecommended) 1.5.dp else 1.dp,
-            if (isSelected) MintJade else if (item.isRecommended) VividOrange else CharcoalBorder
+            if (isSelected) MintJade else if (item.isRecommended) VividOrange else MaterialTheme.colorScheme.outline
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -771,7 +771,7 @@ private fun MenuItemCard(
                 }
 
                 Surface(
-                    color = CharcoalCard,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(

@@ -90,7 +90,7 @@ fun BarcodeScanScreen(
     }
 
     Scaffold(
-        containerColor = ObsidianBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Quét Mã Vạch", fontWeight = FontWeight.Bold, color = TextWhite) },
@@ -99,7 +99,7 @@ fun BarcodeScanScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = TextWhite)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
@@ -107,7 +107,7 @@ fun BarcodeScanScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(ObsidianBackground)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             when {
                 !hasCameraPermission -> {
@@ -305,7 +305,7 @@ private fun BarcodeCameraPreview(
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
                 .clip(CircleShape)
-                .background(ObsidianBackground.copy(alpha = 0.6f))
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
         ) {
             Icon(
                 imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
@@ -346,8 +346,8 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(CharcoalSurface)
-                .border(1.dp, CharcoalBorder, RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                 .padding(18.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -380,7 +380,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) VividOrange else CharcoalDock)
+                            .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { viewModel.setQuantity(mult) }
                             .padding(vertical = 10.dp),
                     ) {

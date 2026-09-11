@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +52,7 @@ fun MacroDonutChart(
         label = "fat_sweep"
     )
 
+    val trackColor = MaterialTheme.colorScheme.outline
     Box(modifier = modifier.size(132.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = 16.dp.toPx()
@@ -60,7 +62,7 @@ fun MacroDonutChart(
 
             // Track nền
             drawArc(
-                color = if (isDarkTheme) CharcoalBorder.copy(alpha = 0.6f) else PearlBorder,
+                color = trackColor.copy(alpha = 0.6f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -118,13 +120,13 @@ fun MacroDonutChart(
                 text = centerLabel,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "kcal TB",
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

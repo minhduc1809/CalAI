@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,12 +59,12 @@ fun CircularDialPicker(
     val density = LocalDensity.current
 
     // Màu sắc theo theme
-    val dialBg = if (isDarkTheme) CharcoalSurface else PearlSurface
-    val borderCol = if (isDarkTheme) CharcoalBorder else PearlBorder
-    val tickNormalCol = if (isDarkTheme) TextMuted.copy(alpha = 0.4f) else TextInkMuted.copy(alpha = 0.4f)
-    val tickMajorCol = if (isDarkTheme) TextLightGrey else TextInkSecondary
-    val textNumberCol = if (isDarkTheme) TextMuted else TextInkMuted
-    val centerValueCol = if (isDarkTheme) TextWhite else TextInkPrimary
+    val dialBg = MaterialTheme.colorScheme.surface
+    val borderCol = MaterialTheme.colorScheme.outline
+    val tickNormalCol = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    val tickMajorCol = MaterialTheme.colorScheme.onSecondaryContainer
+    val textNumberCol = MaterialTheme.colorScheme.onSurfaceVariant
+    val centerValueCol = MaterialTheme.colorScheme.onBackground
 
     // Góc quay (angle in degrees) tương ứng với giá trị.
     // Quy ước: Xoay thuận chiều kim đồng hồ (CW) = tăng giá trị.

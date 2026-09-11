@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -32,8 +33,8 @@ fun SelectionPill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrange else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(14.dp))
+            .background(if (isSelected) VividOrange else (MaterialTheme.colorScheme.surface))
+            .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center
@@ -42,7 +43,7 @@ fun SelectionPill(
             label,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (if (isDarkTheme) TextMuted else TextInkMuted)
+            color = if (isSelected) TextWhite else (MaterialTheme.colorScheme.onSurfaceVariant)
         )
     }
 }
@@ -58,8 +59,8 @@ fun RateSelectionPill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) VividOrange else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(12.dp))
+            .background(if (isSelected) VividOrange else (MaterialTheme.colorScheme.surface))
+            .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
@@ -68,7 +69,7 @@ fun RateSelectionPill(
             "$rate kg",
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (if (isDarkTheme) TextMuted else TextInkMuted)
+            color = if (isSelected) TextWhite else (MaterialTheme.colorScheme.onSurfaceVariant)
         )
     }
 }
@@ -85,8 +86,8 @@ fun MacroStyleOptionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrangeSoft else (if (isDarkTheme) CharcoalSurface else PearlCard))
-            .border(1.dp, if (isSelected) VividOrange else (if (isDarkTheme) CharcoalBorder else PearlBorder), RoundedCornerShape(14.dp))
+            .background(if (isSelected) VividOrangeSoft else (MaterialTheme.colorScheme.surface))
+            .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,9 +98,9 @@ fun MacroStyleOptionRow(
                 label,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) VividOrange else (if (isDarkTheme) TextWhite else TextInkPrimary)
+                color = if (isSelected) VividOrange else (MaterialTheme.colorScheme.onBackground)
             )
-            Text(desc, fontSize = 11.5.sp, color = if (isDarkTheme) TextMuted else TextInkMuted)
+            Text(desc, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         RadioButton(
             selected = isSelected,

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,10 +99,10 @@ fun WheelPicker3D(
         }
     }
 
-    val textPrimary = if (isDarkTheme) TextWhite else TextInkPrimary
-    val textMuted = if (isDarkTheme) TextMuted else TextInkMuted
-    val highlightBg = if (isDarkTheme) CharcoalCardElevated else PearlBorder.copy(alpha = 0.35f)
-    val highlightBorder = if (isDarkTheme) CharcoalBorder else PearlBorder
+    val textPrimary = MaterialTheme.colorScheme.onBackground
+    val textMuted = MaterialTheme.colorScheme.onSurfaceVariant
+    val highlightBg = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f)
+    val highlightBorder = MaterialTheme.colorScheme.outline
 
     Box(
         modifier = modifier.height(totalHeight),
