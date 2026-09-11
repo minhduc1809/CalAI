@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -66,7 +68,7 @@ fun WorkoutHubScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Quầng ambient glow loang mờ đa tầng chống bệt đen
         Box(
@@ -112,15 +114,15 @@ fun WorkoutHubScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -130,13 +132,13 @@ fun WorkoutHubScreen(
                             text = "Trung Tâm Tập Luyện",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "Lộ trình, Lịch sử & Volume Load",
                             fontSize = 12.sp,
-                            color = if (isDarkTheme) TextMuted else TextInkMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -157,8 +159,8 @@ fun WorkoutHubScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = TextWhite, modifier = Modifier.size(16.dp))
-                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(16.dp))
+                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             }
@@ -175,8 +177,8 @@ fun WorkoutHubScreen(
                         spotColor = shadowColor
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -201,7 +203,7 @@ fun WorkoutHubScreen(
                             text = tab.title,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
+                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -252,8 +254,8 @@ fun WorkoutHubScreen(
             ModalBottomSheet(
                 onDismissRequest = { selectedWorkoutForDetail = null },
                 sheetState = sheetState,
-                containerColor = if (isDarkTheme) CharcoalCardElevated else PearlCard,
-                contentColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onBackground
             ) {
                 WorkoutDetailSheetContent(
                     workout = workout,
@@ -292,10 +294,10 @@ fun ProgramTabContent(
                 .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.horizontalGradient(
-                        listOf(CharcoalCard, CharcoalSurface)
+                        listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface)
                     )
                 )
-                .border(1.dp, CharcoalBorder, RoundedCornerShape(20.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                 .padding(16.dp)
         ) {
             Row(
@@ -310,7 +312,7 @@ fun ProgramTabContent(
                         .background(PastelLavender.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    DuotoneCalendarIcon(size = 22.dp, outlineColor = TextWhite, accentColor = PastelLavender)
+                    DuotoneCalendarIcon(size = 22.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelLavender)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -318,12 +320,12 @@ fun ProgramTabContent(
                         text = plan?.title ?: "Lộ trình Tập Luyện Chuẩn 4 Tuần",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "${plan?.suitableForBmi ?: "Mọi thể trạng"} • ${plan?.goal ?: "Tăng cơ & Giảm mỡ"}",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -351,12 +353,12 @@ fun ProgramTabContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(CharcoalCard)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Đang tải lộ trình tập luyện...", color = TextMuted, fontSize = 13.sp)
+                Text(text = "Đang tải lộ trình tập luyện...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         } else {
             schedule.forEach { dayItem ->
@@ -366,10 +368,10 @@ fun ProgramTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(if (isRest) CharcoalSurface.copy(alpha = 0.6f) else CharcoalCard)
+                        .background(if (isRest) MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant)
                         .border(
                             1.dp,
-                            if (isRest) CharcoalBorder.copy(alpha = 0.4f) else CharcoalBorder,
+                            if (isRest) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline,
                             RoundedCornerShape(18.dp)
                         )
                         .padding(16.dp)
@@ -388,13 +390,13 @@ fun ProgramTabContent(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(if (isRest) CharcoalCardElevated else VividOrange.copy(alpha = 0.15f)),
+                                        .background(if (isRest) MaterialTheme.colorScheme.surfaceContainerHighest else VividOrange.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isRest) {
-                                        DuotoneCalendarIcon(size = 16.dp, outlineColor = TextMuted, accentColor = LavenderGradientStart)
+                                        DuotoneCalendarIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = LavenderGradientStart)
                                     } else {
-                                        DuotoneDumbbellIcon(size = 16.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                                        DuotoneDumbbellIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                                     }
                                 }
 
@@ -403,12 +405,12 @@ fun ProgramTabContent(
                                         text = dayItem.dayName,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite
+                                        color = MaterialTheme.colorScheme.onBackground
                                     )
                                     Text(
                                         text = dayItem.focus,
                                         fontSize = 12.sp,
-                                        color = if (isRest) TextMuted else PastelMint
+                                        color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else PastelMint
                                     )
                                 }
                             }
@@ -434,7 +436,7 @@ fun ProgramTabContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(CharcoalSurface)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(10.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -452,7 +454,7 @@ fun ProgramTabContent(
                                         Text(
                                             text = "${exItem.name} (${exItem.sets}x${exItem.repsOrDuration})",
                                             fontSize = 12.sp,
-                                            color = TextWhite.copy(alpha = 0.9f)
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                                         )
                                     }
                                 }
@@ -492,10 +494,10 @@ fun HistoryTabContent(
                 .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.horizontalGradient(
-                        listOf(CharcoalCard, CharcoalSurface)
+                        listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface)
                     )
                 )
-                .border(1.dp, CharcoalBorder, RoundedCornerShape(20.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -503,7 +505,7 @@ fun HistoryTabContent(
                     text = "VẬN ĐỘNG HÔM NAY",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
                 )
 
@@ -518,7 +520,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = VividOrange
                         )
-                        Text(text = "Active kcal", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Active kcal", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column {
@@ -528,7 +530,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = PastelMint
                         )
-                        Text(text = "Thời lượng", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Thời lượng", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column {
@@ -538,7 +540,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = PastelLavender
                         )
-                        Text(text = "Buổi tập", fontSize = 11.sp, color = TextMuted)
+                        Text(text = "Buổi tập", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -548,7 +550,7 @@ fun HistoryTabContent(
             text = "CÁC BUỔI TẬP ĐÃ HOÀN THÀNH (${workoutList.size})",
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp
         )
 
@@ -557,8 +559,8 @@ fun HistoryTabContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(CharcoalCard)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -566,8 +568,8 @@ fun HistoryTabContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DuotoneDumbbellIcon(size = 36.dp, outlineColor = TextMuted, accentColor = VividOrange)
-                    Text(text = "Chưa có buổi tập nào được ghi nhận", fontSize = 14.sp, color = TextMuted)
+                    DuotoneDumbbellIcon(size = 36.dp, outlineColor = MaterialTheme.colorScheme.onSurfaceVariant, accentColor = VividOrange)
+                    Text(text = "Chưa có buổi tập nào được ghi nhận", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -576,8 +578,8 @@ fun HistoryTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(CharcoalCard)
-                        .border(1.dp, CharcoalBorder, RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                         .clickable { onSelectDetail(workout) }
                         .padding(16.dp)
                 ) {
@@ -598,7 +600,7 @@ fun HistoryTabContent(
                                         .background(VividOrange.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    DuotoneEnergyIcon(size = 18.dp, outlineColor = TextWhite, accentColor = VividOrange)
+                                    DuotoneEnergyIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                                 }
 
                                 Column {
@@ -606,14 +608,14 @@ fun HistoryTabContent(
                                         text = workout.name,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = "${workout.date.take(10)} • ${workout.durationMinutes} phút • RPE ${workout.rpe ?: 8}",
                                         fontSize = 12.sp,
-                                        color = TextMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -640,7 +642,7 @@ fun HistoryTabContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(CharcoalSurface)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -648,7 +650,7 @@ fun HistoryTabContent(
                                 Text(
                                     text = "${workout.exercises.size} bài tập (${workout.exercises.sumOf { it.sets.size }} sets)",
                                     fontSize = 12.sp,
-                                    color = TextMuted
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = "Volume: ${(workout.totalVolumeKg ?: 0f).toInt()} kg",
@@ -665,15 +667,15 @@ fun HistoryTabContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Notes,
+                                    imageVector = Icons.AutoMirrored.Filled.Notes,
                                     contentDescription = null,
-                                    tint = TextMuted.copy(alpha = 0.8f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
                                     text = workout.note,
                                     fontSize = 12.sp,
-                                    color = TextMuted.copy(alpha = 0.8f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -711,18 +713,18 @@ fun LibraryTabContent(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Tìm bài tập theo tên hoặc nhóm cơ...", color = if (isDark) TextMuted else TextInkMuted, fontSize = 13.sp) },
+            placeholder = { Text("Tìm bài tập theo tên hoặc nhóm cơ...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) },
             leadingIcon = {
-                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = if (isDark) TextMuted else TextInkMuted, modifier = Modifier.size(18.dp))
+                Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            textStyle = LocalTextStyle.current.copy(color = if (isDark) TextWhite else TextInkPrimary, fontSize = 14.sp),
+            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = VividOrange,
-                unfocusedBorderColor = if (isDark) CharcoalBorder else PearlBorder,
-                focusedContainerColor = if (isDark) CharcoalCard else PearlCard,
-                unfocusedContainerColor = if (isDark) CharcoalCard else PearlCard
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             shape = RoundedCornerShape(16.dp)
         )
@@ -736,8 +738,8 @@ fun LibraryTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(if (isDark) CharcoalCard else PearlCard)
-                        .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -757,7 +759,7 @@ fun LibraryTabContent(
                                         .background(PastelMint.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = if (isDark) TextWhite else TextInkPrimary, accentColor = PastelMint)
+                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelMint)
                                 }
 
                                 Column {
@@ -765,12 +767,12 @@ fun LibraryTabContent(
                                         text = ex.name,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDark) TextWhite else TextInkPrimary
+                                        color = MaterialTheme.colorScheme.onBackground
                                     )
                                     Text(
                                         text = "${ex.targetMuscle} • ${ex.equipment}",
                                         fontSize = 11.sp,
-                                        color = if (isDark) TextMuted else TextInkMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -788,7 +790,7 @@ fun LibraryTabContent(
                         Text(
                             text = ex.instructions.execution,
                             fontSize = 12.sp,
-                            color = (if (isDark) TextWhite else TextInkPrimary).copy(alpha = 0.8f),
+                            color = (MaterialTheme.colorScheme.onBackground).copy(alpha = 0.8f),
                             lineHeight = 16.sp
                         )
                     }
@@ -824,12 +826,12 @@ fun WorkoutDetailSheetContent(
                     text = workout.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextWhite
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "${workout.date.take(10)} • ${workout.durationMinutes} phút • ${workout.caloriesBurned.toInt()} kcal",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -853,7 +855,7 @@ fun WorkoutDetailSheetContent(
                 text = "DANH SÁCH BÀI TẬP (${workout.exercises.size})",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
 
@@ -862,8 +864,8 @@ fun WorkoutDetailSheetContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(CharcoalCard)
-                        .border(1.dp, CharcoalBorder, RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
                         .padding(12.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -871,7 +873,7 @@ fun WorkoutDetailSheetContent(
                             text = ex.name,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -881,7 +883,7 @@ fun WorkoutDetailSheetContent(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(CharcoalSurface)
+                                        .background(MaterialTheme.colorScheme.surface)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
@@ -903,13 +905,13 @@ fun WorkoutDetailSheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(CharcoalSurface)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(12.dp)
             ) {
                 Text(
                     text = "Ghi chú: ${workout.note}",
                     fontSize = 12.sp,
-                    color = TextWhite.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                 )
             }
         }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,7 +32,7 @@ enum class DockTab {
 /**
  * Thanh điều hướng nổi dạng đảo (Dark Luxury Floating Island Dock)
  * Tuân thủ quy tắc 9.2:
- * - Lớp CharcoalDock + viền CharcoalBorder + bo góc 32dp
+ * - Lớp MaterialTheme.colorScheme.surfaceVariant + viền MaterialTheme.colorScheme.outline + bo góc 32dp
  * - Tab active với nền VividOrange
  * - Icon Glassmorphism mờ nhẹ khi không active
  */
@@ -52,8 +53,8 @@ fun FloatingBottomDock(
             modifier = Modifier
                 .height(64.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(if (isDarkTheme) CharcoalDock else PearlDock)
-                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(32.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp))
                 .padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -105,7 +106,7 @@ private fun DockItem(
     val bgColor by animateColorAsState(
         targetValue = when {
             isSelected -> VividOrange
-            isHero -> if (isDarkTheme) CharcoalCardElevated else PearlCardElevated
+            isHero -> MaterialTheme.colorScheme.surfaceContainerHighest
             else -> Color.Transparent
         },
         label = "dock_bg"
@@ -113,9 +114,9 @@ private fun DockItem(
 
     val iconColor by animateColorAsState(
         targetValue = when {
-            isSelected -> TextWhite
+            isSelected -> MaterialTheme.colorScheme.onBackground
             isHero -> VividOrange
-            else -> if (isDarkTheme) TextMuted else TextInkMuted
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
         label = "dock_icon"
     )

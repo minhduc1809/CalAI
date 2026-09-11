@@ -95,7 +95,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -111,14 +111,14 @@ fun LoginScreen(
                 text = "NutriWise",
                 fontSize = 38.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = TextWhite,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = (-1).sp
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Trợ lý dinh dưỡng cá nhân thông minh",
                 fontSize = 14.sp,
-                color = TextMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(36.dp))
@@ -129,7 +129,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .background(CharcoalSurface)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -139,14 +139,14 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .background(if (uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                         .clickable { if (!uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Đăng Nhập",
                         fontWeight = if (uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (uiState.isLoginMode) TextWhite else TextMuted,
+                        color = if (uiState.isLoginMode) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -156,14 +156,14 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (!uiState.isLoginMode) CharcoalCard else Color.Transparent)
+                        .background(if (!uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                         .clickable { if (uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Đăng Ký",
                         fontWeight = if (!uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (!uiState.isLoginMode) TextWhite else TextMuted,
+                        color = if (!uiState.isLoginMode) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -189,7 +189,7 @@ fun LoginScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = errorMsg,
-                                color = TextWhite,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -201,20 +201,20 @@ fun LoginScreen(
             OutlinedTextField(
                 value = uiState.username,
                 onValueChange = { viewModel.onUsernameChange(it) },
-                label = { Text("Tên đăng nhập", color = TextMuted) },
+                label = { Text("Tên đăng nhập", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = TextMuted)
+                    Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CharcoalSurface,
-                    unfocusedContainerColor = CharcoalSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = CharcoalBorder,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -225,18 +225,18 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = uiState.email,
                     onValueChange = { viewModel.onEmailChange(it) },
-                    label = { Text("Email (không bắt buộc)", color = TextMuted) },
+                    label = { Text("Email (không bắt buộc)", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = CharcoalSurface,
-                        unfocusedContainerColor = CharcoalSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = CharcoalBorder,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
 
@@ -245,17 +245,17 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = uiState.name,
                     onValueChange = { viewModel.onNameChange(it) },
-                    label = { Text("Họ và tên", color = TextMuted) },
+                    label = { Text("Họ và tên", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = CharcoalSurface,
-                        unfocusedContainerColor = CharcoalSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = CharcoalBorder,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
 
@@ -266,16 +266,16 @@ fun LoginScreen(
             OutlinedTextField(
                 value = uiState.password,
                 onValueChange = { viewModel.onPasswordChange(it) },
-                label = { Text("Mật khẩu", color = TextMuted) },
+                label = { Text("Mật khẩu", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted)
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = null,
-                            tint = TextMuted
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -285,12 +285,12 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CharcoalSurface,
-                    unfocusedContainerColor = CharcoalSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = CharcoalBorder,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -331,14 +331,14 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = CharcoalBorder)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
                 Text(
                     text = "hoặc",
-                    color = TextMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = CharcoalBorder)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -351,8 +351,11 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, CharcoalBorder),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextWhite)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onBackground
+                )
             ) {
                 Box(
                     modifier = Modifier
@@ -363,7 +366,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = "G",
-                        color = ObsidianBackground,
+                        color = TextDeepInk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )

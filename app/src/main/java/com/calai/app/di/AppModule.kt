@@ -7,6 +7,7 @@ import com.calai.app.data.local.CalAIDatabase
 import com.calai.app.data.local.TokenManager
 import com.calai.app.data.remote.AuthInterceptor
 import com.calai.app.data.remote.CalAIApi
+import com.calai.app.data.remote.DynamicHostInterceptor
 import com.calai.app.data.repository.CalAIRepositoryImpl
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.Module
@@ -48,18 +49,20 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        authInterceptor: AuthInterceptor
+        authInterceptor: AuthInterceptor,
+        dynamicHostInterceptor: DynamicHostInterceptor
     ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
         return OkHttpClient.Builder()
+            .addInterceptor(dynamicHostInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build()
     }
 

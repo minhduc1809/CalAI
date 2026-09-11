@@ -1090,6 +1090,45 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchAiQuota(): Result<AiQuotaDto> {
+        return try {
+            val response = api.getAiQuota()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể lấy hạn mức chụp ảnh AI"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun fetchAiPackages(): Result<List<AiPackageDto>> {
+        return try {
+            val response = api.getAiPackages()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể lấy danh sách gói lượt chụp"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun purchaseAiCredits(packageId: String): Result<AiQuotaDto> {
+        return try {
+            val response = api.purchaseAiCredits(PurchaseAiQuotaRequest(packageId = packageId))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể mua thêm lượt chụp"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun fetchChatHistory(): Result<ChatHistoryResponseDto> {
         return try {
             val response = api.getChatHistory()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +31,7 @@ data class DayItem(
  * Tuân thủ quy tắc 9.3:
  * - Trạng thái đang chọn dùng Lavender Gradient (LavenderGradientStart -> LavenderGradientEnd)
  * - Chữ trên pill active dùng TextDeepInk
- * - Nền thanh dùng CharcoalSurface + viền CharcoalBorder
+ * - Nền thanh dùng MaterialTheme.colorScheme.surface + viền MaterialTheme.colorScheme.outline
  */
 @Composable
 fun WeeklyCalendarStrip(
@@ -47,8 +48,8 @@ fun WeeklyCalendarStrip(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
             .padding(horizontal = 8.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -100,14 +101,14 @@ private fun DayPill(
                 text = day.dayOfWeek,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextMuted else TextInkMuted
+                color = if (isSelected) TextDeepInk else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = day.dayOfMonth,
                 fontSize = 15.sp,
                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                color = if (isSelected) TextDeepInk else if (isDarkTheme) TextWhite else TextInkPrimary
+                color = if (isSelected) TextDeepInk else MaterialTheme.colorScheme.onBackground
             )
         }
     }

@@ -1,17 +1,23 @@
 package com.calai.app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.notification.ReminderScheduler
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.navigation.Screen
 import com.calai.app.presentation.screens.*
@@ -25,8 +31,21 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var preferencesManager: UserPreferencesManager
 
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* Nếu bị từ chối, worker tự bỏ qua notify() — không cần xử lý thêm ở đây. */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        ReminderScheduler.scheduleAll(applicationContext, preferencesManager)
+
         setContent {
             val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
             var isDarkTheme by remember(isDarkThemePref) { mutableStateOf(isDarkThemePref) }

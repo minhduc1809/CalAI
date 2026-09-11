@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Tổng số bước của Onboarding (12 bước, theo BRD mục 4.2.8). */
-const val ONBOARDING_STEP_COUNT = 12
+/** Tổng số bước của Onboarding (26 bước — mỗi bước 1 câu hỏi, theo BRD mục 4.2.8). */
+const val ONBOARDING_STEP_COUNT = 26
 
 data class OnboardingUiState(
     // 0: WELCOME, 1: GENDER, 2: BIRTH_DATE, 3: HEIGHT, 4: WEIGHT, 5: BODY_FAT, 6: GOAL,
@@ -93,11 +93,24 @@ data class OnboardingUiState(
         5 -> true // Body Fat optional
         6 -> goal.isNotBlank()
         7 -> goal == "MAINTAIN" || (targetWeightKg in 20f..300f && weightRateKgPerWeek in 0.1f..1.5f)
-        8 -> sleepHours in 0f..24f
-        9 -> mealsPerDay in 1..10 && cookTimeMinutes in 0..300 &&
-            (!isIntermittentFasting || (ifWindowStart.isNotBlank() && ifWindowEnd.isNotBlank()))
-        10 -> true // Training — mọi field đều có default hợp lệ
-        11 -> true // Program Setup — mọi field đều có default hợp lệ
+        8 -> sleepHours in 0f..24f // Sleep Hours
+        9 -> true // Stress Level — có default hợp lệ
+        10 -> true // Supplements — boolean luôn hợp lệ
+        11 -> true // Activity Level — có default hợp lệ
+        12 -> true // Diet Type — có default hợp lệ
+        13 -> mealsPerDay in 1..10 // Meals Per Day
+        14 -> cookTimeMinutes in 0..300 // Cook Time
+        15 -> true // Food Budget — có default hợp lệ
+        16 -> !isIntermittentFasting || (ifWindowStart.isNotBlank() && ifWindowEnd.isNotBlank()) // Intermittent Fasting
+        17 -> true // Training Experience — có default hợp lệ
+        18 -> true // Training Goal — có default hợp lệ
+        19 -> true // Sessions Per Week — có default hợp lệ
+        20 -> true // Equipment Access — có default hợp lệ
+        21 -> true // Injuries — optional, có default hợp lệ
+        22 -> true // One Rep Max — optional
+        23 -> true // Program Type — có default hợp lệ
+        24 -> true // Macro Style — có default hợp lệ
+        25 -> true // Protein Preference — có default hợp lệ
         else -> true
     }
 }

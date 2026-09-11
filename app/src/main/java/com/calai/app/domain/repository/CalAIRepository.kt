@@ -89,6 +89,9 @@ interface CalAIRepository {
     suspend fun fetchChatPlans(): Result<List<ChatPlanDto>>
     suspend fun purchaseChatPlan(packageId: String): Result<ChatQuotaInfoDto>
     suspend fun fetchChatQuota(): Result<ChatQuotaInfoDto>
+    suspend fun fetchAiQuota(): Result<AiQuotaDto>
+    suspend fun fetchAiPackages(): Result<List<AiPackageDto>>
+    suspend fun purchaseAiCredits(packageId: String): Result<AiQuotaDto>
     suspend fun fetchChatHistory(): Result<ChatHistoryResponseDto>
     suspend fun clearChatHistory(): Result<Unit>
     suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto>

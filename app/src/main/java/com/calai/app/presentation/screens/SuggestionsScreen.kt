@@ -56,14 +56,14 @@ fun SuggestionsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Gợi ý cho bạn",
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 19.sp,
                         letterSpacing = (-0.3).sp
                     )
@@ -73,12 +73,12 @@ fun SuggestionsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
-                            tint = if (isDarkTheme) TextWhite else TextInkPrimary
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDarkTheme) ObsidianBackground else IvoryBackground
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -142,12 +142,12 @@ fun SuggestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        DuotoneDietIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
+                        DuotoneDietIcon(size = 24.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                         Text(
                             text = "Thực đơn phù hợp mục tiêu",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             letterSpacing = (-0.3).sp
                         )
                     }
@@ -170,8 +170,8 @@ fun SuggestionsScreen(
                                     spotColor = shadowColor
                                 )
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                                .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                                 .clickable { viewModel.toggleMonthlyView() }
                                 .padding(horizontal = 18.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -181,18 +181,18 @@ fun SuggestionsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                DuotoneCalendarIcon(size = 20.dp, outlineColor = if (isDarkTheme) TextLightGrey else TextInkSecondary, accentColor = LavenderGradientStart)
+                                DuotoneCalendarIcon(size = 20.dp, outlineColor = MaterialTheme.colorScheme.onSecondaryContainer, accentColor = LavenderGradientStart)
                                 Text(
                                     "Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                             }
                             Icon(
                                 if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
-                                tint = if (isDarkTheme) TextMuted else TextInkMuted,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -219,12 +219,12 @@ fun SuggestionsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            DuotoneWorkoutIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
+                            DuotoneWorkoutIcon(size = 24.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                             Text(
                                 text = "Lộ trình tập luyện gợi ý",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 letterSpacing = (-0.3).sp
                             )
                         }
@@ -256,12 +256,12 @@ fun SuggestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        DuotoneExerciseIcon(size = 24.dp, outlineColor = if (isDarkTheme) TextWhite else TextInkPrimary, accentColor = VividOrange)
+                        DuotoneExerciseIcon(size = 24.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
                         Text(
                             text = "Kho bài tập chuẩn",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             letterSpacing = (-0.3).sp
                         )
                     }
@@ -513,8 +513,8 @@ private fun MonthlyDietSection(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) VividOrange else CharcoalSurface)
-                        .border(1.dp, if (isSelected) VividOrangeLight else CharcoalBorder, RoundedCornerShape(12.dp))
+                        .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (isSelected) VividOrangeLight else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                         .clickable { onSelectDay(day.dayNumber) }
                         .padding(horizontal = 14.dp, vertical = 9.dp)
                 ) {
@@ -522,7 +522,7 @@ private fun MonthlyDietSection(
                         "Ngày ${day.dayNumber}",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) TextWhite else TextMuted
+                        color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -535,8 +535,8 @@ private fun MonthlyDietSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(CharcoalCardElevated)
-                    .border(1.dp, CharcoalBorder, RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(18.dp)
             ) {
                 Column {
@@ -544,11 +544,11 @@ private fun MonthlyDietSection(
                         plan.dayTitle,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite,
+                        color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = (-0.2).sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(plan.focusMessage, fontSize = 12.5.sp, color = TextMuted, lineHeight = 17.sp)
+                    Text(plan.focusMessage, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -568,11 +568,11 @@ private fun MiniStatPillDark(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(CharcoalCard)
-            .border(0.75.dp, CharcoalBorder, RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(0.75.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
-        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
@@ -598,13 +598,13 @@ private fun WorkoutCard(
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White,
-                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                        MaterialTheme.colorScheme.outline
                     )
                 ),
                 shape = RoundedCornerShape(24.dp)
@@ -616,11 +616,11 @@ private fun WorkoutCard(
                 text = plan.title,
                 fontSize = 16.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = (-0.2).sp
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(plan.description, fontSize = 12.5.sp, color = if (isDarkTheme) TextMuted else TextInkMuted, lineHeight = 17.sp)
+            Text(plan.description, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             // Badge trạng thái chuẩn Spec 10.2 (VividOrangeSoft 15-20% + VividOrangeLight)
@@ -691,13 +691,13 @@ private fun DayRow(
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDarkTheme) CharcoalCard else PearlCard)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
-                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                        MaterialTheme.colorScheme.outline
                     )
                 ),
                 shape = RoundedCornerShape(16.dp)
@@ -711,18 +711,18 @@ private fun DayRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(day.dayName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isDarkTheme) TextWhite else TextInkPrimary)
+                Text(day.dayName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Text(
                     text = if (day.exercises.isEmpty()) day.focus else "${day.focus} · ${day.estimatedMinutes} phút",
                     fontSize = 12.sp,
-                    color = if (isDarkTheme) TextMuted else TextInkMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (day.exercises.isNotEmpty()) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -730,7 +730,7 @@ private fun DayRow(
 
         AnimatedVisibility(visible = isExpanded) {
             Column(modifier = Modifier.padding(top = 10.dp)) {
-                HorizontalDivider(color = if (isDarkTheme) CharcoalBorder else PearlBorder, thickness = 0.75.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 0.75.dp)
                 Spacer(modifier = Modifier.height(8.dp))
                 day.exercises.forEach { ex ->
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -738,12 +738,12 @@ private fun DayRow(
                             text = "${ex.name} — ${ex.sets}x${ex.repsOrDuration}",
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isDarkTheme) TextLightGrey else TextInkPrimary
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
                             text = ex.instructions,
                             fontSize = 11.5.sp,
-                            color = if (isDarkTheme) TextMuted else TextInkMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 16.sp
                         )
                     }
@@ -763,7 +763,7 @@ private fun DayRow(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
                             Text("Bắt đầu & Ghi buổi tập này", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -813,10 +813,10 @@ private fun FilterPill(label: String, isSelected: Boolean, isDarkTheme: Boolean 
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) VividOrange else if (isDarkTheme) CharcoalCard else PearlCard)
+            .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 1.dp,
-                if (isSelected) VividOrangeLight else if (isDarkTheme) CharcoalBorder else PearlBorder,
+                if (isSelected) VividOrangeLight else MaterialTheme.colorScheme.outline,
                 RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
@@ -826,7 +826,7 @@ private fun FilterPill(label: String, isSelected: Boolean, isDarkTheme: Boolean 
             text = label,
             fontSize = 12.5.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) TextWhite else if (isDarkTheme) TextMuted else TextInkMuted
+            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -850,13 +850,13 @@ private fun ExerciseCard(
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isDarkTheme) CharcoalCardElevated else PearlCard)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
-                        if (isDarkTheme) CharcoalBorder else PearlBorder
+                        MaterialTheme.colorScheme.outline
                     )
                 ),
                 shape = RoundedCornerShape(18.dp)
@@ -875,18 +875,18 @@ private fun ExerciseCard(
                         text = exercise.name,
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "${exercise.targetMuscle} • ${exercise.sets}x${exercise.repsOrDuration}",
                         fontSize = 12.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = if (isDarkTheme) TextMuted else TextInkMuted,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -911,7 +911,7 @@ private fun ExerciseCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
                         Text("+ Ghi bài tập này vào buổi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -932,7 +932,7 @@ private fun ExerciseInstructionRow(label: String, content: String, isDarkTheme: 
         Text(
             text = content,
             fontSize = 12.sp,
-            color = if (isDarkTheme) TextLightGrey else TextInkSecondary,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
             lineHeight = 16.sp
         )
     }

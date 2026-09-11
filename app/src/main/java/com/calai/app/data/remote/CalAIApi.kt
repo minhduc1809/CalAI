@@ -1,5 +1,6 @@
 package com.calai.app.data.remote
 
+import android.os.Build
 import com.calai.app.data.remote.dto.*
 import okhttp3.MultipartBody
 import retrofit2.http.*
@@ -210,6 +211,17 @@ interface CalAIApi {
     @GET("ai/chat/quota")
     suspend fun getChatQuota(): ApiResponse<ChatQuotaInfoDto>
 
+    @GET("ai/quota")
+    suspend fun getAiQuota(): ApiResponse<AiQuotaDto>
+
+    @GET("ai/packages")
+    suspend fun getAiPackages(): ApiResponse<List<AiPackageDto>>
+
+    @POST("ai/purchase-credits")
+    suspend fun purchaseAiCredits(
+        @Body request: PurchaseAiQuotaRequest
+    ): ApiResponse<AiQuotaDto>
+
     @GET("ai/chat/history")
     suspend fun getChatHistory(): ApiResponse<ChatHistoryResponseDto>
 
@@ -232,8 +244,33 @@ interface CalAIApi {
     ): ApiResponse<ScanMenuResponseDto>
 
     companion object {
-        // Mặc định kết nối tới localhost của máy phát triển qua Android Emulator (10.0.2.2)
-        // Nếu dùng thiết bị thật qua Wi-Fi LAN, đổi thành IP máy tính (VD: http://192.168.1.x:3000/api/v1/)
-        const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
+        val isEmulator: Boolean
+            get() = (Build.FINGERPRINT.startsWith("generic")
+                    || Build.FINGERPRINT.startsWith("unknown")
+                    || Build.MODEL.contains("google_sdk")
+                    || Build.MODEL.contains("Emulator")
+                    || Build.MODEL.contains("Android SDK built for")
+                    || Build.MANUFACTURER.contains("Genymotion")
+                    || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                    || Build.PRODUCT.contains("sdk")
+                    || Build.HARDWARE.contains("goldfish")
+                    || Build.HARDWARE.contains("ranchu"))
+
+        const val EMULATOR_HOST = "10.0.2.2"
+        const val PC_LAN_IP = "172.16.10.170"
+        const val USB_REVERSE_HOST = "127.0.0.1"
+
+        /**
+         * Tự động điều hướng:
+         * - Máy ảo (Emulator): Sử dụng 10.0.2.2 (alias của host máy tính)
+         * - Máy thật: Sử dụng IP LAN Wi-Fi (172.16.10.170),
+         *   nếu mất mạng hoặc cắm cáp sẽ tự động fallback sang 127.0.0.1 (qua DynamicHostInterceptor).
+         */
+        val BASE_URL: String
+            get() = if (isEmulator) {
+                "http://$EMULATOR_HOST:3000/api/v1/"
+            } else {
+                "http://$PC_LAN_IP:3000/api/v1/"
+            }
     }
 }

@@ -25,6 +25,10 @@ reports/
 .kotlin/
 buildOutputCleanup/
 
+# Kotlin compiler daemon cache
+.kotlin/
+**/.kotlin/
+
 # Local configuration file (contains SDK path)
 local.properties
 

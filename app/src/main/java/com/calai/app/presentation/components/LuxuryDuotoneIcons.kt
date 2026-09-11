@@ -377,3 +377,104 @@ fun DuotoneWaterIcon(
         drawPath(path = path, color = primaryColor, style = stroke)
     }
 }
+
+@Composable
+fun DuotoneMenuListIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+        val rowYs = listOf(h * 0.28f, h * 0.50f, h * 0.72f)
+
+        rowYs.forEachIndexed { i, y ->
+            // Chấm accent đầu mỗi dòng
+            drawCircle(color = accentColor, radius = w * 0.045f, center = Offset(w * 0.18f, y))
+            // Vạch nội dung dòng — dòng đầu dài nhất, thu ngắn dần cho có nhịp điệu
+            drawLine(
+                color = primaryColor.copy(alpha = if (i == 0) 1f else 0.6f),
+                start = Offset(w * 0.30f, y),
+                end = Offset(w * (0.85f - i * 0.08f), y),
+                strokeWidth = 1.6.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
+fun DuotoneTipIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = VividOrange,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val w = this.size.width
+        val h = this.size.height
+
+        // Bầu bóng đèn (outline)
+        drawCircle(
+            color = primaryColor,
+            radius = w * 0.28f,
+            center = Offset(w / 2, h * 0.40f),
+            style = stroke
+        )
+        // Tâm sáng (accent fill)
+        drawCircle(
+            color = accentColor,
+            radius = w * 0.11f,
+            center = Offset(w / 2, h * 0.40f)
+        )
+        // Chuôi đèn
+        drawLine(
+            color = primaryColor,
+            start = Offset(w * 0.40f, h * 0.68f),
+            end = Offset(w * 0.60f, h * 0.68f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = primaryColor,
+            start = Offset(w * 0.44f, h * 0.80f),
+            end = Offset(w * 0.56f, h * 0.80f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun DuotoneSparkleIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp,
+    outlineColor: Color = TextWhite,
+    accentColor: Color = PastelLavender,
+    primaryColor: Color = outlineColor
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+
+        fun starPath(cx: Float, cy: Float, r: Float): Path = Path().apply {
+            moveTo(cx, cy - r)
+            cubicTo(cx + r * 0.12f, cy - r * 0.12f, cx + r * 0.88f, cy - r * 0.12f, cx + r, cy)
+            cubicTo(cx + r * 0.12f, cy + r * 0.12f, cx + r * 0.12f, cy + r * 0.88f, cx, cy + r)
+            cubicTo(cx - r * 0.12f, cy + r * 0.12f, cx - r * 0.88f, cy + r * 0.12f, cx - r, cy)
+            cubicTo(cx - r * 0.12f, cy - r * 0.12f, cx - r * 0.12f, cy - r * 0.88f, cx, cy - r)
+            close()
+        }
+
+        // Ngôi sao lớn (accent, tâm điểm)
+        drawPath(path = starPath(w * 0.55f, h * 0.48f, w * 0.30f), color = accentColor)
+        // Ngôi sao nhỏ góc trên-phải (outline, điểm nhấn phụ)
+        drawPath(path = starPath(w * 0.82f, h * 0.20f, w * 0.11f), color = primaryColor.copy(alpha = 0.85f))
+    }
+}

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -147,12 +148,12 @@ fun SettingsScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
-            containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    text = "Về NutriWise (CalAI)",
+                    text = "Về NutriWise",
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             },
             text = {
@@ -166,13 +167,13 @@ fun SettingsScreen(
                     Text(
                         text = "Ứng dụng trợ lý AI dinh dưỡng & thể hình cá nhân hóa với Google Gemini 2.0 Flash Vision, tính năng theo dõi vĩ mô và cân nặng thích ứng.",
                         fontSize = 13.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
                     )
                     Text(
                         text = "Bản quyền © 2026 NutriWise Team. Mọi quyền được bảo lưu.",
                         fontSize = 12.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -187,7 +188,7 @@ fun SettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) ObsidianBackground else IvoryBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -207,15 +208,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                        .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Quay lại",
-                        tint = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -225,13 +226,13 @@ fun SettingsScreen(
                         text = "Cài Đặt Hệ Thống",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "Giao diện, nhắc nhở & dữ liệu",
                         fontSize = 12.5.sp,
-                        color = if (isDarkTheme) TextMuted else TextInkMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -249,8 +250,8 @@ fun SettingsScreen(
                         spotColor = shadowColor
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) CharcoalSurface else PearlCard)
-                    .border(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder, RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
                 Row(
@@ -267,8 +268,8 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(if (isDarkTheme) CharcoalCardElevated else VividOrangeSoft)
-                                .border(1.dp, if (isDarkTheme) CharcoalBorder else VividOrange.copy(alpha = 0.3f), CircleShape),
+                                .background(if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else VividOrangeSoft)
+                                .border(1.dp, if (isDarkTheme) MaterialTheme.colorScheme.outline else VividOrange.copy(alpha = 0.3f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isDarkTheme) {
@@ -283,12 +284,12 @@ fun SettingsScreen(
                                 text = if (isDarkTheme) "Chế độ tối (Dark Luxury)" else "Chế độ sáng (Ivory Light)",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text = if (isDarkTheme) "Tông nền Obsidian bảo vệ mắt ban đêm" else "Tông nền Ivory nhã nhặn, sang trọng",
                                 fontSize = 12.sp,
-                                color = if (isDarkTheme) TextMuted else TextInkMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -447,8 +448,8 @@ private fun SettingsGroupCard(
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(20.dp))
-            .background(if (isDark) CharcoalSurface else PearlCard)
-            .border(1.dp, if (isDark) CharcoalBorder else PearlBorder, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
     ) {
         Column(content = content)
     }
@@ -480,7 +481,7 @@ private fun SettingsActionRow(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isDark) CharcoalDock else PearlDock),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -496,12 +497,12 @@ private fun SettingsActionRow(
                     text = title,
                     fontSize = 14.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isDark) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = if (isDark) TextMuted else TextInkMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -509,14 +510,14 @@ private fun SettingsActionRow(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = (if (isDark) TextMuted else TextInkMuted).copy(alpha = 0.5f),
+            tint = (MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
 
     if (!isLast) {
         HorizontalDivider(
-            color = (if (isDark) CharcoalBorder else PearlBorder).copy(alpha = 0.5f),
+            color = (MaterialTheme.colorScheme.outline).copy(alpha = 0.5f),
             thickness = 1.dp,
             modifier = Modifier.padding(horizontal = 18.dp)
         )
@@ -538,8 +539,8 @@ fun ChangePasswordModalSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -557,14 +558,14 @@ fun ChangePasswordModalSheet(
                     text = "Đổi Mật Khẩu",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) TextWhite else TextInkPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
             Text(
                 text = "Mật khẩu mới tối thiểu 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ thường và 1 chữ số.",
                 fontSize = 12.5.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             OutlinedTextField(
@@ -576,12 +577,12 @@ fun ChangePasswordModalSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
-                    unfocusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
-                    focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                    unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -594,12 +595,12 @@ fun ChangePasswordModalSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
-                    unfocusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
-                    focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                    unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -612,12 +613,12 @@ fun ChangePasswordModalSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
-                    unfocusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
-                    focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                    unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -641,7 +642,7 @@ fun ChangePasswordModalSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
                 } else {
                     Text("Cập Nhật Mật Khẩu", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
@@ -665,8 +666,8 @@ fun EmailVerificationModalSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -679,13 +680,13 @@ fun EmailVerificationModalSheet(
                 text = "Xác Thực Email",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = "Nhấn \"Gửi mã\" để nhận mã OTP 6 chữ số tới ${email ?: "email của bạn"}, sau đó nhập mã vào ô bên dưới.",
                 fontSize = 12.5.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             OutlinedButton(
@@ -693,12 +694,12 @@ fun EmailVerificationModalSheet(
                 enabled = !isSending,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) CharcoalBorder else PearlBorder)
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 if (isSending) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = VividOrange, strokeWidth = 2.dp)
                 } else {
-                    Text("Gửi mã xác thực", color = if (isDarkTheme) TextWhite else TextInkPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Gửi mã xác thực", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -711,12 +712,12 @@ fun EmailVerificationModalSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
-                    unfocusedContainerColor = if (isDarkTheme) CharcoalDock else PearlSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = VividOrange,
-                    unfocusedBorderColor = if (isDarkTheme) CharcoalBorder else PearlBorder,
-                    focusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary,
-                    unfocusedTextColor = if (isDarkTheme) TextWhite else TextInkPrimary
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -730,7 +731,7 @@ fun EmailVerificationModalSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
             ) {
                 if (isVerifying) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
                 } else {
                     Text("Xác Nhận Mã", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
@@ -753,8 +754,8 @@ fun RemindersModalSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -767,7 +768,7 @@ fun RemindersModalSheet(
                 text = "Nhắc Nhở Bữa Ăn & Uống Nước",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             ReminderToggleRow(
@@ -836,34 +837,40 @@ private fun ReminderToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isDark) CharcoalDock else PearlDock)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontSize = 14.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isDark) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = time,
                 fontSize = 12.sp,
                 color = VividOrange,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
 
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = TextWhite,
+                checkedThumbColor = MaterialTheme.colorScheme.onBackground,
                 checkedTrackColor = VividOrange,
-                uncheckedThumbColor = if (isDark) TextMuted else TextInkMuted,
-                uncheckedTrackColor = if (isDark) CharcoalCardElevated else PearlBorder
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
         )
     }
@@ -879,8 +886,8 @@ fun UnitSelectionModalSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -893,13 +900,13 @@ fun UnitSelectionModalSheet(
                 text = "Đơn Vị Đo Lường (Units)",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = "Chọn đơn vị cân nặng mong muốn để hiển thị trên toàn bộ ứng dụng:",
                 fontSize = 13.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             // Tùy chọn 1: Kilogram (kg)
@@ -952,8 +959,8 @@ fun MealStructureModalSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (isDarkTheme) CharcoalSurface else PearlCard,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = if (isDarkTheme) TextMuted else TextInkMuted) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
     ) {
         Column(
             modifier = Modifier
@@ -966,13 +973,13 @@ fun MealStructureModalSheet(
                 text = "Hiển Thị Nhật Ký Ăn Uống",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) TextWhite else TextInkPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = "Chỉ đổi cách nhóm hiển thị — dữ liệu calo/macro đã lưu không thay đổi.",
                 fontSize = 13.sp,
-                color = if (isDarkTheme) TextMuted else TextInkMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             UnitOptionCard(
@@ -1025,10 +1032,10 @@ private fun UnitOptionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) VividOrange.copy(alpha = 0.12f) else if (isDark) CharcoalDock else PearlDock)
+            .background(if (isSelected) VividOrange.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 width = if (isSelected) 1.5.dp else 1.dp,
-                color = if (isSelected) VividOrange else if (isDark) CharcoalBorder else PearlBorder,
+                color = if (isSelected) VividOrange else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable { onClick() }
@@ -1044,12 +1051,12 @@ private fun UnitOptionCard(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) VividOrange else if (isDark) TextWhite else TextInkPrimary
+                    color = if (isSelected) VividOrange else MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = description,
                     fontSize = 12.sp,
-                    color = if (isDark) TextMuted else TextInkMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -1058,7 +1065,7 @@ private fun UnitOptionCard(
                 onClick = onClick,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = VividOrange,
-                    unselectedColor = if (isDark) TextMuted else TextInkMuted
+                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }

@@ -181,4 +181,8 @@ class ChatbotViewModel @Inject constructor(
     fun dismissUpgradeSuccess() {
         _uiState.update { it.copy(upgradeSuccessMessage = null) }
     }
+
+    fun dismissError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
 }

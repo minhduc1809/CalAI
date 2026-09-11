@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +56,7 @@ fun ArcCaloriesGauge(
             .height(140.dp),
         contentAlignment = Alignment.Center
     ) {
+        val trackColor = MaterialTheme.colorScheme.outline
         Canvas(
             modifier = Modifier
                 .size(width = 220.dp, height = 130.dp)
@@ -82,7 +84,7 @@ fun ArcCaloriesGauge(
 
             // 2. Vòng cung track nền
             drawArc(
-                color = if (isDarkTheme) CharcoalBorder.copy(alpha = 0.8f) else PearlBorder,
+                color = trackColor.copy(alpha = 0.8f),
                 startAngle = 180f,
                 sweepAngle = 180f,
                 useCenter = false,
@@ -148,13 +150,13 @@ fun ArcCaloriesGauge(
                         SpanStyle(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDarkTheme) TextMuted else TextInkMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         append(" kcal")
                     }
                 },
-                color = if (isDarkTheme) TextWhite else TextInkPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 38.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-1).sp
@@ -162,7 +164,7 @@ fun ArcCaloriesGauge(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Còn lại hôm nay",
-                color = if (isDarkTheme) TextMuted else TextInkSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.2.sp

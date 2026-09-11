@@ -1,12 +1,15 @@
 package com.calai.app.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.domain.repository.CalAIRepository
+import com.calai.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,7 +48,8 @@ data class ProfileUiState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val repository: CalAIRepository,
-    private val preferencesManager: UserPreferencesManager
+    private val preferencesManager: UserPreferencesManager,
+    @param:ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -60,6 +64,7 @@ class ProfileViewModel @Inject constructor(
         loadProfile()
         loadReminderSettings()
         observePreferences()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     private fun observePreferences() {
@@ -106,26 +111,31 @@ class ProfileViewModel @Inject constructor(
     fun updateBreakfastReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME) {
         preferencesManager.setBreakfastReminder(enabled, time)
         loadReminderSettings()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun updateLunchReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_LUNCH_TIME) {
         preferencesManager.setLunchReminder(enabled, time)
         loadReminderSettings()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun updateDinnerReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_DINNER_TIME) {
         preferencesManager.setDinnerReminder(enabled, time)
         loadReminderSettings()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun updateSnackReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_SNACK_TIME) {
         preferencesManager.setSnackReminder(enabled, time)
         loadReminderSettings()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun updateWaterReminder(enabled: Boolean, interval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS) {
         preferencesManager.setWaterReminder(enabled, interval)
         loadReminderSettings()
+        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun loadProfile() {
