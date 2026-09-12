@@ -66,6 +66,14 @@ object AppModule {
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
+            // Overall per-call timeout (covers redirects, retries and the
+            // Authenticator's refresh-and-retry cycle combined). Without this,
+            // DynamicHostInterceptor's multi-host fallback loop plus
+            // TokenAuthenticator's refresh retry could each independently
+            // consume their own connect/read timeouts, letting a single
+            // logical API call take several minutes and making the UI look
+            // stuck on its loading spinner forever.
+            .callTimeout(45, TimeUnit.SECONDS)
             .build()
     }
 

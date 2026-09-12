@@ -102,7 +102,12 @@ class TokenAuthenticator @Inject constructor(
             .build()
 
         // Dùng OkHttpClient đơn giản (không có interceptor) để tránh vòng lặp
+        // Timeout rõ ràng để đảm bảo request refresh không bao giờ treo vô thời hạn.
         val client = OkHttpClient.Builder()
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .callTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         val refreshResponse = client.newCall(refreshRequest).execute()

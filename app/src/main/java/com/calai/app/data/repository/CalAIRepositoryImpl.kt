@@ -54,7 +54,8 @@ class CalAIRepositoryImpl @Inject constructor(
                             return msgElem.asString
                         }
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e}
             }
         }
         return e.localizedMessage ?: "Có lỗi xảy ra"
@@ -109,6 +110,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng nhập thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -140,6 +142,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng ký thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -159,6 +162,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng nhập Google thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -172,6 +176,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Gửi mã xác thực thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -185,6 +190,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Xác thực email thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -192,7 +198,8 @@ class CalAIRepositoryImpl @Inject constructor(
     override suspend fun logout(): Result<Unit> {
         try {
             api.logout()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e}
         tokenManager.clear()
         return Result.success(Unit)
     }
@@ -206,6 +213,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đổi mật khẩu thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -226,6 +234,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải thông tin hồ sơ"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -239,6 +248,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể cập nhật hồ sơ"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -251,7 +261,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockExpenditureStatus()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockExpenditureStatus()
         }
     }
@@ -281,6 +292,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải tổng hợp dinh dưỡng"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -294,6 +306,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải danh sách bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -307,6 +320,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tạo bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -321,6 +335,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể cập nhật bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -334,6 +349,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể sao chép bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -347,6 +363,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể xóa bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -359,7 +376,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockNutritionStatistics()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockNutritionStatistics()
         }
     }
@@ -372,7 +390,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(emptyList())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(emptyList())
         }
     }
@@ -386,6 +405,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải tổng kết tuần"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -399,6 +419,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tạo lại tổng kết tuần"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -459,7 +480,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockQuickAddMeal(request)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockQuickAddMeal(request)
         }
     }
@@ -503,7 +525,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockFoods(query, category)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockFoods(query, category)
         }
     }
@@ -540,7 +563,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockCategories()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockCategories()
         }
     }
@@ -557,7 +581,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(mockFavoriteFoods.toList())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(mockFavoriteFoods.toList())
         }
     }
@@ -567,7 +592,8 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
@@ -577,7 +603,8 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             api.removeFavoriteFood(foodName)
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
@@ -590,7 +617,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockDietRecommendation()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockDietRecommendation()
         }
     }
@@ -646,7 +674,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWorkoutRecommendation()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWorkoutRecommendation()
         }
     }
@@ -691,7 +720,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockExercises(gender)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockExercises(gender)
         }
     }
@@ -755,7 +785,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockMonthlyDiet(goal, level)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockMonthlyDiet(goal, level)
         }
     }
@@ -814,7 +845,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockCreatedCustomFood(request)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockCreatedCustomFood(request)
         }
     }
@@ -844,7 +876,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(null)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(null)
         }
     }
@@ -857,7 +890,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(mockCustomFoods.toList())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(mockCustomFoods.toList())
         }
     }
@@ -867,7 +901,8 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             api.deleteCustomFood(id)
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
@@ -881,7 +916,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWeightLog(weightKg, note)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWeightLog(weightKg, note)
         }
     }
@@ -907,7 +943,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWeightLogs()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWeightLogs()
         }
     }
@@ -931,7 +968,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWeightTrend()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWeightTrend()
         }
     }
@@ -954,7 +992,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWeightProgress()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWeightProgress()
         }
     }
@@ -967,7 +1006,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWeightLog(weightKg ?: 0f, note)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWeightLog(weightKg ?: 0f, note)
         }
     }
@@ -976,7 +1016,8 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             api.deleteWeightLog(logId)
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
@@ -1008,6 +1049,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 getMockRecognition()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFood exception: ${e.message}", e)
             getMockRecognition()
         }
@@ -1023,6 +1065,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 getMockRecognition()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFoodBase64 exception: ${e.message}", e)
             getMockRecognition()
         }
@@ -1058,6 +1101,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 getMockChatAi(message)
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "chatAi exception: ${e.message}", e)
             getMockChatAi(message)
         }
@@ -1087,7 +1131,8 @@ class CalAIRepositoryImpl @Inject constructor(
                     ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
                 ))
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(listOf(
                 ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
                 ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
@@ -1105,6 +1150,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể nâng cấp gói"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1117,7 +1163,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(ChatQuotaInfoDto())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(ChatQuotaInfoDto())
         }
     }
@@ -1131,6 +1178,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể lấy hạn mức chụp ảnh AI"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1144,6 +1192,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể lấy danh sách gói lượt chụp"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1157,6 +1206,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể mua thêm lượt chụp"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1169,7 +1219,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(ChatHistoryResponseDto())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(ChatHistoryResponseDto())
         }
     }
@@ -1183,6 +1234,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể xóa lịch sử"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1209,7 +1261,8 @@ class CalAIRepositoryImpl @Inject constructor(
                     advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
                 ))
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(SuggestMealResponseDto(
                 nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
                 suggestions = listOf(
@@ -1240,7 +1293,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockMenuScan()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockMenuScan()
         }
     }
@@ -1253,7 +1307,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockMenuScan()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockMenuScan()
         }
     }
@@ -1285,7 +1340,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWorkoutCategories()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWorkoutCategories()
         }
     }
@@ -1315,7 +1371,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWorkoutSummary(date)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWorkoutSummary(date)
         }
     }
@@ -1340,7 +1397,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockCreatedWorkout(request)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockCreatedWorkout(request)
         }
     }
@@ -1348,7 +1406,8 @@ class CalAIRepositoryImpl @Inject constructor(
     private fun getMockCreatedWorkout(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
         val cat = try {
             WorkoutCategory.valueOf(request.category)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             WorkoutCategory.STRENGTH
         }
         val exDtos = request.exercises?.mapIndexed { index, ex ->
@@ -1402,7 +1461,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWorkouts()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWorkouts()
         }
     }
@@ -1510,7 +1570,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
         }
     }
@@ -1523,7 +1584,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 fetchWorkoutById(id)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             fetchWorkoutById(id)
         }
     }
@@ -1536,7 +1598,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(Unit)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
