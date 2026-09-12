@@ -35,16 +35,21 @@ class TokenAuthenticator @Inject constructor(
     private val gson = Gson()
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        // Nếu đã retry refresh rồi mà vẫn 401 → dừng lại, tránh vòng lặp vô hạn
+        // Nếu đã retry refresh rồi mà vẫn 401 → dừng lại, tránh vòng lặp vô hạn.
+        // QUAN TRỌNG: vẫn phải notifySessionExpired() ở đây — trước đây chỉ return null mà
+        // không clear token, khiến app tưởng vẫn đang đăng nhập dù access token đã vô hiệu
+        // (token cũ trỏ vào user/session không còn tồn tại, vd. sau khi backend restart mất
+        // dữ liệu in-memory hoặc bị thu hồi) → mọi API sau đó cứ lỗi lặp lại trong im lặng.
         if (responseCount(response) > MAX_RETRY) {
-            Log.w(TAG, "Đã retry refresh $MAX_RETRY lần, vẫn 401. Dừng retry.")
+            Log.w(TAG, "Đã retry refresh $MAX_RETRY lần, vẫn 401. Coi như session hết hạn.")
+            tokenManager.notifySessionExpired()
             return null
         }
 
         val refreshToken = tokenManager.getRefreshToken()
         if (refreshToken.isNullOrBlank()) {
             Log.w(TAG, "Không có refresh token. User cần đăng nhập lại.")
-            tokenManager.clear()
+            tokenManager.notifySessionExpired()
             return null
         }
 
@@ -71,12 +76,12 @@ class TokenAuthenticator @Inject constructor(
                         .build()
                 } else {
                     Log.w(TAG, "❌ Refresh token thất bại. Clear session.")
-                    tokenManager.clear()
+                    tokenManager.notifySessionExpired()
                     null
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Exception khi refresh token: ${e.message}", e)
-                tokenManager.clear()
+                tokenManager.notifySessionExpired()
                 null
             }
         }

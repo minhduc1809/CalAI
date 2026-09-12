@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.calai.app.data.local.TokenManager
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.notification.ReminderScheduler
 import com.calai.app.presentation.components.DockTab
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var preferencesManager: UserPreferencesManager
+
+    @Inject
+    lateinit var tokenManager: TokenManager
 
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -61,6 +65,21 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+
+                    // Tự động điều hướng về Login khi TokenAuthenticator phát hiện session
+                    // hết hạn/không thể refresh (401 mà refresh cũng fail hoặc hết lượt retry) —
+                    // trước đây token bị clear() âm thầm nhưng không ai điều hướng, khiến app
+                    // "tưởng" vẫn đăng nhập trong khi mọi API tiếp theo đều lỗi lặp lại.
+                    val sessionExpiredCount by tokenManager.sessionExpiredEvent.collectAsState()
+                    LaunchedEffect(sessionExpiredCount) {
+                        if (sessionExpiredCount > 0 &&
+                            navController.currentDestination?.route != Screen.Login.route
+                        ) {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
 
                     fun navigateToTab(tab: DockTab) {
                         val targetRoute = when (tab) {

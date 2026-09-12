@@ -3,6 +3,9 @@ package com.calai.app.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,6 +15,15 @@ class TokenManager @Inject constructor(
 ) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("calai_auth_prefs", Context.MODE_PRIVATE)
+
+    /**
+     * Đếm số lần session bị coi là hết hạn cưỡng bức (token invalid, refresh thất bại...).
+     * MainActivity lắng nghe flow này để tự điều hướng về màn Login — không dùng để tính
+     * toán gì khác ngoài việc kích hoạt navigation, giá trị tăng dần chỉ để LaunchedEffect
+     * phát hiện thay đổi kể cả khi nhiều lần liên tiếp.
+     */
+    private val _sessionExpiredEvent = MutableStateFlow(0)
+    val sessionExpiredEvent: StateFlow<Int> = _sessionExpiredEvent.asStateFlow()
 
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
@@ -68,5 +80,15 @@ class TokenManager @Inject constructor(
 
     fun clear() {
         prefs.edit().clear().apply()
+    }
+
+    /**
+     * Gọi khi phát hiện session không còn hợp lệ (401 mà refresh token thất bại/không có/
+     * đã hết lượt retry) — xóa token cục bộ VÀ báo cho UI (MainActivity) biết để tự điều
+     * hướng về Login, thay vì chỉ âm thầm clear() khiến app vẫn "tưởng" đang đăng nhập.
+     */
+    fun notifySessionExpired() {
+        clear()
+        _sessionExpiredEvent.value = _sessionExpiredEvent.value + 1
     }
 }
