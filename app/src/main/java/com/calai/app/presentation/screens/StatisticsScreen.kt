@@ -641,9 +641,10 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MacroLegendRow("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, isDarkTheme)
-                    MacroLegendRow("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, isDarkTheme)
-                    MacroLegendRow("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, isDarkTheme)
+                    // Final v3 Part 4.7: chart/legend series color follows semantic mapping (Protein→Mint, Carbs→Amber, Fat→Coral)
+                    MacroLegendRow("Đạm (Protein)", "${uiState.proteinPercent}%", VividMint, isDarkTheme)
+                    MacroLegendRow("Carb", "${uiState.carbPercent}%", VividAmber, isDarkTheme)
+                    MacroLegendRow("Chất béo", "${uiState.fatPercent}%", VividCoral, isDarkTheme)
                 }
             }
         }
