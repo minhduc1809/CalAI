@@ -35,7 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.R
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.CuteLoadingIndicator
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.theme.*
@@ -622,57 +624,15 @@ private fun MessageBubble(
 
 @Composable
 private fun TypingIndicator() {
-    val transition = rememberInfiniteTransition(label = "typing_dots")
-    val dotAlpha1 by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot1"
-    )
-    val dotAlpha2 by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, delayMillis = 200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot2"
-    )
-    val dotAlpha3 by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, delayMillis = 400, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot3"
-    )
-
+    // Hiệu ứng loading "cute" bằng Lottie khi AI Coach đang soạn câu trả lời
+    // (CalAI_FINAL_Design_Code_Rules.md Phần 12.4 — giữ user ở lại, giảm cảm giác chờ).
     Row(
-        modifier = Modifier.padding(start = 36.dp, top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(start = 20.dp, top = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(PastelLavender.copy(alpha = dotAlpha1))
-        )
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(PastelLavender.copy(alpha = dotAlpha2))
-        )
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(PastelLavender.copy(alpha = dotAlpha3))
+        CuteLoadingIndicator(
+            rawResId = R.raw.loading_chatbot,
+            size = 48.dp
         )
     }
 }

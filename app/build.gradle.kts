@@ -127,6 +127,9 @@ dependencies {
     // WorkManager (Nhắc nhở bữa ăn/uống nước chạy thật, kể cả khi app bị đóng)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
+    // Lottie (hiệu ứng loading "cute" — CalAI_FINAL_Design_Code_Rules.md Phần 12)
+    implementation("com.airbnb.android:lottie-compose:6.5.2")
+
     // Unit Testing & UI Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

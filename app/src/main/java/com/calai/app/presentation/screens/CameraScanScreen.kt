@@ -40,7 +40,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.calai.app.data.remote.dto.MenuItemDto
 import com.calai.app.domain.util.MealTimeHelper
+import com.calai.app.R
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.CuteLoadingIndicator
 import com.calai.app.presentation.components.DuotoneCheckmarkIcon
 import com.calai.app.presentation.components.DuotoneDietIcon
 import com.calai.app.presentation.components.DuotoneMenuListIcon
@@ -426,7 +428,9 @@ fun CameraScanScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(24.dp)
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(36.dp), color = VividOrange)
+                        // Hiệu ứng loading "cute" khi AI đang phân tích ảnh (Phần 12.4 —
+                        // đúng ngữ cảnh được khuyến nghị dùng Lottie thay vì spinner trơn).
+                        CuteLoadingIndicator(rawResId = R.raw.loading_general, size = 96.dp)
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             text = if (uiState.scanMode == ScanMode.FOOD) "Gemini AI đang phân tích món ăn..." else "AI đang đọc thực đơn quán ăn...",
