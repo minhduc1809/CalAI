@@ -1,9 +1,12 @@
 package com.calai.app.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -771,44 +775,54 @@ fun RemindersModalSheet(
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            ReminderToggleRow(
+            ReminderAlarmRow(
                 title = "Bữa Sáng",
                 time = settings.breakfastTime,
                 enabled = settings.breakfastEnabled,
                 isDark = isDarkTheme,
-                onToggle = { onUpdateBreakfast(it, settings.breakfastTime) }
+                editableTime = true,
+                onToggle = { onUpdateBreakfast(it, settings.breakfastTime) },
+                onTimeChanged = { newTime -> onUpdateBreakfast(settings.breakfastEnabled, newTime) }
             )
 
-            ReminderToggleRow(
+            ReminderAlarmRow(
                 title = "Bữa Trưa",
                 time = settings.lunchTime,
                 enabled = settings.lunchEnabled,
                 isDark = isDarkTheme,
-                onToggle = { onUpdateLunch(it, settings.lunchTime) }
+                editableTime = true,
+                onToggle = { onUpdateLunch(it, settings.lunchTime) },
+                onTimeChanged = { newTime -> onUpdateLunch(settings.lunchEnabled, newTime) }
             )
 
-            ReminderToggleRow(
+            ReminderAlarmRow(
                 title = "Bữa Tối",
                 time = settings.dinnerTime,
                 enabled = settings.dinnerEnabled,
                 isDark = isDarkTheme,
-                onToggle = { onUpdateDinner(it, settings.dinnerTime) }
+                editableTime = true,
+                onToggle = { onUpdateDinner(it, settings.dinnerTime) },
+                onTimeChanged = { newTime -> onUpdateDinner(settings.dinnerEnabled, newTime) }
             )
 
-            ReminderToggleRow(
+            ReminderAlarmRow(
                 title = "Bữa Phụ",
                 time = settings.snackTime,
                 enabled = settings.snackEnabled,
                 isDark = isDarkTheme,
-                onToggle = { onUpdateSnack(it, settings.snackTime) }
+                editableTime = true,
+                onToggle = { onUpdateSnack(it, settings.snackTime) },
+                onTimeChanged = { newTime -> onUpdateSnack(settings.snackEnabled, newTime) }
             )
 
-            ReminderToggleRow(
+            ReminderAlarmRow(
                 title = "Nhắc Uống Nước",
                 time = "Mỗi ${settings.waterInterval} giờ",
                 enabled = settings.waterEnabled,
                 isDark = isDarkTheme,
-                onToggle = { onUpdateWater(it, settings.waterInterval) }
+                editableTime = false,
+                onToggle = { onUpdateWater(it, settings.waterInterval) },
+                onTimeChanged = {}
             )
 
             Button(
@@ -825,53 +839,148 @@ fun RemindersModalSheet(
     }
 }
 
+/**
+ * Hàng nhắc nhở dạng "đồng hồ báo thức" (Spec 10.5 - Alarm-style reminder row)
+ * - Giờ hiển thị lớn, chạm vào để mở TimePickerDialog đổi giờ như báo thức
+ * - Toggle dùng đúng nút Tactile 3D (ReminderTactileSwitch) theo spec 10.5
+ */
 @Composable
-private fun ReminderToggleRow(
+private fun ReminderAlarmRow(
     title: String,
     time: String,
     enabled: Boolean,
     isDark: Boolean,
-    onToggle: (Boolean) -> Unit
+    editableTime: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onTimeChanged: (String) -> Unit
 ) {
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if (editableTime) {
+                        Modifier.clickable {
+                            val parts = time.split(":")
+                            val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 7
+                            val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, pickedHour, pickedMinute ->
+                                    val formatted = "%02d:%02d".format(pickedHour, pickedMinute)
+                                    onTimeChanged(formatted)
+                                },
+                                hour,
+                                minute,
+                                true
+                            ).show()
+                        }
+                    } else Modifier
+                )
+        ) {
             Text(
                 text = title,
-                fontSize = 14.5.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = time,
-                fontSize = 12.sp,
-                color = VividOrange,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Giờ lớn kiểu màn hình báo thức — số liệu chính cỡ lớn theo Spec 9.2 #5
+                Text(
+                    text = time,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (editableTime) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Đổi giờ",
+                        tint = VividOrange,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Switch(
+        ReminderTactileSwitch(
             checked = enabled,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onBackground,
-                checkedTrackColor = VividOrange,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            )
+            onCheckedChange = onToggle
+        )
+    }
+}
+
+/**
+ * Toggle "Tactile 3D" dùng chung cho các hàng nhắc nhở, đúng Spec 10.5:
+ * - Track CharcoalCardElevated (surfaceContainerHighest) + viền inset CharcoalBorder (outline)
+ * - Thumb gradient nổi khối + shadow mềm + vòng glow cam khi bật
+ */
+@Composable
+private fun ReminderTactileSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 26.dp else 3.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "reminder_switch_thumb_offset"
+    )
+
+    Box(
+        modifier = Modifier
+            .width(54.dp)
+            .height(30.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(15.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onCheckedChange(!checked) },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(start = thumbOffset)
+                .size(24.dp)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = CircleShape,
+                    ambientColor = if (checked) VividOrangeGlow else Color.Black.copy(alpha = 0.15f),
+                    spotColor = if (checked) VividOrangeGlow else Color.Black.copy(alpha = 0.15f)
+                )
+                .clip(CircleShape)
+                .background(
+                    brush = if (checked) {
+                        Brush.verticalGradient(listOf(VividOrange, VividOrangeDark))
+                    } else {
+                        Brush.verticalGradient(listOf(Color.White, MaterialTheme.colorScheme.surfaceContainerHighest))
+                    }
+                )
+                .border(
+                    width = if (checked) 1.dp else 0.75.dp,
+                    color = if (checked) VividOrangeLight else MaterialTheme.colorScheme.outline,
+                    shape = CircleShape
+                )
         )
     }
 }

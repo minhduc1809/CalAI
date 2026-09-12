@@ -809,7 +809,7 @@ fun ExerciseCardItem(
                             text = "${s.setNumber}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (s.isCompleted) TextDeepInk else TextWhite
+                            color = if (s.isCompleted) TextDeepInk else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 

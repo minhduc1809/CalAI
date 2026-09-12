@@ -1,9 +1,12 @@
 package com.calai.app.presentation.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,9 +16,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -121,9 +126,18 @@ private fun DockItem(
         label = "dock_icon"
     )
 
+    // Hiệu ứng nhấn rõ ràng (Spec mục 3 - Sạch sẽ & phản hồi rõ khi bấm)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        label = "dock_item_press_scale"
+    )
+
     Box(
         modifier = Modifier
             .size(46.dp)
+            .scale(pressScale)
             .clip(CircleShape)
             .background(bgColor)
             .then(
@@ -131,7 +145,7 @@ private fun DockItem(
                     Modifier.border(1.dp, VividOrange.copy(alpha = 0.4f), CircleShape)
                 } else Modifier
             )
-            .clickable { onClick() },
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(

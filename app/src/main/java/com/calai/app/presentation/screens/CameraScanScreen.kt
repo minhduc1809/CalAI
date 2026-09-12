@@ -252,7 +252,7 @@ fun CameraScanScreen(
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (uiState.isQuotaExhausted) CrimsonError else TextWhite
+                            color = if (uiState.isQuotaExhausted) CrimsonError else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }

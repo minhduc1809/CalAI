@@ -85,19 +85,21 @@ fun BentoMacroCard(
             .padding(16.dp)
     ) {
         // 1. Giả lập hiệu ứng highlight phản chiếu ánh sáng bề mặt đá quý (Spec 9.2 #4)
+        // Highlight NHỎ, gọn, đặt sát góc trên-trái bên trong padding, falloff dốc để không bị loang/bệt
         Canvas(modifier = Modifier.fillMaxSize()) {
+            val highlightRadius = 26.dp.toPx()
+            val highlightCenter = Offset(0f, 0f)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.35f),
-                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.28f),
                         Color.Transparent
                     ),
-                    center = Offset(24.dp.toPx(), 24.dp.toPx()),
-                    radius = 50.dp.toPx()
+                    center = highlightCenter,
+                    radius = highlightRadius
                 ),
-                radius = 50.dp.toPx(),
-                center = Offset(24.dp.toPx(), 24.dp.toPx())
+                radius = highlightRadius,
+                center = highlightCenter
             )
         }
 
