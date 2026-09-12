@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,6 +80,13 @@ fun WeightHistoryScreen(
                             unfocusedBorderColor = border
                         )
                     )
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            uiState.errorMessage!!,
+                            color = CrimsonError,
+                            fontSize = 12.5.sp
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -130,6 +138,13 @@ fun WeightHistoryScreen(
                             unfocusedBorderColor = border
                         )
                     )
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            uiState.errorMessage!!,
+                            color = CrimsonError,
+                            fontSize = 12.5.sp
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -153,17 +168,51 @@ fun WeightHistoryScreen(
 
     if (uiState.pendingDeleteLog != null) {
         AlertDialog(
-            onDismissRequest = { viewModel.cancelDelete() },
+            onDismissRequest = { if (!uiState.isDeleting) viewModel.cancelDelete() },
             containerColor = surface,
-            title = { Text("Xóa bản ghi này?", color = textPrimary, fontWeight = FontWeight.Bold) },
-            text = { Text("Xu hướng cân nặng (EWMA) sẽ được tính lại sau khi xóa.", color = textSecondary, fontSize = 13.sp) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.confirmDelete() }) {
-                    Text("Xóa", color = CoralWarning, fontWeight = FontWeight.Bold)
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CrimsonError.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = CrimsonError)
                 }
             },
+            title = { Text("Xóa bản ghi cân nặng này?", color = textPrimary, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Bản ghi sẽ bị xóa vĩnh viễn và không thể khôi phục. Xu hướng cân nặng (EWMA) sẽ được tính lại sau khi xóa.",
+                        color = textSecondary,
+                        fontSize = 13.sp
+                    )
+                    if (uiState.errorMessage != null) {
+                        Text(uiState.errorMessage!!, color = CrimsonError, fontSize = 12.5.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                AppButton(
+                    text = "Xóa",
+                    onClick = { viewModel.confirmDelete() },
+                    isLoading = uiState.isDeleting,
+                    gradientColors = listOf(CrimsonError, CrimsonError.copy(alpha = 0.85f)),
+                    glowColor = CrimsonError.copy(alpha = 0.4f),
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
             dismissButton = {
-                TextButton(onClick = { viewModel.cancelDelete() }) {
+                OutlinedButton(
+                    onClick = { viewModel.cancelDelete() },
+                    enabled = !uiState.isDeleting,
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, border)
+                ) {
                     Text("Hủy", color = textSecondary)
                 }
             }

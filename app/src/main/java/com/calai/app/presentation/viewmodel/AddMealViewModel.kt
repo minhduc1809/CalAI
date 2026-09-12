@@ -99,6 +99,10 @@ class AddMealViewModel @Inject constructor(
         }
     }
 
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
     private fun loadCategories() {
         viewModelScope.launch {
             repository.getFoodCategories().onSuccess { cats ->

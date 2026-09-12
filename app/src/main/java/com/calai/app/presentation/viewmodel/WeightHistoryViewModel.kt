@@ -27,7 +27,8 @@ data class WeightHistoryUiState(
     val addWeightText: String = "",
     val addNoteText: String = "",
     val isSaving: Boolean = false,
-    val pendingDeleteLog: WeightLogResponseDto? = null
+    val pendingDeleteLog: WeightLogResponseDto? = null,
+    val isDeleting: Boolean = false
 )
 
 @HiltViewModel
@@ -145,10 +146,15 @@ class WeightHistoryViewModel @Inject constructor(
     fun confirmDelete() {
         val log = _uiState.value.pendingDeleteLog ?: return
         viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true) }
             repository.deleteRemoteWeightLog(log.id).onSuccess {
-                _uiState.update { it.copy(pendingDeleteLog = null, logs = it.logs.filter { l -> l.id != log.id }) }
+                _uiState.update {
+                    it.copy(isDeleting = false, pendingDeleteLog = null, logs = it.logs.filter { l -> l.id != log.id })
+                }
             }.onFailure { e ->
-                _uiState.update { it.copy(pendingDeleteLog = null, errorMessage = e.message ?: "Không thể xóa bản ghi") }
+                _uiState.update {
+                    it.copy(isDeleting = false, pendingDeleteLog = null, errorMessage = e.message ?: "Không thể xóa bản ghi")
+                }
             }
         }
     }

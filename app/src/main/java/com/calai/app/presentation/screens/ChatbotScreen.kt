@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.theme.*
@@ -407,20 +409,39 @@ fun ChatbotScreen(
         if (showClearConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showClearConfirmDialog = false },
-                title = { Text("Làm mới cuộc trò chuyện?") },
-                text = { Text("Toàn bộ lịch sử trò chuyện trong 7 ngày qua sẽ được xóa sạch để bắt đầu phiên mới.") },
+                icon = {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(CrimsonError.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = CrimsonError)
+                    }
+                },
+                title = { Text("Xóa toàn bộ lịch sử trò chuyện?", fontWeight = FontWeight.Bold) },
+                text = { Text("Toàn bộ lịch sử trò chuyện trong 7 ngày qua sẽ bị xóa vĩnh viễn và không thể khôi phục. Bạn sẽ bắt đầu một phiên trò chuyện mới.") },
                 confirmButton = {
-                    TextButton(
+                    AppButton(
+                        text = "Xóa lịch sử",
                         onClick = {
                             viewModel.clearHistory()
                             showClearConfirmDialog = false
-                        }
-                    ) {
-                        Text("Xóa lịch sử", color = CrimsonError)
-                    }
+                        },
+                        gradientColors = listOf(CrimsonError, CrimsonError.copy(alpha = 0.85f)),
+                        glowColor = CrimsonError.copy(alpha = 0.4f),
+                        modifier = Modifier.width(140.dp),
+                        height = 40.dp,
+                        shape = RoundedCornerShape(10.dp)
+                    )
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearConfirmDialog = false }) {
+                    OutlinedButton(
+                        onClick = { showClearConfirmDialog = false },
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
                         Text("Hủy", color = MaterialTheme.colorScheme.onBackground)
                     }
                 },

@@ -1,5 +1,6 @@
 package com.calai.app.presentation.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,11 +58,25 @@ fun AddMealScreen(
         }
     }
 
+    // Quick Add tự hiển thị lỗi ngay trong dialog của nó; các lỗi khác (vd. tạo món ăn riêng
+    // đã đóng dialog trước khi biết kết quả) hiện qua Toast để không bị "biến mất trong im lặng".
+    val context = LocalContext.current
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null && !showQuickAddDialog) {
+            Toast.makeText(context, uiState.errorMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
     if (showQuickAddDialog) {
         QuickAddDialog(
             isSaving = uiState.isSaving,
+            errorMessage = uiState.errorMessage,
             isDark = isDarkTheme,
-            onDismiss = { showQuickAddDialog = false },
+            onDismiss = {
+                showQuickAddDialog = false
+                viewModel.clearError()
+            },
             onConfirm = { name, calories, protein, carb, fat ->
                 viewModel.quickAdd(name, calories, protein, carb, fat)
             }
@@ -761,6 +777,7 @@ private fun FoodSearchResultCard(
 @Composable
 private fun QuickAddDialog(
     isSaving: Boolean,
+    errorMessage: String? = null,
     isDark: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (name: String, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
@@ -833,11 +850,14 @@ private fun QuickAddDialog(
                         colors = textFieldColors()
                     )
                 }
+                if (errorMessage != null) {
+                    Text(errorMessage, color = CrimsonError, fontSize = 12.5.sp)
+                }
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = !isSaving,
+            AppButton(
+                text = "Lưu",
                 onClick = {
                     onConfirm(
                         name,
@@ -846,13 +866,21 @@ private fun QuickAddDialog(
                         carb.toFloatOrNull() ?: 0f,
                         fat.toFloatOrNull() ?: 0f
                     )
-                }
-            ) {
-                Text(if (isSaving) "Đang lưu..." else "Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-            }
+                },
+                enabled = !isSaving && calories.toFloatOrNull() != null,
+                isLoading = isSaving,
+                modifier = Modifier.width(100.dp),
+                height = 40.dp,
+                shape = RoundedCornerShape(10.dp)
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !isSaving,
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
                 Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -967,7 +995,8 @@ private fun CreateCustomFoodDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AppButton(
+                text = "Lưu",
                 onClick = {
                     onConfirm(
                         name,
@@ -979,13 +1008,19 @@ private fun CreateCustomFoodDialog(
                         carb.toFloatOrNull() ?: 0f,
                         fat.toFloatOrNull() ?: 0f
                     )
-                }
-            ) {
-                Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-            }
+                },
+                enabled = name.isNotBlank() && calories.toFloatOrNull() != null,
+                modifier = Modifier.width(100.dp),
+                height = 40.dp,
+                shape = RoundedCornerShape(10.dp)
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
                 Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
