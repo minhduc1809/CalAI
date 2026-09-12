@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.MacroStyleOptionRow
 import com.calai.app.presentation.components.RateSelectionPill
 import com.calai.app.presentation.components.SelectionPill
@@ -68,15 +69,16 @@ fun GoalSetupScreen(
                 )
             },
             confirmButton = {
-                Button(
+                AppButton(
+                    text = "Đồng ý",
                     onClick = {
                         showConfirmDialog = false
                         viewModel.save()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-                ) {
-                    Text("Đồng ý", fontWeight = FontWeight.Bold)
-                }
+                    modifier = Modifier.width(120.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {

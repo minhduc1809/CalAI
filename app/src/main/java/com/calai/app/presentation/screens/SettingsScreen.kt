@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.AppToggle
 import com.calai.app.presentation.components.DuotoneMoonIcon
 import com.calai.app.presentation.components.DuotoneSunIcon
@@ -631,27 +632,20 @@ fun ChangePasswordModalSheet(
                 Text(text = it, color = CoralWarning, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            Button(
+            AppButton(
+                text = "Cập Nhật Mật Khẩu",
                 onClick = {
                     if (newPassword != confirmPassword) {
                         localError = "Mật khẩu xác nhận không khớp"
-                        return@Button
+                        return@AppButton
                     }
                     onConfirm(oldPassword, newPassword)
                 },
-                enabled = !isLoading && oldPassword.isNotBlank() && newPassword.isNotBlank(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
-                } else {
-                    Text("Cập Nhật Mật Khẩu", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-            }
+                enabled = oldPassword.isNotBlank() && newPassword.isNotBlank(),
+                isLoading = isLoading,
+                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
@@ -726,21 +720,14 @@ fun EmailVerificationModalSheet(
                 )
             )
 
-            Button(
+            AppButton(
+                text = "Xác Nhận Mã",
                 onClick = { onConfirmCode(code) },
-                enabled = !isVerifying && code.length == 6,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (isVerifying) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
-                } else {
-                    Text("Xác Nhận Mã", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-            }
+                enabled = code.length == 6,
+                isLoading = isVerifying,
+                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
@@ -826,16 +813,12 @@ fun RemindersModalSheet(
                 onTimeChanged = {}
             )
 
-            Button(
+            AppButton(
+                text = "Xong",
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }
@@ -989,16 +972,12 @@ fun UnitSelectionModalSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Button(
+            AppButton(
+                text = "Xong",
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }
@@ -1060,16 +1039,12 @@ fun MealStructureModalSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Button(
+            AppButton(
+                text = "Xong",
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }

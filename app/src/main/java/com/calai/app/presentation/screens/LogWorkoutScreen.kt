@@ -581,42 +581,21 @@ fun LogWorkoutScreen(
                 )
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            Button(
+            AppButton(
+                text = "Hoàn Thành & Lưu Buổi Tập",
                 onClick = {
                     viewModel.saveWorkout(onSuccess = onSaveSuccess)
                 },
                 enabled = !uiState.isSubmitting,
+                isLoading = uiState.isSubmitting,
+                leadingIcon = {
+                    DuotoneCheckmarkIcon(size = 18.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .height(54.dp)
                     .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = VividOrange.copy(alpha = 0.4f)),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VividOrange,
-                    disabledContainerColor = VividOrange.copy(alpha = 0.5f)
-                ),
                 shape = RoundedCornerShape(16.dp)
-            ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        DuotoneCheckmarkIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
-                        Text(
-                            text = "Hoàn Thành & Lưu Buổi Tập",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-            }
+            )
         }
 
         // 5. DIALOG THÊM BÀI TẬP MỚI
@@ -679,7 +658,8 @@ fun LogWorkoutScreen(
                     }
                 },
                 confirmButton = {
-                    Button(
+                    AppButton(
+                        text = "Thêm",
                         onClick = {
                             if (newExerciseName.isNotBlank()) {
                                 viewModel.addExercise(newExerciseName)
@@ -687,11 +667,10 @@ fun LogWorkoutScreen(
                                 showAddExerciseDialog = false
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                        modifier = Modifier.width(100.dp),
+                        height = 40.dp,
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Thêm", fontWeight = FontWeight.Bold)
-                    }
+                    )
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddExerciseDialog = false }) {

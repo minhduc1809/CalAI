@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.WeightLogResponseDto
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.WeightHistoryViewModel
 
@@ -81,12 +82,15 @@ fun WeightHistoryScreen(
                 }
             },
             confirmButton = {
-                TextButton(
+                AppButton(
+                    text = "Lưu",
                     onClick = { viewModel.confirmAdd() },
-                    enabled = !uiState.isSaving && uiState.addWeightText.toFloatOrNull() != null
-                ) {
-                    Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-                }
+                    enabled = uiState.addWeightText.toFloatOrNull() != null,
+                    isLoading = uiState.isSaving,
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelAdd() }) {
@@ -129,12 +133,15 @@ fun WeightHistoryScreen(
                 }
             },
             confirmButton = {
-                TextButton(
+                AppButton(
+                    text = "Lưu",
                     onClick = { viewModel.confirmEdit() },
-                    enabled = !uiState.isSaving && uiState.editWeightText.toFloatOrNull() != null
-                ) {
-                    Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-                }
+                    enabled = uiState.editWeightText.toFloatOrNull() != null,
+                    isLoading = uiState.isSaving,
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelEdit() }) {

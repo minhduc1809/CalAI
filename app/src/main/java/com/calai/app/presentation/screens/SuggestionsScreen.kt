@@ -751,22 +751,13 @@ private fun DayRow(
 
                 if (day.exercises.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    Button(
+                    AppButton(
+                        text = "Bắt đầu & Ghi buổi tập này",
                         onClick = onStartWorkout,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                        leadingIcon = { DuotoneWorkoutIcon(size = 16.dp, outlineColor = TextWhite, accentColor = TextWhite) },
+                        height = 40.dp,
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            DuotoneWorkoutIcon(size = 16.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
-                            Text("Bắt đầu & Ghi buổi tập này", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    )
                 }
             }
         }
@@ -899,22 +890,13 @@ private fun ExerciseCard(
                 ExerciseInstructionRow("Hít thở", exercise.instructions.breathing, isDarkTheme)
 
                 Spacer(modifier = Modifier.height(10.dp))
-                Button(
+                AppButton(
+                    text = "+ Ghi bài tập này vào buổi tập",
                     onClick = onLogWorkout,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(38.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                    leadingIcon = { DuotoneWorkoutIcon(size = 15.dp, outlineColor = TextWhite, accentColor = TextWhite) },
+                    height = 38.dp,
                     shape = RoundedCornerShape(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        DuotoneWorkoutIcon(size = 15.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
-                        Text("+ Ghi bài tập này vào buổi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+                )
             }
         }
     }

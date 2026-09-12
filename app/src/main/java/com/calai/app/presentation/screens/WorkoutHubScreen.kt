@@ -916,13 +916,11 @@ fun WorkoutDetailSheetContent(
             }
         }
 
-        Button(
+        AppButton(
+            text = "Đóng",
             onClick = onClose,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+            height = 48.dp,
             shape = RoundedCornerShape(14.dp)
-        ) {
-            Text("Đóng", fontWeight = FontWeight.Bold)
-        }
+        )
     }
 }

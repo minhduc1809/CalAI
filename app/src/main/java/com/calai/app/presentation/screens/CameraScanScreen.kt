@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.calai.app.data.remote.dto.MenuItemDto
 import com.calai.app.domain.util.MealTimeHelper
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.DuotoneCheckmarkIcon
 import com.calai.app.presentation.components.DuotoneDietIcon
 import com.calai.app.presentation.components.DuotoneMenuListIcon
@@ -313,7 +314,8 @@ fun CameraScanScreen(
                         .padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Button(
+                    AppButton(
+                        text = "Chụp Ảnh",
                         onClick = {
                             val hasCameraPermission = ContextCompat.checkSelfPermission(
                                 context,
@@ -326,16 +328,11 @@ fun CameraScanScreen(
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(54.dp),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-                    ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Chụp Ảnh", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
+                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = TextWhite) },
+                        modifier = Modifier.weight(1f),
+                        height = 54.dp,
+                        shape = RoundedCornerShape(18.dp)
+                    )
 
                     OutlinedButton(
                         onClick = { galleryLauncher.launch("image/*") },
@@ -547,19 +544,15 @@ fun CameraScanScreen(
                                     Text("Quét Lại")
                                 }
 
-                                Button(
+                                AppButton(
+                                    text = "Lưu Bữa Ăn",
                                     onClick = { viewModel.saveRecognizedMeal() },
                                     enabled = !uiState.isSaving,
-                                    modifier = Modifier.weight(1.5f).height(50.dp),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-                                ) {
-                                    if (uiState.isSaving) {
-                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
-                                    } else {
-                                        Text("Lưu Bữa Ăn", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextWhite)
-                                    }
-                                }
+                                    isLoading = uiState.isSaving,
+                                    modifier = Modifier.weight(1.5f),
+                                    height = 50.dp,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
                             }
                         }
                     }
@@ -619,18 +612,14 @@ fun CameraScanScreen(
                         }
 
                         if (uiState.selectedMenuItemIndices.isNotEmpty()) {
-                            Button(
+                            AppButton(
+                                text = "Lưu ${uiState.selectedMenuItemIndices.size} Món Đã Chọn",
                                 onClick = { viewModel.saveSelectedMenuItems() },
                                 enabled = !uiState.isSaving,
-                                colors = ButtonDefaults.buttonColors(containerColor = VividOrange, contentColor = TextWhite),
+                                isLoading = uiState.isSaving,
                                 shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.fillMaxWidth().height(48.dp)
-                            ) {
-                                Text(
-                                    "Lưu ${uiState.selectedMenuItemIndices.size} Món Đã Chọn",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                                height = 48.dp
+                            )
                             Spacer(modifier = Modifier.height(10.dp))
                         }
 

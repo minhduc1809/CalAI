@@ -30,6 +30,7 @@ import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.data.remote.dto.toFoodItemDto
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.AddMealViewModel
@@ -152,21 +153,14 @@ fun AddMealScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Button(
+                        AppButton(
+                            text = "Lưu Vào Nhật Ký Bữa Ăn",
                             onClick = { viewModel.saveMeal() },
                             enabled = !uiState.isSaving,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-                        ) {
-                            if (uiState.isSaving) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
-                            } else {
-                                Text("Lưu Vào Nhật Ký Bữa Ăn", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
-                        }
+                            isLoading = uiState.isSaving,
+                            height = 50.dp,
+                            shape = RoundedCornerShape(16.dp)
+                        )
                     }
                 }
             }

@@ -47,6 +47,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.BarcodeScanUiState
@@ -418,21 +419,14 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
+        AppButton(
+            text = "Lưu Vào Nhật Ký",
             onClick = { viewModel.saveScannedFood() },
             enabled = !uiState.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-        ) {
-            if (uiState.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
-            } else {
-                Text("Lưu Vào Nhật Ký", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextWhite)
-            }
-        }
+            isLoading = uiState.isSaving,
+            height = 52.dp,
+            shape = RoundedCornerShape(16.dp)
+        )
 
         TextButton(onClick = { viewModel.resetScan() }, modifier = Modifier.fillMaxWidth()) {
             Text("Quét sản phẩm khác", color = MaterialTheme.colorScheme.onSurfaceVariant)
