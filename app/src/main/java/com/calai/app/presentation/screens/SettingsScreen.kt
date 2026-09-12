@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppToggle
 import com.calai.app.presentation.components.DuotoneMoonIcon
 import com.calai.app.presentation.components.DuotoneSunIcon
 import com.calai.app.presentation.components.TactileThemeSwitch
@@ -842,7 +843,7 @@ fun RemindersModalSheet(
 /**
  * Hàng nhắc nhở dạng "đồng hồ báo thức" (Spec 10.5 - Alarm-style reminder row)
  * - Giờ hiển thị lớn, chạm vào để mở TimePickerDialog đổi giờ như báo thức
- * - Toggle dùng đúng nút Tactile 3D (ReminderTactileSwitch) theo spec 10.5
+ * - Toggle dùng component dùng chung AppToggle (Part 4.5 / Part 8)
  */
 @Composable
 private fun ReminderAlarmRow(
@@ -922,65 +923,9 @@ private fun ReminderAlarmRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        ReminderTactileSwitch(
+        AppToggle(
             checked = enabled,
             onCheckedChange = onToggle
-        )
-    }
-}
-
-/**
- * Toggle "Tactile 3D" dùng chung cho các hàng nhắc nhở, đúng Spec 10.5:
- * - Track CharcoalCardElevated (surfaceContainerHighest) + viền inset CharcoalBorder (outline)
- * - Thumb gradient nổi khối + shadow mềm + vòng glow cam khi bật
- */
-@Composable
-private fun ReminderTactileSwitch(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    val thumbOffset by animateDpAsState(
-        targetValue = if (checked) 26.dp else 3.dp,
-        animationSpec = tween(durationMillis = 300),
-        label = "reminder_switch_thumb_offset"
-    )
-
-    Box(
-        modifier = Modifier
-            .width(54.dp)
-            .height(30.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(15.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onCheckedChange(!checked) },
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(start = thumbOffset)
-                .size(24.dp)
-                .shadow(
-                    elevation = 4.dp,
-                    shape = CircleShape,
-                    ambientColor = if (checked) VividOrangeGlow else Color.Black.copy(alpha = 0.15f),
-                    spotColor = if (checked) VividOrangeGlow else Color.Black.copy(alpha = 0.15f)
-                )
-                .clip(CircleShape)
-                .background(
-                    brush = if (checked) {
-                        Brush.verticalGradient(listOf(VividOrange, VividOrangeDark))
-                    } else {
-                        Brush.verticalGradient(listOf(Color.White, MaterialTheme.colorScheme.surfaceContainerHighest))
-                    }
-                )
-                .border(
-                    width = if (checked) 1.dp else 0.75.dp,
-                    color = if (checked) VividOrangeLight else MaterialTheme.colorScheme.outline,
-                    shape = CircleShape
-                )
         )
     }
 }

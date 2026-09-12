@@ -277,39 +277,25 @@ fun OnboardingScreen(
                             }
                         }
 
-                        // Khối Tiếp theo / Hoàn tất — pill cam riêng
-                        Button(
+                        // Khối Tiếp theo / Hoàn tất — AppButton tactile dùng chung (Part 4.1)
+                        com.calai.app.presentation.components.AppButton(
+                            text = when {
+                                isLast -> "Hoàn tất »"
+                                pagerState.currentPage == 0 -> "Bắt đầu »"
+                                else -> "Tiếp theo »"
+                            },
                             onClick = {
                                 if (isLast) viewModel.submit()
                                 else coroutineScope.launch {
                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
                                 }
                             },
-                            enabled = canGo && !uiState.isSaving,
+                            enabled = canGo,
+                            isLoading = uiState.isSaving,
                             modifier = Modifier
-                                .weight(if (pagerState.currentPage > 0) 1.15f else 1f)
-                                .height(52.dp),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = VividOrange,
-                                disabledContainerColor = VividOrange.copy(alpha = 0.35f)
-                            )
-                        ) {
-                            if (uiState.isSaving) {
-                                CircularProgressIndicator(Modifier.size(20.dp), TextWhite, strokeWidth = 2.5.dp)
-                            } else {
-                                Text(
-                                    when {
-                                        isLast -> "Hoàn tất »"
-                                        pagerState.currentPage == 0 -> "Bắt đầu »"
-                                        else -> "Tiếp theo »"
-                                    },
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = TextWhite
-                                )
-                            }
-                        }
+                                .weight(if (pagerState.currentPage > 0) 1.15f else 1f),
+                            height = 52.dp
+                        )
                     }
                 }
             }

@@ -296,33 +296,12 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Nút bấm CTA chính: Màu Cam Vivid
-            Button(
+            // Nút bấm CTA chính: AppButton tactile dùng chung (Part 4.1)
+            com.calai.app.presentation.components.AppButton(
+                text = if (uiState.isLoginMode) "Đăng Nhập" else "Tạo Tài Khoản",
                 onClick = { viewModel.submit() },
-                enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VividOrange,
-                    contentColor = TextWhite
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = TextWhite,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = if (uiState.isLoginMode) "Đăng Nhập" else "Tạo Tài Khoản",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+                isLoading = uiState.isLoading
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 

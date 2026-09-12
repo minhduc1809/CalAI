@@ -218,23 +218,15 @@ fun GoalSetupScreen(
                 Text(it, color = CoralWarning, fontSize = 12.5.sp)
             }
 
-            Button(
+            com.calai.app.presentation.components.AppButton(
+                text = "Lưu Mục Tiêu",
                 onClick = {
                     if (viewModel.hasChanges()) showConfirmDialog = true else viewModel.save()
                 },
-                enabled = !uiState.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
-                } else {
-                    Text("Lưu Mục Tiêu", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            }
+                isLoading = uiState.isSaving,
+                height = 52.dp,
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
