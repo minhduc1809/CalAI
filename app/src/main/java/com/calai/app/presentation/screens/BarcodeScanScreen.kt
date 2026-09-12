@@ -310,7 +310,7 @@ private fun BarcodeCameraPreview(
             Icon(
                 imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
                 contentDescription = "Bật/tắt đèn flash",
-                tint = if (isTorchOn) VividOrange else TextWhite
+                tint = if (isTorchOn) VividOrange else MaterialTheme.colorScheme.onBackground
             )
         }
 

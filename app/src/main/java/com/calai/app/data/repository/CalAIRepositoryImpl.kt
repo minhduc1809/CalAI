@@ -377,6 +377,32 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchWeeklySummary(): Result<WeeklySummaryDto> {
+        return try {
+            val response = api.getWeeklySummary()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tải tổng kết tuần"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun regenerateWeeklySummary(): Result<WeeklySummaryDto> {
+        return try {
+            val response = api.regenerateWeeklySummary()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tạo lại tổng kết tuần"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun getMockNutritionStatistics(): Result<NutritionStatisticsData> {
         val calendar = java.util.Calendar.getInstance()
         val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())

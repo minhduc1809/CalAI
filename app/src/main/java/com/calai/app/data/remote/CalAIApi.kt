@@ -68,6 +68,12 @@ interface CalAIApi {
     @GET("analytics/insights")
     suspend fun getInsights(): ApiResponse<InsightsData>
 
+    @GET("analytics/weekly-summary")
+    suspend fun getWeeklySummary(): ApiResponse<WeeklySummaryDto>
+
+    @POST("analytics/weekly-summary/regenerate")
+    suspend fun regenerateWeeklySummary(): ApiResponse<WeeklySummaryDto>
+
     @PATCH("meals/{id}")
     suspend fun updateMeal(@Path("id") mealId: String, @Body request: UpdateMealRequest): ApiResponse<MealResponseDto>
 

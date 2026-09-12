@@ -193,5 +193,7 @@ data class UpdateProfileRequest(
     @SerializedName("ifWindowStart")
     val ifWindowStart: String? = null,
     @SerializedName("ifWindowEnd")
-    val ifWindowEnd: String? = null
+    val ifWindowEnd: String? = null,
+    @SerializedName("allergies")
+    val allergies: List<String>? = null
 )

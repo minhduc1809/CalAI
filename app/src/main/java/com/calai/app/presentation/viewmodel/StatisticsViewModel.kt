@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.InsightDto
+import com.calai.app.data.remote.dto.WeeklySummaryDto
 import com.calai.app.data.remote.dto.WeightTrendPointDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,7 +47,10 @@ data class StatisticsUiState(
     val weightChangedKg: Float = 0f,
     val weightProgressPercent: Int = 0,
     val weightUnit: String = "kg",
-    val insights: List<InsightDto> = emptyList()
+    val insights: List<InsightDto> = emptyList(),
+    val weeklySummary: WeeklySummaryDto? = null,
+    val isWeeklySummaryLoading: Boolean = false,
+    val isWeeklySummaryRegenerating: Boolean = false
 )
 
 /** Thứ trong tuần theo Calendar.DAY_OF_WEEK (SUNDAY = 1 ... SATURDAY = 7), quy ước Việt Nam T2..CN. */
@@ -120,6 +124,7 @@ class StatisticsViewModel @Inject constructor(
         }
         loadStatistics()
         loadInsights()
+        loadWeeklySummary()
     }
 
     fun setPeriod(period: StatsPeriod) {
@@ -133,6 +138,32 @@ class StatisticsViewModel @Inject constructor(
             repository.fetchInsights().onSuccess { insights ->
                 _uiState.value = _uiState.value.copy(insights = insights)
             }
+        }
+    }
+
+    private fun loadWeeklySummary() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isWeeklySummaryLoading = true)
+            repository.fetchWeeklySummary()
+                .onSuccess { summary ->
+                    _uiState.value = _uiState.value.copy(weeklySummary = summary, isWeeklySummaryLoading = false)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isWeeklySummaryLoading = false)
+                }
+        }
+    }
+
+    fun regenerateWeeklySummary() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isWeeklySummaryRegenerating = true)
+            repository.regenerateWeeklySummary()
+                .onSuccess { summary ->
+                    _uiState.value = _uiState.value.copy(weeklySummary = summary, isWeeklySummaryRegenerating = false)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isWeeklySummaryRegenerating = false)
+                }
         }
     }
 

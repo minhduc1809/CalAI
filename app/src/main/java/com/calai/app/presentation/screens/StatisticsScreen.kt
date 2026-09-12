@@ -14,7 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.InsightDto
+import com.calai.app.data.remote.dto.WeeklySummaryDto
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.components.MacroDonutChart
@@ -42,6 +46,7 @@ import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.StatisticsUiState
 import com.calai.app.presentation.viewmodel.StatisticsViewModel
 import com.calai.app.presentation.viewmodel.StatsPeriod
+import java.util.Locale
 
 @Composable
 fun StatisticsScreen(
@@ -151,6 +156,16 @@ fun StatisticsScreen(
                 }
             }
 
+            // Thẻ Tổng Kết Tuần (AI Weekly Summary) — nạp khi vào màn, có nút làm mới
+            if (uiState.weeklySummary != null || uiState.isWeeklySummaryLoading) {
+                WeeklySummaryCard(
+                    summary = uiState.weeklySummary,
+                    isRegenerating = uiState.isWeeklySummaryRegenerating,
+                    isDarkTheme = isDarkTheme,
+                    onRegenerate = { viewModel.regenerateWeeklySummary() }
+                )
+            }
+
             // Thẻ Insight tự động (Plateau Detection / Goal Deviation) — chỉ hiện khi có insight
             if (uiState.insights.isNotEmpty()) {
                 InsightCard(insights = uiState.insights, isDarkTheme = isDarkTheme)
@@ -172,6 +187,186 @@ fun StatisticsScreen(
             onTabSelected = onNavigateTab,
             isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun WeeklySummaryCard(
+    summary: WeeklySummaryDto?,
+    isRegenerating: Boolean,
+    isDarkTheme: Boolean = true,
+    onRegenerate: () -> Unit = {}
+) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
+            .padding(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Tổng Kết Tuần (AI)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (summary != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${summary.weekStartDate} → ${summary.weekEndDate}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onRegenerate, enabled = !isRegenerating) {
+                if (isRegenerating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Làm mới tổng kết tuần",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        if (summary == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Đang tải tổng kết tuần...",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@Column
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Câu nhận định nổi bật do AI tạo ra — hiển thị dạng trích dẫn
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = summary.highlightText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Lưới 4 chỉ số dinh dưỡng trung bình
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WeeklyStatChip(label = "Calo", value = summary.avgCalories?.let { "${it.toInt()}" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Đạm", value = summary.avgProtein?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Béo", value = summary.avgFat?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Tinh bột", value = summary.avgCarb?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Thay đổi cân nặng trong tuần — xanh khi giảm cân, đỏ khi tăng, trung tính khi không đổi
+            val weightChange = summary.weightChangeKg
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (weightChange != null && weightChange != 0f) {
+                    val isLoss = weightChange < 0
+                    Icon(
+                        imageVector = if (isLoss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = null,
+                        tint = if (isLoss) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = String.format(Locale.getDefault(), "%+.1f kg", weightChange),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLoss) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        text = "Cân nặng: không đổi",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Text(
+                text = "${summary.workoutsCompleted ?: 0} buổi tập",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (summary.isFallback) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Ước tính đơn giản do AI tạm thời không khả dụng.",
+                fontSize = 11.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyStatChip(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(vertical = 10.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

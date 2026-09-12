@@ -13,3 +13,28 @@ data class InsightsData(
     @SerializedName("insights")
     val insights: List<InsightDto>
 )
+
+data class WeeklySummaryDto(
+    @SerializedName("weekStartDate")
+    val weekStartDate: String,
+    @SerializedName("weekEndDate")
+    val weekEndDate: String,
+    @SerializedName("avgCalories")
+    val avgCalories: Float?,
+    @SerializedName("avgProtein")
+    val avgProtein: Float?,
+    @SerializedName("avgFat")
+    val avgFat: Float?,
+    @SerializedName("avgCarb")
+    val avgCarb: Float?,
+    @SerializedName("weightChangeKg")
+    val weightChangeKg: Float?,
+    @SerializedName("workoutsCompleted")
+    val workoutsCompleted: Int?,
+    @SerializedName("highlightText")
+    val highlightText: String,
+    @SerializedName("isFallback")
+    val isFallback: Boolean,
+    @SerializedName("generatedAt")
+    val generatedAt: String
+)
