@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.R
 import com.calai.app.data.remote.dto.MealResponseDto
 import com.calai.app.presentation.components.*
 import com.calai.app.presentation.theme.*
@@ -62,9 +63,10 @@ fun HomeScreen(
     ) {
         val isTablet = maxWidth >= TABLET_BREAKPOINT_DP
         if (uiState.isLoading && uiState.dailySummary == null) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = VividOrange
+            CuteLoadingIndicator(
+                rawResId = R.raw.loading_general,
+                size = 96.dp,
+                modifier = Modifier.align(Alignment.Center)
             )
         } else {
             LazyColumn(

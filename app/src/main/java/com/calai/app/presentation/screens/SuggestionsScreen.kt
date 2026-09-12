@@ -33,6 +33,7 @@ import com.calai.app.data.remote.dto.DietMealsDto
 import com.calai.app.data.remote.dto.DietRecommendationData
 import com.calai.app.data.remote.dto.ExerciseGuideDto
 import com.calai.app.data.remote.dto.MonthlyDietData
+import com.calai.app.R
 import com.calai.app.data.remote.dto.WorkoutRecommendationData
 import com.calai.app.presentation.components.*
 import com.calai.app.presentation.theme.*
@@ -90,7 +91,7 @@ fun SuggestionsScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = VividOrange)
+                CuteLoadingIndicator(rawResId = R.raw.loading_general, size = 96.dp)
             }
             return@Scaffold
         }

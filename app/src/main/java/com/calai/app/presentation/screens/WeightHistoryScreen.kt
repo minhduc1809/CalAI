@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.R
 import com.calai.app.data.remote.dto.WeightLogResponseDto
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.CuteLoadingIndicator
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.WeightHistoryViewModel
 
@@ -258,8 +260,9 @@ fun WeightHistoryScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        color = VividOrange,
+                    CuteLoadingIndicator(
+                        rawResId = R.raw.loading_general,
+                        size = 96.dp,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
