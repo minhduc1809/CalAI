@@ -385,7 +385,9 @@ fun SettingsScreen(
                     isDark = isDarkTheme,
                     isLast = false,
                     onClick = {
-                        Toast.makeText(context, "Đang chuẩn bị gói dữ liệu xuất...", Toast.LENGTH_SHORT).show()
+                        // Backend chưa có endpoint Export — tránh Toast giả vờ "đang chuẩn bị"
+                        // rồi không có gì xảy ra tiếp theo (đánh lừa người dùng là đang xử lý).
+                        Toast.makeText(context, "Tính năng xuất dữ liệu đang được phát triển, sẽ có trong bản cập nhật tới.", Toast.LENGTH_LONG).show()
                     }
                 )
                 SettingsActionRow(
@@ -395,7 +397,17 @@ fun SettingsScreen(
                     isDark = isDarkTheme,
                     isLast = true,
                     onClick = {
-                        Toast.makeText(context, "Đã làm sạch bộ đệm tạm thời thành công!", Toast.LENGTH_SHORT).show()
+                        // Xoá thật thư mục cache (ảnh tạm khi quét AI lưu vào context.cacheDir,
+                        // xem CameraScanViewModel) — trước đây Toast báo "đã xóa" nhưng
+                        // không hề gọi bất kỳ lệnh xóa nào, đánh lừa người dùng.
+                        val freedBytes = clearAppCache(context)
+                        val freedMb = freedBytes / (1024f * 1024f)
+                        val message = if (freedBytes > 0) {
+                            "Đã giải phóng %.1f MB bộ nhớ đệm.".format(freedMb)
+                        } else {
+                            "Bộ nhớ đệm hiện đang trống, không có gì để xóa."
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -419,7 +431,10 @@ fun SettingsScreen(
                     isDark = isDarkTheme,
                     isLast = true,
                     onClick = {
-                        Toast.makeText(context, "Dữ liệu được bảo vệ theo tiêu chuẩn RFC5322 & JWT", Toast.LENGTH_SHORT).show()
+                        // Chưa có trang/điều khoản thật để mở — trước đây hiện 1 câu thông tin
+                        // kỹ thuật không liên quan (RFC5322/JWT) thay vì nội dung chính sách
+                        // thật, dễ gây hiểu lầm đây là toàn bộ nội dung điều khoản.
+                        Toast.makeText(context, "Trang Chính sách bảo mật & Điều khoản đang được soạn thảo, sẽ cập nhật sớm.", Toast.LENGTH_LONG).show()
                     }
                 )
             }
@@ -1099,5 +1114,29 @@ private fun UnitOptionCard(
             )
         }
     }
+}
+
+/**
+ * Xóa thật toàn bộ file trong `context.cacheDir` (ảnh tạm khi quét AI được lưu ở đây,
+ * xem `CameraScanViewModel.downscaleAndCompressToJpeg` — `File(context.cacheDir, "scan_*.jpg")`)
+ * và `context.externalCacheDir` nếu có. Trả về tổng số byte đã giải phóng thật sự.
+ */
+private fun clearAppCache(context: android.content.Context): Long {
+    fun deleteRecursively(dir: java.io.File?): Long {
+        if (dir == null || !dir.exists()) return 0L
+        var freed = 0L
+        dir.listFiles()?.forEach { file ->
+            freed += if (file.isDirectory) {
+                val sub = deleteRecursively(file)
+                file.delete()
+                sub
+            } else {
+                val size = file.length()
+                if (file.delete()) size else 0L
+            }
+        }
+        return freed
+    }
+    return deleteRecursively(context.cacheDir) + deleteRecursively(context.externalCacheDir)
 }
 
