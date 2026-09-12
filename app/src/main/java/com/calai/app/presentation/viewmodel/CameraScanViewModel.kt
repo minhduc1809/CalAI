@@ -1,6 +1,8 @@
 package com.calai.app.presentation.viewmodel
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,6 +27,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+
+/** Kích thước tối đa (px) của cạnh dài ảnh sau khi resize trước khi upload lên server AI */
+private const val MAX_UPLOAD_IMAGE_DIMENSION_PX = 1280
+
+/** Chất lượng nén JPEG khi re-encode ảnh trước khi upload (0-100) */
+private const val UPLOAD_JPEG_QUALITY = 85
 
 enum class ScanMode {
     FOOD,       // Quét ảnh món ăn
@@ -143,11 +151,7 @@ class CameraScanViewModel @Inject constructor(
             try {
                 val tempFile = withContext(Dispatchers.IO) {
                     val file = File(context.cacheDir, "scan_${System.currentTimeMillis()}.jpg")
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        FileOutputStream(file).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
+                    downscaleAndCompressToJpeg(context, uri, file)
                     file
                 }
 
@@ -312,4 +316,49 @@ class CameraScanViewModel @Inject constructor(
             mealType = MealTimeHelper.detectMealType()
         )
     }
+}
+
+/**
+ * Giảm kích thước ảnh (tối đa ~[MAX_UPLOAD_IMAGE_DIMENSION_PX]px cạnh dài) và nén lại JPEG
+ * (chất lượng [UPLOAD_JPEG_QUALITY]) trước khi upload, tránh gửi ảnh gốc chưa xử lý lên server AI.
+ * Dùng `inJustDecodeBounds` để lấy kích thước ảnh trước, tránh cấp phát bitmap đầy đủ không cần thiết.
+ */
+private fun downscaleAndCompressToJpeg(context: Context, sourceUri: Uri, destFile: File) {
+    val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    context.contentResolver.openInputStream(sourceUri)?.use { input ->
+        BitmapFactory.decodeStream(input, null, boundsOptions)
+    }
+
+    val (originalWidth, originalHeight) = boundsOptions.outWidth to boundsOptions.outHeight
+    var inSampleSize = 1
+    if (originalWidth > 0 && originalHeight > 0) {
+        val longestSide = maxOf(originalWidth, originalHeight)
+        while (longestSide / inSampleSize > MAX_UPLOAD_IMAGE_DIMENSION_PX * 2) {
+            inSampleSize *= 2
+        }
+    }
+
+    val decodeOptions = BitmapFactory.Options().apply { inSampleSize = inSampleSize }
+    val decodedBitmap = context.contentResolver.openInputStream(sourceUri)?.use { input ->
+        BitmapFactory.decodeStream(input, null, decodeOptions)
+    } ?: return
+
+    val bitmapToUpload = decodedBitmap.let { bitmap ->
+        val longestSide = maxOf(bitmap.width, bitmap.height)
+        if (longestSide <= MAX_UPLOAD_IMAGE_DIMENSION_PX) {
+            bitmap
+        } else {
+            val scale = MAX_UPLOAD_IMAGE_DIMENSION_PX.toFloat() / longestSide
+            val targetWidth = (bitmap.width * scale).toInt().coerceAtLeast(1)
+            val targetHeight = (bitmap.height * scale).toInt().coerceAtLeast(1)
+            val scaled = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+            if (scaled !== bitmap) bitmap.recycle()
+            scaled
+        }
+    }
+
+    FileOutputStream(destFile).use { output ->
+        bitmapToUpload.compress(Bitmap.CompressFormat.JPEG, UPLOAD_JPEG_QUALITY, output)
+    }
+    bitmapToUpload.recycle()
 }

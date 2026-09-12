@@ -31,6 +31,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/** Ngưỡng bề rộng màn hình được coi là tablet/landscape (Punch-list #1: responsive layout) */
+private val TABLET_BREAKPOINT_DP = 600.dp
+
 /**
  * Màn hình Home Dashboard - Hero Screen theo chuẩn Dark Luxury Canvas (CODING_RULES.md 9.2 & 9.6 #1)
  */
@@ -50,11 +53,14 @@ fun HomeScreen(
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
 
-    Box(
+    // Responsive: BoxWithConstraints để phát hiện màn hình rộng (tablet/landscape >= 600dp)
+    // và giới hạn bề rộng nội dung, tránh bento card bị kéo giãn quá khổ (Punch-list #1)
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        val isTablet = maxWidth >= TABLET_BREAKPOINT_DP
         if (uiState.isLoading && uiState.dailySummary == null) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
@@ -63,7 +69,11 @@ fun HomeScreen(
         } else {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
+                    .then(
+                        if (isTablet) Modifier.widthIn(max = 640.dp) else Modifier.fillMaxWidth()
+                    )
+                    .align(Alignment.TopCenter)
                     .padding(horizontal = 20.dp),
                 contentPadding = PaddingValues(top = 24.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)

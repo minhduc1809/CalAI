@@ -48,6 +48,12 @@ import com.calai.app.presentation.viewmodel.StatisticsViewModel
 import com.calai.app.presentation.viewmodel.StatsPeriod
 import java.util.Locale
 
+/** Ngưỡng bề rộng màn hình được coi là tablet/landscape (Punch-list #1: responsive layout) */
+private val STATS_TABLET_BREAKPOINT_DP = 600.dp
+
+/** Thời lượng animation "tự vẽ" biểu đồ xu hướng calo (Punch-list #2: tách hằng số ma thuật) */
+private const val CHART_DRAW_ANIMATION_MS = 700
+
 @Composable
 fun StatisticsScreen(
     onNavigateTab: (DockTab) -> Unit,
@@ -57,14 +63,20 @@ fun StatisticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(
+    // Responsive: BoxWithConstraints để giới hạn bề rộng nội dung trên tablet/landscape (>= 600dp)
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        val isTablet = maxWidth >= STATS_TABLET_BREAKPOINT_DP
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
+                .then(
+                    if (isTablet) Modifier.widthIn(max = 640.dp) else Modifier.fillMaxWidth()
+                )
+                .align(Alignment.TopCenter)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 32.dp, bottom = 100.dp),
@@ -458,7 +470,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                     val drawProgress = remember { Animatable(0f) }
                     LaunchedEffect(uiState.weeklyStats) {
                         drawProgress.snapTo(0f)
-                        drawProgress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = LinearEasing))
+                        drawProgress.animateTo(1f, animationSpec = tween(durationMillis = CHART_DRAW_ANIMATION_MS, easing = LinearEasing))
                     }
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
