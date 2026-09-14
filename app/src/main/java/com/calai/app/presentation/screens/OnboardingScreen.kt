@@ -3,6 +3,7 @@ package com.calai.app.presentation.screens
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -308,63 +311,70 @@ fun OnboardingScreen(
 // ══════════════════════════════════════════════════════════════
 @Composable
 private fun OverviewPage(isDarkTheme: Boolean) {
-    val textPrimary = MaterialTheme.colorScheme.onBackground
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    // Màn này luôn có nền ảnh pastel sáng cố định (bg_auth) bất kể Dark/Light Mode đang bật —
+    // dùng thẳng token sáng thay vì MaterialTheme.colorScheme.onBackground (ở Dark Mode sẽ ra
+    // chữ trắng, vô hình trên nền sáng).
+    val textPrimary = com.calai.app.presentation.theme.TextInkPrimary
+    val textSecondary = com.calai.app.presentation.theme.TextInkSecondary
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Nền trang trí pastel dùng chung với các màn Auth (Welcome/Login/Register)
+        Image(
+            painter = painterResource(id = com.calai.app.R.drawable.bg_auth),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Column(
             modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(VividOrangeSoft),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                Icons.Default.LocalFireDepartment,
-                contentDescription = null,
-                tint = VividOrange,
-                modifier = Modifier.size(54.dp)
+            // Logo thương hiệu
+            Image(
+                painter = painterResource(id = com.calai.app.R.drawable.logo_nutriwise),
+                contentDescription = "NutriWise",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.width(220.dp)
             )
-        }
 
-        Spacer(Modifier.height(28.dp))
-
-        Text(
-            "Thiết lập tài khoản của bạn",
-            fontSize = 26.sp,
-            lineHeight = 34.sp,
-            fontWeight = FontWeight.Black,
-            color = textPrimary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        Text(
-            "Chỉ mất khoảng 2 phút qua 3 bước ngắn gọn để NutriWise cá nhân hóa mục tiêu cho bạn.",
-            fontSize = 14.5.sp,
-            color = textSecondary,
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp,
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
-
-        Spacer(Modifier.height(36.dp))
-
-        listOf(
-            "1. Về cơ thể bạn" to "Giới tính, ngày sinh, chiều cao, cân nặng và % mỡ cơ thể",
-            "2. Mục tiêu & Dinh dưỡng" to "Mục tiêu cân nặng, phong cách ăn và dị ứng thực phẩm",
-            "3. Tập luyện" to "Kinh nghiệm, lịch tập, thiết bị và chấn thương (nếu có)"
-        ).forEach { (title, desc) ->
-            FeatureItem(title, desc, isDarkTheme)
             Spacer(Modifier.height(12.dp))
+
+            // Ảnh minh hoạ hero (linh vật cáo)
+            Image(
+                painter = painterResource(id = com.calai.app.R.drawable.fox_login),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .heightIn(max = 280.dp)
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                "Thiết lập tài khoản của bạn",
+                fontSize = 24.sp,
+                lineHeight = 32.sp,
+                fontWeight = FontWeight.Black,
+                color = textPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                "Chỉ mất khoảng 2 phút qua 3 bước ngắn gọn để NutriWise cá nhân hóa mục tiêu cho bạn.",
+                fontSize = 14.sp,
+                color = textSecondary,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
         }
     }
 }

@@ -2,7 +2,12 @@ package com.calai.app.presentation.screens
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -22,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +53,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onLoginSuccess: (isNewRegistration: Boolean) -> Unit,
+    onForgotPassword: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -97,6 +106,14 @@ fun LoginScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Nền trang trí pastel dùng chung cho các màn Auth (Welcome/Login/Register/Forgot Password)
+        Image(
+            painter = painterResource(id = R.drawable.bg_auth),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -106,13 +123,12 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Brand Header
-            Text(
-                text = "NutriWise",
-                fontSize = 38.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = (-1).sp
+            // Logo thương hiệu (ảnh, đã tách nền trong suốt) thay cho chữ "NutriWise" thuần text.
+            Image(
+                painter = painterResource(id = R.drawable.logo_nutriwise),
+                contentDescription = "NutriWise",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.width(200.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
@@ -121,7 +137,30 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Thẻ nổi (floating card) chứa toàn bộ form — LUÔN sáng bất kể app đang ở Dark/Light
+            // Mode, vì cả màn Auth dùng chung 1 phong cách pastel sáng cố định trên nền ảnh minh
+            // hoạ (đúng mẫu tham khảo). Bọc riêng bằng CalAILightColorScheme để mọi
+            // MaterialTheme.colorScheme.* bên trong card này luôn phân giải ra token sáng, thay vì
+            // tự tay đổi từng dòng màu (dễ sót, dễ lệch khi Dark theme làm nền/chữ tối om).
+            MaterialTheme(colorScheme = CalAILightColorScheme) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 14.dp,
+                        shape = RoundedCornerShape(30.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.15f),
+                        spotColor = Color.Black.copy(alpha = 0.15f)
+                    )
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
             // Segmented Tab Toggle: Đăng Nhập / Đăng Ký
             Row(
@@ -294,6 +333,20 @@ fun LoginScreen(
                 )
             )
 
+            // Liên kết "Quên mật khẩu?" — chỉ hiện ở tab Đăng Nhập
+            if (uiState.isLoginMode) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Quên mật khẩu?",
+                    color = VividOrange,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clickable { onForgotPassword() }
+                )
+            }
+
             Spacer(modifier = Modifier.height(28.dp))
 
             // Nút bấm CTA chính: AppButton tactile dùng chung (Part 4.1)
@@ -336,20 +389,12 @@ fun LoginScreen(
                     contentColor = MaterialTheme.colorScheme.onBackground
                 )
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(TextWhite),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "G",
-                        color = TextDeepInk,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(22.dp)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Tiếp tục với Google",
@@ -357,6 +402,8 @@ fun LoginScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+            } // đóng Column thẻ nổi (floating card)
+            } // đóng MaterialTheme(CalAILightColorScheme)
         }
     }
 }

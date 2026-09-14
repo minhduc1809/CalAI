@@ -104,12 +104,24 @@ class MainActivity : ComponentActivity() {
                     ) {
                         // 1. Màn hình Đăng nhập / Đăng ký
                         composable(Screen.Login.route) {
-                            LoginScreen(onLoginSuccess = { isNewRegistration ->
-                                val destination = if (isNewRegistration) Screen.Onboarding.route else Screen.Home.route
-                                navController.navigate(destination) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
+                            LoginScreen(
+                                onLoginSuccess = { isNewRegistration ->
+                                    val destination = if (isNewRegistration) Screen.Onboarding.route else Screen.Home.route
+                                    navController.navigate(destination) {
+                                        popUpTo(Screen.Login.route) { inclusive = true }
+                                    }
+                                },
+                                onForgotPassword = {
+                                    navController.navigate(Screen.ForgotPassword.route)
                                 }
-                            })
+                            )
+                        }
+
+                        // 1c. Quên mật khẩu (chưa có API backend — chỉ hiển thị thông báo minh bạch)
+                        composable(Screen.ForgotPassword.route) {
+                            ForgotPasswordScreen(
+                                onBack = { navController.popBackStack() }
+                            )
                         }
 
                         // 1b. Onboarding Wizard (chỉ hiện sau khi Đăng ký tài khoản mới)
