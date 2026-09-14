@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.AppFormDialog
+import com.calai.app.presentation.components.AppTextField
 import com.calai.app.presentation.components.AppToggle
 import com.calai.app.presentation.components.DuotoneMoonIcon
 import com.calai.app.presentation.components.DuotoneSunIcon
@@ -142,11 +144,15 @@ fun SettingsScreen(
         RemindersModalSheet(
             isDarkTheme = isDarkTheme,
             settings = uiState.reminderSettings,
+            customReminders = uiState.customReminders,
             onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
             onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
             onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
             onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
             onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
+            onAddCustomReminder = { label, time -> viewModel.addCustomReminder(label, time) },
+            onUpdateCustomReminder = { id, enabled, time -> viewModel.updateCustomReminder(id, enabled, time) },
+            onDeleteCustomReminder = { id -> viewModel.deleteCustomReminder(id) },
             onDismiss = { showReminderSheet = false }
         )
     }
@@ -752,13 +758,19 @@ fun EmailVerificationModalSheet(
 fun RemindersModalSheet(
     isDarkTheme: Boolean,
     settings: com.calai.app.presentation.viewmodel.ReminderSettingsState,
+    customReminders: List<com.calai.app.data.local.CustomReminder> = emptyList(),
     onUpdateBreakfast: (Boolean, String) -> Unit,
     onUpdateLunch: (Boolean, String) -> Unit,
     onUpdateDinner: (Boolean, String) -> Unit,
     onUpdateSnack: (Boolean, String) -> Unit,
     onUpdateWater: (Boolean, Int) -> Unit,
+    onAddCustomReminder: (String, String) -> Unit = { _, _ -> },
+    onUpdateCustomReminder: (String, Boolean, String) -> Unit = { _, _, _ -> },
+    onDeleteCustomReminder: (String) -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    var showAddCustomDialog by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -828,6 +840,46 @@ fun RemindersModalSheet(
                 onTimeChanged = {}
             )
 
+            // Nhắc nhở tuỳ chỉnh do người dùng tự thêm — kiểu "thêm báo thức mới"
+            customReminders.forEach { reminder ->
+                ReminderAlarmRow(
+                    title = reminder.label,
+                    time = reminder.time,
+                    enabled = reminder.enabled,
+                    isDark = isDarkTheme,
+                    editableTime = true,
+                    onToggle = { onUpdateCustomReminder(reminder.id, it, reminder.time) },
+                    onTimeChanged = { newTime -> onUpdateCustomReminder(reminder.id, reminder.enabled, newTime) },
+                    onDelete = { onDeleteCustomReminder(reminder.id) }
+                )
+            }
+
+            OutlinedButton(
+                onClick = { showAddCustomDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = VividOrange,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Thêm nhắc nhở mới",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = VividOrange
+                )
+            }
+
             AppButton(
                 text = "Xong",
                 onClick = onDismiss,
@@ -836,12 +888,113 @@ fun RemindersModalSheet(
             )
         }
     }
+
+    if (showAddCustomDialog) {
+        AddCustomReminderDialog(
+            onDismiss = { showAddCustomDialog = false },
+            onSave = { label, time ->
+                onAddCustomReminder(label, time)
+                showAddCustomDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Dialog "Thêm mới nhắc nhở" cho nhắc nhở tuỳ chỉnh — dùng chung AppFormDialog/AppTextField
+ * (Part 7/8), chọn giờ bằng đúng TimePickerDialog kiểu báo thức như các hàng nhắc nhở cố định.
+ */
+@Composable
+private fun AddCustomReminderDialog(
+    onDismiss: () -> Unit,
+    onSave: (label: String, time: String) -> Unit
+) {
+    val context = LocalContext.current
+    var label by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("08:00") }
+
+    AppFormDialog(
+        title = "Thêm mới nhắc nhở",
+        onDismiss = onDismiss,
+        actions = {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Hủy")
+            }
+            AppButton(
+                text = "Lưu",
+                onClick = { if (label.isNotBlank()) onSave(label.trim(), time) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                enabled = label.isNotBlank(),
+                shape = RoundedCornerShape(14.dp)
+            )
+        }
+    ) {
+        AppTextField(
+            label = "Tên nhắc nhở",
+            value = label,
+            onValueChange = { label = it },
+            placeholder = "VD: Uống thuốc, Tập thể dục..."
+        )
+
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Giờ nhắc",
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable {
+                        val parts = time.split(":")
+                        val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 8
+                        val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, pickedHour, pickedMinute ->
+                                time = "%02d:%02d".format(pickedHour, pickedMinute)
+                            },
+                            hour,
+                            minute,
+                            true
+                        ).show()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = time,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Đổi giờ",
+                    tint = VividOrange,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
 }
 
 /**
  * Hàng nhắc nhở dạng "đồng hồ báo thức" (Spec 10.5 - Alarm-style reminder row)
  * - Giờ hiển thị lớn, chạm vào để mở TimePickerDialog đổi giờ như báo thức
  * - Toggle dùng component dùng chung AppToggle (Part 4.5 / Part 8)
+ * - `onDelete` khác null => hiện nút xoá (dùng cho nhắc nhở tuỳ chỉnh, 5 nhắc nhở cố định không xoá được)
  */
 @Composable
 private fun ReminderAlarmRow(
@@ -851,7 +1004,8 @@ private fun ReminderAlarmRow(
     isDark: Boolean,
     editableTime: Boolean,
     onToggle: (Boolean) -> Unit,
-    onTimeChanged: (String) -> Unit
+    onTimeChanged: (String) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
 
@@ -920,6 +1074,18 @@ private fun ReminderAlarmRow(
         }
 
         Spacer(modifier = Modifier.width(12.dp))
+
+        if (onDelete != null) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Xoá nhắc nhở",
+                    tint = CrimsonError,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+        }
 
         AppToggle(
             checked = enabled,

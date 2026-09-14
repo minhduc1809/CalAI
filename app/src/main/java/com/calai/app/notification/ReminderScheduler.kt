@@ -5,6 +5,7 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.calai.app.data.local.CustomReminder
 import com.calai.app.data.local.UserPreferencesManager
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -19,6 +20,8 @@ object ReminderScheduler {
 
     private fun uniqueName(type: ReminderType) = "reminder_${type.name.lowercase()}"
 
+    private fun uniqueCustomName(id: String) = "custom_reminder_$id"
+
     fun scheduleAll(context: Context, prefs: UserPreferencesManager) {
         ReminderNotificationHelper.ensureChannels(context)
 
@@ -27,6 +30,39 @@ object ReminderScheduler {
         scheduleMeal(context, ReminderType.DINNER, prefs.isDinnerReminderEnabled(), prefs.getDinnerReminderTime())
         scheduleMeal(context, ReminderType.SNACK, prefs.isSnackReminderEnabled(), prefs.getSnackReminderTime())
         scheduleWater(context, prefs.isWaterReminderEnabled(), prefs.getWaterReminderInterval())
+
+        prefs.getCustomReminders().forEach { reminder ->
+            scheduleCustomReminder(context, reminder)
+        }
+    }
+
+    /** Lên lịch (hoặc huỷ nếu disabled) 1 nhắc nhở tuỳ chỉnh — gọi khi thêm/sửa/bật-tắt. */
+    fun scheduleCustomReminder(context: Context, reminder: CustomReminder) {
+        val workManager = WorkManager.getInstance(context)
+        val name = uniqueCustomName(reminder.id)
+        if (!reminder.enabled) {
+            workManager.cancelUniqueWork(name)
+            return
+        }
+
+        val initialDelayMs = delayUntilNextOccurrence(reminder.time)
+        val request = PeriodicWorkRequestBuilder<ReminderWorker>(24, TimeUnit.HOURS)
+            .setInitialDelay(initialDelayMs, TimeUnit.MILLISECONDS)
+            .setInputData(
+                Data.Builder()
+                    .putString(ReminderWorker.KEY_TYPE, ReminderWorker.TYPE_CUSTOM)
+                    .putString(ReminderWorker.KEY_CUSTOM_ID, reminder.id)
+                    .putString(ReminderWorker.KEY_CUSTOM_LABEL, reminder.label)
+                    .build()
+            )
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(name, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    /** Huỷ lịch của 1 nhắc nhở tuỳ chỉnh — gọi khi xoá. */
+    fun cancelCustomReminder(context: Context, reminderId: String) {
+        WorkManager.getInstance(context).cancelUniqueWork(uniqueCustomName(reminderId))
     }
 
     private fun scheduleMeal(context: Context, type: ReminderType, enabled: Boolean, time: String) {

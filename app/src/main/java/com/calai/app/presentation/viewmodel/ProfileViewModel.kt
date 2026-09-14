@@ -3,6 +3,7 @@ package com.calai.app.presentation.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.calai.app.data.local.CustomReminder
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
@@ -42,7 +43,8 @@ data class ProfileUiState(
     val isLoggedOut: Boolean = false,
     val weightUnit: String = "kg",
     val mealStructureMode: String = "TIMELINE",
-    val reminderSettings: ReminderSettingsState = ReminderSettingsState()
+    val reminderSettings: ReminderSettingsState = ReminderSettingsState(),
+    val customReminders: List<CustomReminder> = emptyList()
 )
 
 @HiltViewModel
@@ -76,6 +78,11 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.mealStructureMode.collect { mode ->
                 _uiState.update { it.copy(mealStructureMode = mode) }
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.customReminders.collect { list ->
+                _uiState.update { it.copy(customReminders = list) }
             }
         }
     }
@@ -136,6 +143,23 @@ class ProfileViewModel @Inject constructor(
         preferencesManager.setWaterReminder(enabled, interval)
         loadReminderSettings()
         ReminderScheduler.scheduleAll(appContext, preferencesManager)
+    }
+
+    // Nhắc nhở tuỳ chỉnh (kiểu "thêm báo thức mới") — bên cạnh 5 nhắc nhở cố định ở trên.
+    fun addCustomReminder(label: String, time: String) {
+        val reminder = preferencesManager.addCustomReminder(label, time)
+        ReminderScheduler.scheduleCustomReminder(appContext, reminder)
+    }
+
+    fun updateCustomReminder(id: String, enabled: Boolean, time: String) {
+        preferencesManager.updateCustomReminder(id, enabled, time)
+        val updated = preferencesManager.getCustomReminders().find { it.id == id } ?: return
+        ReminderScheduler.scheduleCustomReminder(appContext, updated)
+    }
+
+    fun deleteCustomReminder(id: String) {
+        preferencesManager.deleteCustomReminder(id)
+        ReminderScheduler.cancelCustomReminder(appContext, id)
     }
 
     fun loadProfile() {

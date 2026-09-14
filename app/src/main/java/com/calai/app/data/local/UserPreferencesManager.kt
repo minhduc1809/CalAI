@@ -2,12 +2,26 @@ package com.calai.app.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Nhắc nhở tuỳ chỉnh do người dùng tự tạo (kiểu "thêm báo thức mới"),
+ * bên cạnh 5 nhắc nhở cố định (Bữa Sáng/Trưa/Tối/Phụ, Nước).
+ */
+data class CustomReminder(
+    val id: String = UUID.randomUUID().toString(),
+    val label: String,
+    val time: String,
+    val enabled: Boolean = true
+)
 
 @Singleton
 class UserPreferencesManager @Inject constructor(
@@ -32,6 +46,7 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_UNIT_HEIGHT = "pref_unit_height" // "cm", "ft"
         private const val KEY_UNIT_ENERGY = "pref_unit_energy" // "kcal", "kJ"
         private const val KEY_MEAL_STRUCTURE_MODE = "pref_meal_structure_mode" // "TIMELINE", "FIXED_MEALS"
+        private const val KEY_CUSTOM_REMINDERS = "pref_custom_reminders" // JSON list of CustomReminder
 
         private const val KG_TO_LB = 2.20462f
 
@@ -124,6 +139,48 @@ class UserPreferencesManager @Inject constructor(
             .putBoolean(KEY_REMINDER_WATER, enabled)
             .putInt(KEY_REMINDER_WATER_INTERVAL, intervalHours)
             .apply()
+    }
+
+    // Nhắc nhở tuỳ chỉnh — lưu dạng JSON vì SharedPreferences không hỗ trợ list trực tiếp,
+    // giữ đơn giản (không dùng Room) để đồng bộ với cách phần còn lại của file này lưu dữ liệu.
+    private val gson = Gson()
+    private val customReminderListType = object : TypeToken<List<CustomReminder>>() {}.type
+
+    private val _customReminders = MutableStateFlow(readCustomReminders())
+    val customReminders: StateFlow<List<CustomReminder>> = _customReminders.asStateFlow()
+
+    private fun readCustomReminders(): List<CustomReminder> {
+        val json = prefs.getString(KEY_CUSTOM_REMINDERS, null) ?: return emptyList()
+        return try {
+            gson.fromJson<List<CustomReminder>>(json, customReminderListType) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun writeCustomReminders(list: List<CustomReminder>) {
+        prefs.edit().putString(KEY_CUSTOM_REMINDERS, gson.toJson(list)).apply()
+        _customReminders.value = list
+    }
+
+    fun getCustomReminders(): List<CustomReminder> = _customReminders.value
+
+    fun addCustomReminder(label: String, time: String): CustomReminder {
+        val reminder = CustomReminder(label = label, time = time, enabled = true)
+        writeCustomReminders(_customReminders.value + reminder)
+        return reminder
+    }
+
+    fun updateCustomReminder(id: String, enabled: Boolean, time: String) {
+        writeCustomReminders(
+            _customReminders.value.map {
+                if (it.id == id) it.copy(enabled = enabled, time = time) else it
+            }
+        )
+    }
+
+    fun deleteCustomReminder(id: String) {
+        writeCustomReminders(_customReminders.value.filterNot { it.id == id })
     }
 
     private val _weightUnit = MutableStateFlow(

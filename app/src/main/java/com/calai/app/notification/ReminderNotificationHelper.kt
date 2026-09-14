@@ -25,6 +25,30 @@ enum class ReminderType(val channelId: String, val notificationId: Int) {
  */
 object ReminderNotificationHelper {
 
+    const val CUSTOM_REMINDER_CHANNEL_ID = "custom_reminders"
+
+    /** notificationId ổn định theo id của custom reminder (hash để luôn khác với 5 id cố định 1001-1005). */
+    fun customNotificationId(reminderId: String): Int = 2_000_000 + (reminderId.hashCode() and 0x7FFFFFF)
+
+    fun showCustom(context: Context, reminderId: String, label: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val notification = NotificationCompat.Builder(context, CUSTOM_REMINDER_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(label)
+            .setContentText("Đến giờ nhắc nhở bạn đã đặt.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(customNotificationId(reminderId), notification)
+    }
+
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -45,6 +69,15 @@ object ReminderNotificationHelper {
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Nhắc uống nước định kỳ theo chu kỳ giờ đã đặt"
+            }
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CUSTOM_REMINDER_CHANNEL_ID,
+                "Nhắc nhở tuỳ chỉnh",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Nhắc nhở do bạn tự tạo"
             }
         )
     }
