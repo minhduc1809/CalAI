@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -157,7 +159,7 @@ fun LoginScreen(
                         spotColor = Color.Black.copy(alpha = 0.15f)
                     )
                     .clip(RoundedCornerShape(30.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -178,14 +180,17 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                        .background(
+                            if (uiState.isLoginMode) Brush.horizontalGradient(listOf(VividOrangeLight, VividOrange))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
                         .clickable { if (!uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Đăng Nhập",
                         fontWeight = if (uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (uiState.isLoginMode) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (uiState.isLoginMode) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -195,14 +200,17 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(if (!uiState.isLoginMode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                        .background(
+                            if (!uiState.isLoginMode) Brush.horizontalGradient(listOf(VividOrangeLight, VividOrange))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
                         .clickable { if (uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Đăng Ký",
                         fontWeight = if (!uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (!uiState.isLoginMode) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (!uiState.isLoginMode) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -236,6 +244,31 @@ fun LoginScreen(
                 }
             }
 
+            // Nếu đang ở tab Đăng ký: Họ và tên hiện TRƯỚC Tên đăng nhập (đúng thứ tự tham khảo)
+            if (!uiState.isLoginMode) {
+                OutlinedTextField(
+                    value = uiState.name,
+                    onValueChange = { viewModel.onNameChange(it) },
+                    label = { Text("Họ và tên", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = VividOrange,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // Tên đăng nhập
             OutlinedTextField(
                 value = uiState.username,
@@ -257,14 +290,17 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Nếu đang ở tab Đăng ký: thêm Email và Tên hiển thị
+            // Nếu đang ở tab Đăng ký: Email (bắt buộc)
             if (!uiState.isLoginMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = uiState.email,
                     onValueChange = { viewModel.onEmailChange(it) },
-                    label = { Text("Email (không bắt buộc)", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -278,28 +314,9 @@ fun LoginScreen(
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = uiState.name,
-                    onValueChange = { viewModel.onNameChange(it) },
-                    label = { Text("Họ và tên", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedBorderColor = VividOrange,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Mật khẩu
             OutlinedTextField(
@@ -332,6 +349,43 @@ fun LoginScreen(
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 )
             )
+
+            // Nếu đang ở tab Đăng ký: Xác nhận mật khẩu
+            if (!uiState.isLoginMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                var confirmPasswordVisible by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = uiState.confirmPassword,
+                    onValueChange = { viewModel.onConfirmPasswordChange(it) },
+                    label = { Text("Xác nhận mật khẩu", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = VividOrange,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+            }
 
             // Liên kết "Quên mật khẩu?" — chỉ hiện ở tab Đăng Nhập
             if (uiState.isLoginMode) {

@@ -100,8 +100,17 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Login.route
+                        startDestination = Screen.Welcome.route
                     ) {
+                        // 0. Màn Welcome — luôn hiện đầu tiên khi mở app, trước cả Đăng nhập/Đăng ký
+                        composable(Screen.Welcome.route) {
+                            WelcomeScreen(
+                                onGetStarted = {
+                                    navController.navigate(Screen.Login.route)
+                                }
+                            )
+                        }
+
                         // 1. Màn hình Đăng nhập / Đăng ký
                         composable(Screen.Login.route) {
                             LoginScreen(

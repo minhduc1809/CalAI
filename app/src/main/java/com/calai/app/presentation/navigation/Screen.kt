@@ -1,6 +1,7 @@
 package com.calai.app.presentation.navigation
 
 sealed class Screen(val route: String) {
+    object Welcome : Screen("welcome")
     object Login : Screen("login")
     object ForgotPassword : Screen("forgot_password")
     object Home : Screen("home")

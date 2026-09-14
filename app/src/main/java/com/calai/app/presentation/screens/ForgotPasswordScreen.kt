@@ -109,7 +109,7 @@ fun ForgotPasswordScreen(
                         spotColor = Color.Black.copy(alpha = 0.15f)
                     )
                     .clip(RoundedCornerShape(30.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
