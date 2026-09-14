@@ -33,6 +33,8 @@ import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.data.remote.dto.toFoodItemDto
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.AppTextField
+import com.calai.app.presentation.components.AppTextFieldCompact
 import com.calai.app.presentation.components.SelectionPill
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.AddMealViewModel
@@ -788,66 +790,43 @@ private fun QuickAddDialog(
     var carb by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
-    @Composable
-    fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        focusedBorderColor = VividOrange,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-    )
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Nhập nhanh Calo / Macro", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                AppTextField(
+                    label = "Tên món / ghi chú",
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Tên món / ghi chú") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = textFieldColors()
+                    placeholder = "VD: Ăn vặt buổi chiều"
                 )
-                OutlinedTextField(
+                AppTextField(
+                    label = "Calories (kcal)",
                     value = calories,
                     onValueChange = { calories = it.filter { c -> c.isDigit() } },
-                    label = { Text("Calories (kcal)") },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = textFieldColors()
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    placeholder = "0"
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Protein (g)",
                         value = protein,
                         onValueChange = { protein = it.filter { c -> c.isDigit() } },
-                        label = { Text("Protein (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Carb (g)",
                         value = carb,
                         onValueChange = { carb = it.filter { c -> c.isDigit() } },
-                        label = { Text("Carb (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Fat (g)",
                         value = fat,
                         onValueChange = { fat = it.filter { c -> c.isDigit() } },
-                        label = { Text("Fat (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
                 }
                 if (errorMessage != null) {
@@ -902,94 +881,70 @@ private fun CreateCustomFoodDialog(
     var carb by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
-    @Composable
-    fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        focusedBorderColor = VividOrange,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-    )
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Tạo món ăn riêng", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                AppTextField(
+                    label = "Tên món ăn",
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Tên món ăn") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = textFieldColors()
+                    placeholder = "VD: Cơm gà xối mỡ"
                 )
-                OutlinedTextField(
+                AppTextField(
+                    label = "Khẩu phần",
                     value = servingSize,
                     onValueChange = { servingSize = it },
-                    label = { Text("Khẩu phần (VD: 1 phần 300g)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = textFieldColors()
+                    placeholder = "VD: 1 phần 300g"
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = servingAmount,
-                        onValueChange = { servingAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Số lượng", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
-                    )
-                    listOf("GRAM" to "g", "ML" to "ml", "PORTION" to "phần").forEach { (key, label) ->
-                        SelectionPill(
-                            label = label,
-                            isSelected = servingUnit == key,
-                            isDarkTheme = isDark,
-                            modifier = Modifier.weight(1f),
-                            onClick = { servingUnit = key }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AppTextFieldCompact(
+                            label = "Số lượng",
+                            value = servingAmount,
+                            onValueChange = { servingAmount = it.filter { c -> c.isDigit() || c == '.' } },
+                            modifier = Modifier.weight(1f)
                         )
                     }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("GRAM" to "g", "ML" to "ml", "PORTION" to "phần").forEach { (key, label) ->
+                            SelectionPill(
+                                label = label,
+                                isSelected = servingUnit == key,
+                                isDarkTheme = isDark,
+                                modifier = Modifier.weight(1f),
+                                onClick = { servingUnit = key }
+                            )
+                        }
+                    }
                 }
-                OutlinedTextField(
+                AppTextField(
+                    label = "Calories (kcal)",
                     value = calories,
                     onValueChange = { calories = it.filter { c -> c.isDigit() } },
-                    label = { Text("Calories (kcal)") },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = textFieldColors()
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    placeholder = "0"
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Protein (g)",
                         value = protein,
                         onValueChange = { protein = it.filter { c -> c.isDigit() } },
-                        label = { Text("Protein (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Carb (g)",
                         value = carb,
                         onValueChange = { carb = it.filter { c -> c.isDigit() } },
-                        label = { Text("Carb (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    AppTextFieldCompact(
+                        label = "Fat (g)",
                         value = fat,
                         onValueChange = { fat = it.filter { c -> c.isDigit() } },
-                        label = { Text("Fat (g)", fontSize = 11.sp) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = textFieldColors()
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
