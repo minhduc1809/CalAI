@@ -33,6 +33,7 @@ import com.calai.app.data.remote.dto.CustomFoodDto
 import com.calai.app.data.remote.dto.FoodItemDto
 import com.calai.app.data.remote.dto.toFoodItemDto
 import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.AppFormDialog
 import com.calai.app.presentation.components.AppTextField
 import com.calai.app.presentation.components.AppTextFieldCompact
 import com.calai.app.presentation.components.SelectionPill
@@ -790,51 +791,19 @@ private fun QuickAddDialog(
     var carb by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("Nhập nhanh Calo / Macro", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                AppTextField(
-                    label = "Tên món / ghi chú",
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = "VD: Ăn vặt buổi chiều"
-                )
-                AppTextField(
-                    label = "Calories (kcal)",
-                    value = calories,
-                    onValueChange = { calories = it.filter { c -> c.isDigit() } },
-                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                    placeholder = "0"
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AppTextFieldCompact(
-                        label = "Protein (g)",
-                        value = protein,
-                        onValueChange = { protein = it.filter { c -> c.isDigit() } },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AppTextFieldCompact(
-                        label = "Carb (g)",
-                        value = carb,
-                        onValueChange = { carb = it.filter { c -> c.isDigit() } },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AppTextFieldCompact(
-                        label = "Fat (g)",
-                        value = fat,
-                        onValueChange = { fat = it.filter { c -> c.isDigit() } },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (errorMessage != null) {
-                    Text(errorMessage, color = CrimsonError, fontSize = 12.5.sp)
-                }
+    AppFormDialog(
+        title = "Thêm mới — Nhập nhanh Calo/Macro",
+        onDismiss = onDismiss,
+        actions = {
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        },
-        confirmButton = {
             AppButton(
                 text = "Lưu",
                 onClick = {
@@ -848,22 +817,49 @@ private fun QuickAddDialog(
                 },
                 enabled = !isSaving && calories.toFloatOrNull() != null,
                 isLoading = isSaving,
-                modifier = Modifier.width(100.dp),
-                height = 40.dp,
-                shape = RoundedCornerShape(10.dp)
+                modifier = Modifier.weight(1f),
+                height = 44.dp,
+                shape = RoundedCornerShape(12.dp)
             )
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                enabled = !isSaving,
-                shape = RoundedCornerShape(10.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-            ) {
-                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
         }
-    )
+    ) {
+        AppTextField(
+            label = "Tên món / ghi chú",
+            value = name,
+            onValueChange = { name = it },
+            placeholder = "VD: Ăn vặt buổi chiều"
+        )
+        AppTextField(
+            label = "Calories (kcal)",
+            value = calories,
+            onValueChange = { calories = it.filter { c -> c.isDigit() } },
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+            placeholder = "0"
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppTextFieldCompact(
+                label = "Protein (g)",
+                value = protein,
+                onValueChange = { protein = it.filter { c -> c.isDigit() } },
+                modifier = Modifier.weight(1f)
+            )
+            AppTextFieldCompact(
+                label = "Carb (g)",
+                value = carb,
+                onValueChange = { carb = it.filter { c -> c.isDigit() } },
+                modifier = Modifier.weight(1f)
+            )
+            AppTextFieldCompact(
+                label = "Fat (g)",
+                value = fat,
+                onValueChange = { fat = it.filter { c -> c.isDigit() } },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        if (errorMessage != null) {
+            Text(errorMessage, color = CrimsonError, fontSize = 12.5.sp)
+        }
+    }
 }
 
 @Composable
@@ -881,12 +877,39 @@ private fun CreateCustomFoodDialog(
     var carb by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("Tạo món ăn riêng", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    AppFormDialog(
+        title = "Thêm mới — Món ăn riêng",
+        onDismiss = onDismiss,
+        actions = {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            AppButton(
+                text = "Lưu",
+                onClick = {
+                    onConfirm(
+                        name,
+                        servingSize,
+                        servingAmount.toFloatOrNull(),
+                        servingUnit,
+                        calories.toFloatOrNull() ?: 0f,
+                        protein.toFloatOrNull() ?: 0f,
+                        carb.toFloatOrNull() ?: 0f,
+                        fat.toFloatOrNull() ?: 0f
+                    )
+                },
+                enabled = name.isNotBlank() && calories.toFloatOrNull() != null,
+                modifier = Modifier.weight(1f),
+                height = 44.dp,
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+    ) {
                 AppTextField(
                     label = "Tên món ăn",
                     value = name,
@@ -947,37 +970,5 @@ private fun CreateCustomFoodDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-            }
-        },
-        confirmButton = {
-            AppButton(
-                text = "Lưu",
-                onClick = {
-                    onConfirm(
-                        name,
-                        servingSize,
-                        servingAmount.toFloatOrNull(),
-                        servingUnit,
-                        calories.toFloatOrNull() ?: 0f,
-                        protein.toFloatOrNull() ?: 0f,
-                        carb.toFloatOrNull() ?: 0f,
-                        fat.toFloatOrNull() ?: 0f
-                    )
-                },
-                enabled = name.isNotBlank() && calories.toFloatOrNull() != null,
-                modifier = Modifier.width(100.dp),
-                height = 40.dp,
-                shape = RoundedCornerShape(10.dp)
-            )
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(10.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-            ) {
-                Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    )
+    }
 }
