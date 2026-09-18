@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -169,20 +170,37 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(26.dp),
+                        ambientColor = Color(0x141A2540),
+                        spotColor = Color(0x1A1A2540)
+                    )
                     .clip(RoundedCornerShape(26.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // ── Active tab: elevated + colored shadow + top-edge highlight ────────
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .shadow(
+                            elevation = if (uiState.isLoginMode) 8.dp else 0.dp,
+                            shape = RoundedCornerShape(22.dp),
+                            ambientColor = CtaSolidOrange.copy(alpha = 0.28f),
+                            spotColor = CtaSolidOrange.copy(alpha = 0.40f)
+                        )
                         .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            if (uiState.isLoginMode) Brush.horizontalGradient(listOf(VividOrangeLight, VividOrange))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        .background(if (uiState.isLoginMode) CtaSolidOrange else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            brush = if (uiState.isLoginMode) Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.00f))
+                            ) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)),
+                            shape = RoundedCornerShape(22.dp)
                         )
                         .clickable { if (!uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
@@ -199,10 +217,20 @@ fun LoginScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .shadow(
+                            elevation = if (!uiState.isLoginMode) 8.dp else 0.dp,
+                            shape = RoundedCornerShape(22.dp),
+                            ambientColor = CtaSolidOrange.copy(alpha = 0.28f),
+                            spotColor = CtaSolidOrange.copy(alpha = 0.40f)
+                        )
                         .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            if (!uiState.isLoginMode) Brush.horizontalGradient(listOf(VividOrangeLight, VividOrange))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        .background(if (!uiState.isLoginMode) CtaSolidOrange else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            brush = if (!uiState.isLoginMode) Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.00f))
+                            ) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)),
+                            shape = RoundedCornerShape(22.dp)
                         )
                         .clickable { if (uiState.isLoginMode) viewModel.toggleAuthMode() },
                     contentAlignment = Alignment.Center
@@ -429,33 +457,20 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Đăng nhập với Google
-            OutlinedButton(
+            // Đăng nhập với Google — AppSecondaryButton (L2 neutral elevation, tactile press)
+            com.calai.app.presentation.components.AppSecondaryButton(
+                text = "Tiếp tục với Google",
                 onClick = { launchGoogleSignIn() },
                 enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onBackground
-                )
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_google_logo),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Tiếp tục với Google",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            )
             } // đóng Column thẻ nổi (floating card)
             } // đóng MaterialTheme(CalAILightColorScheme)
         }

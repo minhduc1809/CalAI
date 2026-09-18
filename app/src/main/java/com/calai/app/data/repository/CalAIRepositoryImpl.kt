@@ -218,6 +218,134 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun forgotPassword(email: String): Result<Unit> {
+        return try {
+            val response = api.forgotPassword(ForgotPasswordRequest(email = email))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Gửi yêu cầu đặt lại mật khẩu thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit> {
+        return try {
+            val response = api.resetPassword(
+                ResetPasswordRequest(email = email, code = code, newPassword = newPassword)
+            )
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Đặt lại mật khẩu thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getHabitReminders(): Result<List<HabitReminderDto>> {
+        return try {
+            val response = api.getHabitReminders()
+            if (response.success) {
+                Result.success(response.data ?: emptyList())
+            } else {
+                Result.failure(Exception(response.message ?: "Không tải được danh sách nhắc nhở"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun createHabitReminder(request: CreateHabitReminderRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.createHabitReminder(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Tạo nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun updateHabitReminder(id: String, request: UpdateHabitReminderRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.updateHabitReminder(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Cập nhật nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun deleteHabitReminder(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteHabitReminder(id)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Xoá nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun addHabitReminderFood(id: String, request: AttachHabitReminderFoodRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.addHabitReminderFood(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Gắn món ăn thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun removeHabitReminderFood(id: String, foodId: String): Result<HabitReminderDto> {
+        return try {
+            val response = api.removeHabitReminderFood(id, foodId)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Gỡ món ăn thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getHabitReminderSuggestions(id: String): Result<SuggestMealResponseDto> {
+        return try {
+            val response = api.getHabitReminderSuggestions(id)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không lấy được gợi ý món ăn"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
     override fun getCurrentUserId(): String = tokenManager.getUserId() ?: ""

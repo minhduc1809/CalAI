@@ -31,6 +31,17 @@ interface CalAIRepository {
     suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData>
     suspend fun sendVerificationEmail(): Result<Unit>
     suspend fun verifyEmail(code: String): Result<Unit>
+    suspend fun forgotPassword(email: String): Result<Unit>
+    suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit>
+
+    // --- Habit Reminders ---
+    suspend fun getHabitReminders(): Result<List<HabitReminderDto>>
+    suspend fun createHabitReminder(request: CreateHabitReminderRequest): Result<HabitReminderDto>
+    suspend fun updateHabitReminder(id: String, request: UpdateHabitReminderRequest): Result<HabitReminderDto>
+    suspend fun deleteHabitReminder(id: String): Result<Unit>
+    suspend fun addHabitReminderFood(id: String, request: AttachHabitReminderFoodRequest): Result<HabitReminderDto>
+    suspend fun removeHabitReminderFood(id: String, foodId: String): Result<HabitReminderDto>
+    suspend fun getHabitReminderSuggestions(id: String): Result<SuggestMealResponseDto>
     fun isLoggedIn(): Boolean
     fun getCurrentUserId(): String?
     fun getCurrentUsername(): String?

@@ -35,6 +35,12 @@ interface CalAIApi {
     @POST("auth/verify-email")
     suspend fun verifyEmail(@Body request: VerifyEmailRequest): ApiResponse<Any?>
 
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ApiResponse<Any?>
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): ApiResponse<Any?>
+
     // --- USERS ---
     @GET("users/me")
     suspend fun getProfile(): ApiResponse<UserProfileDto>
@@ -236,6 +242,37 @@ interface CalAIApi {
 
     @GET("ai/suggest-meal")
     suspend fun getSuggestMeal(): ApiResponse<SuggestMealResponseDto>
+
+    // --- HABIT REMINDERS ---
+    @GET("habit-reminders")
+    suspend fun getHabitReminders(): ApiResponse<List<HabitReminderDto>>
+
+    @POST("habit-reminders")
+    suspend fun createHabitReminder(@Body request: CreateHabitReminderRequest): ApiResponse<HabitReminderDto>
+
+    @PATCH("habit-reminders/{id}")
+    suspend fun updateHabitReminder(
+        @Path("id") id: String,
+        @Body request: UpdateHabitReminderRequest
+    ): ApiResponse<HabitReminderDto>
+
+    @DELETE("habit-reminders/{id}")
+    suspend fun deleteHabitReminder(@Path("id") id: String): ApiResponse<Any?>
+
+    @POST("habit-reminders/{id}/foods")
+    suspend fun addHabitReminderFood(
+        @Path("id") id: String,
+        @Body request: AttachHabitReminderFoodRequest
+    ): ApiResponse<HabitReminderDto>
+
+    @DELETE("habit-reminders/{id}/foods/{foodId}")
+    suspend fun removeHabitReminderFood(
+        @Path("id") id: String,
+        @Path("foodId") foodId: String
+    ): ApiResponse<HabitReminderDto>
+
+    @GET("habit-reminders/{id}/suggestions")
+    suspend fun getHabitReminderSuggestions(@Path("id") id: String): ApiResponse<SuggestMealResponseDto>
 
     @Multipart
     @POST("ai/scan-menu")
