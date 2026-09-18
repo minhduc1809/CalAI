@@ -197,13 +197,7 @@ fun LogWorkoutScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(20.dp))
-                                        .background(
-                                            if (isSelected) {
-                                                Brush.horizontalGradient(listOf(VividOrange, VividOrangeLight))
-                                            } else {
-                                                Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface))
-                                            }
-                                        )
+                                        .background(if (isSelected) CtaSolidOrange else MaterialTheme.colorScheme.surfaceVariant)
                                         .border(
                                             1.dp,
                                             if (isSelected) VividOrange.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline,
@@ -752,11 +746,11 @@ fun ExerciseCardItem(
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "SET", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
+                Text(text = "HIỆP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "MỨC TẠ (KG)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "REPS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(text = "SỐ LẦN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "XONG", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(42.dp), textAlign = TextAlign.Center)
             }

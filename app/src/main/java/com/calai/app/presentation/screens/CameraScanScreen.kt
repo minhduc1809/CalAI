@@ -185,7 +185,7 @@ fun CameraScanScreen(
                                     accentColor = if (isMenu) TextWhite else VividOrange
                                 )
                                 Text(
-                                    text = "Thực Đơn (Menu)",
+                                    text = "Thực Đơn",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isMenu) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant

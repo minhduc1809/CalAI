@@ -148,7 +148,7 @@ fun WorkoutHubScreen(
                     modifier = Modifier
                         .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = VividOrange.copy(alpha = 0.3f), spotColor = VividOrange.copy(alpha = 0.3f))
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(VividOrange, VividOrangeLight)))
+                        .background(CtaSolidOrange)
                         .clickable {
                             workoutViewModel.resetForm()
                             onNavigateToLogWorkout()
@@ -189,13 +189,7 @@ fun WorkoutHubScreen(
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                if (isSelected) {
-                                    Brush.horizontalGradient(listOf(VividOrange, VividOrangeLight))
-                                } else {
-                                    Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-                                }
-                            )
+                            .background(if (isSelected) CtaSolidOrange else Color.Transparent)
                             .clickable { activeTab = tab },
                         contentAlignment = Alignment.Center
                     ) {
@@ -336,7 +330,7 @@ fun ProgramTabContent(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Active",
+                        text = "Đang hoạt động",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = PastelMint
@@ -520,7 +514,7 @@ fun HistoryTabContent(
                             fontWeight = FontWeight.Bold,
                             color = VividOrange
                         )
-                        Text(text = "Active kcal", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "Calo đã đốt", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column {

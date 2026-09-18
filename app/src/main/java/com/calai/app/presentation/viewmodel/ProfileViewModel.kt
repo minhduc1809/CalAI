@@ -1,35 +1,18 @@
 package com.calai.app.presentation.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.calai.app.data.local.CustomReminder
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.domain.repository.CalAIRepository
-import com.calai.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class ReminderSettingsState(
-    val breakfastEnabled: Boolean = true,
-    val breakfastTime: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME,
-    val lunchEnabled: Boolean = true,
-    val lunchTime: String = UserPreferencesManager.DEFAULT_LUNCH_TIME,
-    val dinnerEnabled: Boolean = true,
-    val dinnerTime: String = UserPreferencesManager.DEFAULT_DINNER_TIME,
-    val snackEnabled: Boolean = false,
-    val snackTime: String = UserPreferencesManager.DEFAULT_SNACK_TIME,
-    val waterEnabled: Boolean = true,
-    val waterInterval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS
-)
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -42,16 +25,13 @@ data class ProfileUiState(
     val successMessage: String? = null,
     val isLoggedOut: Boolean = false,
     val weightUnit: String = "kg",
-    val mealStructureMode: String = "TIMELINE",
-    val reminderSettings: ReminderSettingsState = ReminderSettingsState(),
-    val customReminders: List<CustomReminder> = emptyList()
+    val mealStructureMode: String = "TIMELINE"
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val repository: CalAIRepository,
-    private val preferencesManager: UserPreferencesManager,
-    @param:ApplicationContext private val appContext: Context
+    private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -64,9 +44,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
-        loadReminderSettings()
         observePreferences()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     private fun observePreferences() {
@@ -80,11 +58,6 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(mealStructureMode = mode) }
             }
         }
-        viewModelScope.launch {
-            preferencesManager.customReminders.collect { list ->
-                _uiState.update { it.copy(customReminders = list) }
-            }
-        }
     }
 
     fun setWeightUnit(unit: String) {
@@ -93,73 +66,6 @@ class ProfileViewModel @Inject constructor(
 
     fun setMealStructureMode(mode: String) {
         preferencesManager.setMealStructureMode(mode)
-    }
-
-
-    fun loadReminderSettings() {
-        _uiState.update {
-            it.copy(
-                reminderSettings = ReminderSettingsState(
-                    breakfastEnabled = preferencesManager.isBreakfastReminderEnabled(),
-                    breakfastTime = preferencesManager.getBreakfastReminderTime(),
-                    lunchEnabled = preferencesManager.isLunchReminderEnabled(),
-                    lunchTime = preferencesManager.getLunchReminderTime(),
-                    dinnerEnabled = preferencesManager.isDinnerReminderEnabled(),
-                    dinnerTime = preferencesManager.getDinnerReminderTime(),
-                    snackEnabled = preferencesManager.isSnackReminderEnabled(),
-                    snackTime = preferencesManager.getSnackReminderTime(),
-                    waterEnabled = preferencesManager.isWaterReminderEnabled(),
-                    waterInterval = preferencesManager.getWaterReminderInterval()
-                )
-            )
-        }
-    }
-
-    fun updateBreakfastReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME) {
-        preferencesManager.setBreakfastReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateLunchReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_LUNCH_TIME) {
-        preferencesManager.setLunchReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateDinnerReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_DINNER_TIME) {
-        preferencesManager.setDinnerReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateSnackReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_SNACK_TIME) {
-        preferencesManager.setSnackReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateWaterReminder(enabled: Boolean, interval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS) {
-        preferencesManager.setWaterReminder(enabled, interval)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    // Nhắc nhở tuỳ chỉnh (kiểu "thêm báo thức mới") — bên cạnh 5 nhắc nhở cố định ở trên.
-    fun addCustomReminder(label: String, time: String) {
-        val reminder = preferencesManager.addCustomReminder(label, time)
-        ReminderScheduler.scheduleCustomReminder(appContext, reminder)
-    }
-
-    fun updateCustomReminder(id: String, enabled: Boolean, time: String) {
-        preferencesManager.updateCustomReminder(id, enabled, time)
-        val updated = preferencesManager.getCustomReminders().find { it.id == id } ?: return
-        ReminderScheduler.scheduleCustomReminder(appContext, updated)
-    }
-
-    fun deleteCustomReminder(id: String) {
-        preferencesManager.deleteCustomReminder(id)
-        ReminderScheduler.cancelCustomReminder(appContext, id)
     }
 
     fun loadProfile() {

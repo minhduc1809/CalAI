@@ -120,7 +120,7 @@ fun ChatbotScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "NutriWise Nutrition Coach",
+                        text = "Trợ Lý Dinh Dưỡng NutriWise",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -311,7 +311,7 @@ fun ChatbotScreen(
                         onValueChange = { inputText = it },
                         placeholder = {
                             Text(
-                                text = "Hỏi AI Coach về thực đơn, calo...",
+                                text = "Hỏi trợ lý về thực đơn, calo...",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

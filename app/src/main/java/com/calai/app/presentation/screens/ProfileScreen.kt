@@ -138,14 +138,8 @@ fun ProfileScreen(
     }
 
     if (showReminderSheet) {
-        RemindersModalSheet(
+        HabitReminderCenterSheet(
             isDarkTheme = isDarkTheme,
-            settings = uiState.reminderSettings,
-            onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
-            onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
-            onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
-            onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
-            onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
             onDismiss = { showReminderSheet = false }
         )
     }

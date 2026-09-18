@@ -141,18 +141,8 @@ fun SettingsScreen(
     }
 
     if (showReminderSheet) {
-        RemindersModalSheet(
+        HabitReminderCenterSheet(
             isDarkTheme = isDarkTheme,
-            settings = uiState.reminderSettings,
-            customReminders = uiState.customReminders,
-            onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
-            onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
-            onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
-            onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
-            onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
-            onAddCustomReminder = { label, time -> viewModel.addCustomReminder(label, time) },
-            onUpdateCustomReminder = { id, enabled, time -> viewModel.updateCustomReminder(id, enabled, time) },
-            onDeleteCustomReminder = { id -> viewModel.deleteCustomReminder(id) },
             onDismiss = { showReminderSheet = false }
         )
     }
@@ -753,163 +743,15 @@ fun EmailVerificationModalSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RemindersModalSheet(
-    isDarkTheme: Boolean,
-    settings: com.calai.app.presentation.viewmodel.ReminderSettingsState,
-    customReminders: List<com.calai.app.data.local.CustomReminder> = emptyList(),
-    onUpdateBreakfast: (Boolean, String) -> Unit,
-    onUpdateLunch: (Boolean, String) -> Unit,
-    onUpdateDinner: (Boolean, String) -> Unit,
-    onUpdateSnack: (Boolean, String) -> Unit,
-    onUpdateWater: (Boolean, Int) -> Unit,
-    onAddCustomReminder: (String, String) -> Unit = { _, _ -> },
-    onUpdateCustomReminder: (String, Boolean, String) -> Unit = { _, _, _ -> },
-    onDeleteCustomReminder: (String) -> Unit = {},
-    onDismiss: () -> Unit
-) {
-    var showAddCustomDialog by remember { mutableStateOf(false) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Nhắc Nhở Bữa Ăn & Uống Nước",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            ReminderAlarmRow(
-                title = "Bữa Sáng",
-                time = settings.breakfastTime,
-                enabled = settings.breakfastEnabled,
-                isDark = isDarkTheme,
-                editableTime = true,
-                onToggle = { onUpdateBreakfast(it, settings.breakfastTime) },
-                onTimeChanged = { newTime -> onUpdateBreakfast(settings.breakfastEnabled, newTime) }
-            )
-
-            ReminderAlarmRow(
-                title = "Bữa Trưa",
-                time = settings.lunchTime,
-                enabled = settings.lunchEnabled,
-                isDark = isDarkTheme,
-                editableTime = true,
-                onToggle = { onUpdateLunch(it, settings.lunchTime) },
-                onTimeChanged = { newTime -> onUpdateLunch(settings.lunchEnabled, newTime) }
-            )
-
-            ReminderAlarmRow(
-                title = "Bữa Tối",
-                time = settings.dinnerTime,
-                enabled = settings.dinnerEnabled,
-                isDark = isDarkTheme,
-                editableTime = true,
-                onToggle = { onUpdateDinner(it, settings.dinnerTime) },
-                onTimeChanged = { newTime -> onUpdateDinner(settings.dinnerEnabled, newTime) }
-            )
-
-            ReminderAlarmRow(
-                title = "Bữa Phụ",
-                time = settings.snackTime,
-                enabled = settings.snackEnabled,
-                isDark = isDarkTheme,
-                editableTime = true,
-                onToggle = { onUpdateSnack(it, settings.snackTime) },
-                onTimeChanged = { newTime -> onUpdateSnack(settings.snackEnabled, newTime) }
-            )
-
-            ReminderAlarmRow(
-                title = "Nhắc Uống Nước",
-                time = "Mỗi ${settings.waterInterval} giờ",
-                enabled = settings.waterEnabled,
-                isDark = isDarkTheme,
-                editableTime = false,
-                onToggle = { onUpdateWater(it, settings.waterInterval) },
-                onTimeChanged = {}
-            )
-
-            // Nhắc nhở tuỳ chỉnh do người dùng tự thêm — kiểu "thêm báo thức mới"
-            customReminders.forEach { reminder ->
-                ReminderAlarmRow(
-                    title = reminder.label,
-                    time = reminder.time,
-                    enabled = reminder.enabled,
-                    isDark = isDarkTheme,
-                    editableTime = true,
-                    onToggle = { onUpdateCustomReminder(reminder.id, it, reminder.time) },
-                    onTimeChanged = { newTime -> onUpdateCustomReminder(reminder.id, reminder.enabled, newTime) },
-                    onDelete = { onDeleteCustomReminder(reminder.id) }
-                )
-            }
-
-            OutlinedButton(
-                onClick = { showAddCustomDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = VividOrange,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Thêm nhắc nhở mới",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = VividOrange
-                )
-            }
-
-            AppButton(
-                text = "Xong",
-                onClick = onDismiss,
-                modifier = Modifier.height(48.dp),
-                shape = RoundedCornerShape(14.dp)
-            )
-        }
-    }
-
-    if (showAddCustomDialog) {
-        AddCustomReminderDialog(
-            onDismiss = { showAddCustomDialog = false },
-            onSave = { label, time ->
-                onAddCustomReminder(label, time)
-                showAddCustomDialog = false
-            }
-        )
-    }
-}
-
 /**
  * Dialog "Thêm mới nhắc nhở" cho nhắc nhở tuỳ chỉnh — dùng chung AppFormDialog/AppTextField
- * (Part 7/8), chọn giờ bằng đúng TimePickerDialog kiểu báo thức như các hàng nhắc nhở cố định.
+ * (Part 7/8), chọn giờ bằng WheelTimePicker (kéo cuộn) thay cho TimePickerDialog hệ thống.
  */
 @Composable
-private fun AddCustomReminderDialog(
+internal fun AddCustomReminderDialog(
     onDismiss: () -> Unit,
     onSave: (label: String, time: String) -> Unit
 ) {
-    val context = LocalContext.current
     var label by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("08:00") }
 
@@ -942,154 +784,10 @@ private fun AddCustomReminderDialog(
             placeholder = "VD: Uống thuốc, Tập thể dục..."
         )
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Giờ nhắc",
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable {
-                        val parts = time.split(":")
-                        val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 8
-                        val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
-                        android.app.TimePickerDialog(
-                            context,
-                            { _, pickedHour, pickedMinute ->
-                                time = "%02d:%02d".format(pickedHour, pickedMinute)
-                            },
-                            hour,
-                            minute,
-                            true
-                        ).show()
-                    }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = time,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Đổi giờ",
-                    tint = VividOrange,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Hàng nhắc nhở dạng "đồng hồ báo thức" (Spec 10.5 - Alarm-style reminder row)
- * - Giờ hiển thị lớn, chạm vào để mở TimePickerDialog đổi giờ như báo thức
- * - Toggle dùng component dùng chung AppToggle (Part 4.5 / Part 8)
- * - `onDelete` khác null => hiện nút xoá (dùng cho nhắc nhở tuỳ chỉnh, 5 nhắc nhở cố định không xoá được)
- */
-@Composable
-private fun ReminderAlarmRow(
-    title: String,
-    time: String,
-    enabled: Boolean,
-    isDark: Boolean,
-    editableTime: Boolean,
-    onToggle: (Boolean) -> Unit,
-    onTimeChanged: (String) -> Unit,
-    onDelete: (() -> Unit)? = null
-) {
-    val context = LocalContext.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .then(
-                    if (editableTime) {
-                        Modifier.clickable {
-                            val parts = time.split(":")
-                            val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 7
-                            val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
-                            android.app.TimePickerDialog(
-                                context,
-                                { _, pickedHour, pickedMinute ->
-                                    val formatted = "%02d:%02d".format(pickedHour, pickedMinute)
-                                    onTimeChanged(formatted)
-                                },
-                                hour,
-                                minute,
-                                true
-                            ).show()
-                        }
-                    } else Modifier
-                )
-        ) {
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Giờ lớn kiểu màn hình báo thức — số liệu chính cỡ lớn theo Spec 9.2 #5
-                Text(
-                    text = time,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (editableTime) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Đổi giờ",
-                        tint = VividOrange,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        if (onDelete != null) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Xoá nhắc nhở",
-                    tint = CrimsonError,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-
-        AppToggle(
-            checked = enabled,
-            onCheckedChange = onToggle
+        WheelTimePicker(
+            timeString = time,
+            onTimeChange = { time = it },
+            isDarkTheme = false
         )
     }
 }
