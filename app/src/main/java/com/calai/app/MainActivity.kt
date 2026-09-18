@@ -13,17 +13,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.calai.app.data.local.TokenManager
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.domain.repository.CalAIRepository
 import com.calai.app.notification.ReminderScheduler
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.navigation.Screen
 import com.calai.app.presentation.screens.*
 import com.calai.app.presentation.theme.CalAITheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -34,6 +37,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var tokenManager: TokenManager
+
+    @Inject
+    lateinit var repository: CalAIRepository
 
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -48,7 +54,16 @@ class MainActivity : ComponentActivity() {
         ) {
             requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        ReminderScheduler.scheduleAll(applicationContext, preferencesManager)
+
+        // Đồng bộ lịch nhắc nhở từ server (habit-reminders) ngay khi mở app, nếu đã đăng nhập —
+        // đảm bảo WorkManager luôn khớp dữ liệu mới nhất kể cả khi user chưa mở màn Nhắc nhở lần nào.
+        if (tokenManager.isLoggedIn()) {
+            lifecycleScope.launch {
+                repository.getHabitReminders().onSuccess { reminders ->
+                    ReminderScheduler.syncFromServer(applicationContext, reminders)
+                }
+            }
+        }
 
         setContent {
             val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
@@ -126,7 +141,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 1c. Quên mật khẩu (chưa có API backend — chỉ hiển thị thông báo minh bạch)
+                        // 1c. Quên mật khẩu — luồng thật qua mã OTP email (auth/forgot-password + auth/reset-password)
                         composable(Screen.ForgotPassword.route) {
                             ForgotPasswordScreen(
                                 onBack = { navController.popBackStack() }
