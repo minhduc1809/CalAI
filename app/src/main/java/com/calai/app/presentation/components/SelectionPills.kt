@@ -17,12 +17,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calai.app.presentation.theme.*
+import com.calai.app.presentation.theme.AppElevation
+import com.calai.app.presentation.theme.ShadowCtaAmbient
+import com.calai.app.presentation.theme.ShadowCtaSpot
+import com.calai.app.presentation.theme.ShadowDarkL1Ambient
+import com.calai.app.presentation.theme.ShadowDarkL1Spot
+import com.calai.app.presentation.theme.ShadowLightL1Ambient
+import com.calai.app.presentation.theme.ShadowLightL1Spot
 
 /**
  * Pill lựa chọn dùng chung cho các màn có nhiều lựa chọn dạng nút bo tròn
@@ -36,11 +44,19 @@ fun SelectionPill(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val inactiveAmbient = if (isDarkTheme) ShadowDarkL1Ambient else ShadowLightL1Ambient
+    val inactiveSpot    = if (isDarkTheme) ShadowDarkL1Spot    else ShadowLightL1Spot
     Box(
         modifier = modifier
+            .shadow(
+                elevation = if (isSelected) AppElevation.L2 else AppElevation.L1,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = if (isSelected) ShadowCtaAmbient else inactiveAmbient,
+                spotColor    = if (isSelected) ShadowCtaSpot    else inactiveSpot
+            )
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrange else (MaterialTheme.colorScheme.surface))
-            .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
+            .background(if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.surface))
+            .border(1.dp, if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center
@@ -62,11 +78,19 @@ fun RateSelectionPill(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val inactiveAmbient = if (isDarkTheme) ShadowDarkL1Ambient else ShadowLightL1Ambient
+    val inactiveSpot    = if (isDarkTheme) ShadowDarkL1Spot    else ShadowLightL1Spot
     Box(
         modifier = modifier
+            .shadow(
+                elevation = if (isSelected) AppElevation.L2 else AppElevation.L1,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = if (isSelected) ShadowCtaAmbient else inactiveAmbient,
+                spotColor    = if (isSelected) ShadowCtaSpot    else inactiveSpot
+            )
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) VividOrange else (MaterialTheme.colorScheme.surface))
-            .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(12.dp))
+            .background(if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.surface))
+            .border(1.dp, if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
@@ -95,9 +119,17 @@ fun IconOptionRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val inactiveAmbient = if (isDarkTheme) ShadowDarkL1Ambient else ShadowLightL1Ambient
+    val inactiveSpot    = if (isDarkTheme) ShadowDarkL1Spot    else ShadowLightL1Spot
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isSelected) AppElevation.L2 else AppElevation.L1,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = if (isSelected) accentColor.copy(alpha = 0.28f) else inactiveAmbient,
+                spotColor    = if (isSelected) accentColor.copy(alpha = 0.38f) else inactiveSpot
+            )
             .clip(RoundedCornerShape(18.dp))
             .background(if (isSelected) accentColor.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface)
             .border(
@@ -148,9 +180,17 @@ fun MacroStyleOptionRow(
     isDarkTheme: Boolean,
     onClick: () -> Unit
 ) {
+    val inactiveAmbient = if (isDarkTheme) ShadowDarkL1Ambient else ShadowLightL1Ambient
+    val inactiveSpot    = if (isDarkTheme) ShadowDarkL1Spot    else ShadowLightL1Spot
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = if (isSelected) AppElevation.L2 else AppElevation.L1,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = if (isSelected) ShadowCtaAmbient else inactiveAmbient,
+                spotColor    = if (isSelected) ShadowCtaSpot    else inactiveSpot
+            )
             .clip(RoundedCornerShape(14.dp))
             .background(if (isSelected) VividOrangeSoft else (MaterialTheme.colorScheme.surface))
             .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))

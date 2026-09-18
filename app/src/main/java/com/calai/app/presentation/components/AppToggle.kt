@@ -82,10 +82,10 @@ fun AppToggle(
                 .padding(start = thumbOffset)
                 .size(thumbSize)
                 .shadow(
-                    elevation = if (checked) 5.dp else 3.dp,
+                    elevation = if (checked) 5.dp else 4.dp,
                     shape = CircleShape,
-                    ambientColor = if (checked) activeGlowColor else Color.Black.copy(alpha = 0.15f),
-                    spotColor = if (checked) activeGlowColor else Color.Black.copy(alpha = 0.15f)
+                    ambientColor = if (checked) activeGlowColor else Color.Black.copy(alpha = 0.08f),
+                    spotColor = if (checked) activeGlowColor else Color.Black.copy(alpha = 0.10f)
                 )
                 .clip(CircleShape)
                 .background(

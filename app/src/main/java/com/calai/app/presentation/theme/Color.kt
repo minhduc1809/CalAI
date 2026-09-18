@@ -51,10 +51,11 @@ val PastelRoseDark = FatGradientEnd
 
 // 3. Điểm nhấn hành động (Accent) — Final v3 Part 3.4
 val VividOrange = Color(0xFFFF8A3D)              // CTA chính, icon Quét AI, tab active, glow sau số hero (was #FF6433)
-val VividOrangeDark = Color(0xFFE07936)          // Trạng thái pressed (derived ~12% darker of new base)
+val VividOrangeDark = Color(0xFFFF5F3D)          // Điểm cuối gradient/pressed — ngả đỏ cam rực, KHÔNG pha đen/nâu xỉn như bản cũ (0xFFE07936)
 val VividOrangeLight = Color(0xFFFFA76E)         // Hover/disabled, viền nhấn nhẹ, tip của progress arc (derived ~25% lighter)
 val VividOrangeSoft = Color(0x33FF8A3D)          // 20% alpha - Nền mờ sau icon/badge
 val VividOrangeGlow = Color(0x22FF8A3D)          // 13% alpha - Halo glow sau số liệu
+val CtaSolidOrange = Color(0xFFFF6F55)           // Màu ĐẶC duy nhất cho nền nút CTA (AppButton) — không gradient chuyển màu dần
 
 // Final v3 Part 3.4 — new solid semantic accents (NOT gradients; distinct from Bento macro card gradients above)
 val BrandBlue = Color(0xFF4F7CFF)                // Navigation/Action, chart: Calories series
@@ -88,9 +89,50 @@ val PearlBorder = Color(0xFFE3E8F1)              // LightBorder — viền card 
 val PearlDock = Color(0xFFFFFFFF)                // Floating bottom dock trắng sáng
 val LightDivider = Color(0xFFEDF0F5)             // LightDivider — Final v3 Part 3.2 (new)
 
-// Màu bóng đổ (Elevation Shadow) — Final v3 Part 3.2: LightShadow #1A2540 @ 8% alpha
-val WarmShadow = Color(0x141A2540)               // Bóng cho Light Mode (8% alpha, was 14% #423320)
-val DarkShadow = Color(0x75000000)               // Bóng đen sâu cho Dark Mode (46% alpha)
+// ==========================================
+// ELEVATION SHADOW TOKEN SCALE (Graduated L1–L4)
+// Base shadow color: #1A2540 (deep navy, neutral, no harsh black)
+// ==========================================
+//
+// L1 — Inputs / small controls:   very subtle, just lifts from background
+// L2 — Standard cards:            soft visible, clear card separation
+// L3 — Primary buttons / CTA:     stronger, colored per button brand
+// L4 — Modals / floating sheets:  strongest but still diffused, not harsh
+//
+// Light Mode (IvoryBackground nền) — slightly stronger needed to separate from white
+val ShadowLightL1Ambient  = Color(0x141A2540)    // #1A2540 @  8% — input fields unfocused
+val ShadowLightL1Spot     = Color(0x1A1A2540)    // #1A2540 @ 10%
+val ShadowLightL2Ambient  = Color(0x1E1A2540)    // #1A2540 @ 12% — standard cards
+val ShadowLightL2Spot     = Color(0x241A2540)    // #1A2540 @ 14%
+val ShadowLightL3Ambient  = Color(0x261A2540)    // #1A2540 @ 15% — neutral use; buttons use colored shadow
+val ShadowLightL3Spot     = Color(0x2E1A2540)    // #1A2540 @ 18%
+val ShadowLightL4Ambient  = Color(0x2E1A2540)    // #1A2540 @ 18% — modals / bottom sheets
+val ShadowLightL4Spot     = Color(0x381A2540)    // #1A2540 @ 22%
+
+// Dark Mode (ObsidianBackground nền) — slightly less needed; depth comes from surface contrast
+val ShadowDarkL1Ambient   = Color(0x0F1A2540)    // #1A2540 @  6%
+val ShadowDarkL1Spot      = Color(0x141A2540)    // #1A2540 @  8%
+val ShadowDarkL2Ambient   = Color(0x1A1A2540)    // #1A2540 @ 10%
+val ShadowDarkL2Spot      = Color(0x1E1A2540)    // #1A2540 @ 12%
+val ShadowDarkL3Ambient   = Color(0x201A2540)    // #1A2540 @ 13%
+val ShadowDarkL3Spot      = Color(0x261A2540)    // #1A2540 @ 15%
+val ShadowDarkL4Ambient   = Color(0x261A2540)    // #1A2540 @ 15%
+val ShadowDarkL4Spot      = Color(0x2E1A2540)    // #1A2540 @ 18%
+
+// Colored button shadows — tinted with brand color so shadow "belongs" to the button
+// Primary CTA (VividOrange / CtaSolidOrange)
+val ShadowCtaAmbient      = Color(0x40FF6F55)    // CtaSolidOrange @ 25% — ambient (spread)
+val ShadowCtaSpot         = Color(0x55FF6F55)    // CtaSolidOrange @ 33% — spot (directional)
+val ShadowCtaDisabled     = Color(0x1AFF6F55)    // CtaSolidOrange @ 10% — disabled state
+
+// Secondary / Google button — neutral light shadow
+val ShadowSecondaryAmbient = Color(0x141A2540)   // L1 ambient
+val ShadowSecondarySpot    = Color(0x1C1A2540)   // L1 spot, slightly stronger
+
+// Deprecated aliases — kept for callers not yet migrated; do NOT use in new code
+// TODO: remove once all callsites migrate to graduated scale above
+val WarmShadow = ShadowLightL2Ambient            // was: Color(0x141A2540) @ 8%
+val DarkShadow = ShadowDarkL2Ambient             // was: Color(0x75000000) — 46% black (too harsh!)
 
 // Bento Pastel trên nền sáng — Độ bão hòa tươi 55-70% (Spec 10.6 - Không xỉn màu)
 val PastelProteinLight = Color(0xFF10B981)       // Xanh ngọc lục bảo tươi
