@@ -248,6 +248,39 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getWaterToday(): Result<WaterTodayDto> {
+        return try {
+            val response = api.getWaterToday()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun addWaterGlass(): Result<WaterTodayDto> {
+        return try {
+            val response = api.addWaterGlass()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun undoWaterGlass(): Result<WaterTodayDto> {
+        return try {
+            val response = api.undoWaterGlass()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override suspend fun getHabitReminders(): Result<List<HabitReminderDto>> {
         return try {
             val response = api.getHabitReminders()

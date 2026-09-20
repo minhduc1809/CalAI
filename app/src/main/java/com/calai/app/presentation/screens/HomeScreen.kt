@@ -33,7 +33,9 @@ import com.calai.app.R
 import com.calai.app.data.remote.dto.MealResponseDto
 import com.calai.app.presentation.components.*
 import com.calai.app.presentation.theme.*
+import com.calai.app.presentation.viewmodel.HabitReminderViewModel
 import com.calai.app.presentation.viewmodel.HomeViewModel
+import com.calai.app.presentation.viewmodel.WaterViewModel
 import com.calai.app.presentation.viewmodel.formatMealLogTime
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,7 +46,7 @@ private val TABLET_BREAKPOINT_DP = 600.dp
 
 /**
  * HomeScreen Dashboard — Premium Redesign
- * Layout order: Header → WeekStrip → Hero Calorie Ring → Macro Cards → Food Diary
+ * Layout order: Header → WeekStrip → 4 chỉ số dinh dưỡng → Nhắc nhở bữa ăn & nước → Food Diary
  * Business logic 100% giữ nguyên từ ViewModel + API.
  */
 @Composable
@@ -56,9 +58,15 @@ fun HomeScreen(
     onOpenSuggestions: () -> Unit = {},
     isDarkTheme: Boolean = true,
     onThemeChanged: (Boolean) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    reminderViewModel: HabitReminderViewModel = hiltViewModel(),
+    waterViewModel: WaterViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val reminderState by reminderViewModel.listState.collectAsState()
+    val water by waterViewModel.water.collectAsState()
+    val waterError by waterViewModel.error.collectAsState()
+    var showReminderSheet by remember { mutableStateOf(false) }
     var selectedDateIso by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
@@ -130,43 +138,54 @@ fun HomeScreen(
                     )
                 }
 
-                // ── 3. HERO CALORIE SECTION ─────────────────────────────────────────
+                // ── 3. HERO CALORIES ───────────────────────────────────────────────
                 item {
                     val summary = uiState.dailySummary?.summary
-                    val targetCal = (summary?.targetCalories ?: 2200.0).toInt()
-                    val remainingCal = (summary?.remainingCalories ?: targetCal.toDouble()).toInt()
-                    val consumedCal = (summary?.consumedCalories ?: 0.0).toInt()
-                    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
-
                     CalorieHeroCard(
-                        targetCalories = targetCal,
-                        remainingCalories = remainingCal,
-                        consumedCalories = consumedCal,
-                        isDarkTheme = isDarkTheme,
-                        shadowColor = shadowColor
+                        consumed = summary?.consumedCalories?.toInt(),
+                        target = summary?.targetCalories?.toInt(),
+                        remaining = summary?.remainingCalories?.toInt(),
+                        isDarkTheme = isDarkTheme
                     )
                 }
 
-                // ── 4. MACRO CARDS (Carbs + Protein) ───────────────────────────────
+                // ── 4. 4 Ô THÔNG SỐ: Nước / Cân nặng / Calories / Đa lượng (dữ liệu thật từ BE) ──
                 item {
-                    val macros = uiState.dailySummary?.summary?.macros
-                    val proteinConsumed = (macros?.protein?.consumed ?: 0.0).toInt()
-                    val proteinTarget = (macros?.protein?.target ?: 140.0).toInt()
-                    val carbConsumed = (macros?.carb?.consumed ?: 0.0).toInt()
-                    val carbTarget = (macros?.carb?.target ?: 220.0).toInt()
-                    val fatConsumed = (macros?.fat?.consumed ?: 0.0).toInt()
-                    val fatTarget = (macros?.fat?.target ?: 65.0).toInt()
-                    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+                    val summary = uiState.dailySummary?.summary
+                    val macros = summary?.macros
+                    DashboardStatTiles(
+                        stats = DashboardStats(
+                            weightText = uiState.weightText, targetWeightText = uiState.targetWeightText,
+                            weightProgress = uiState.weightProgress,
+                            proteinG = macros?.protein?.consumed?.toInt(), proteinTarget = macros?.protein?.target?.toInt(),
+                            carbG = macros?.carb?.consumed?.toInt(), carbTarget = macros?.carb?.target?.toInt(),
+                            fatG = macros?.fat?.consumed?.toInt(), fatTarget = macros?.fat?.target?.toInt()
+                        ),
+                        isDarkTheme = isDarkTheme
+                    )
+                }
 
-                    MacroSection(
-                        carbConsumed = carbConsumed,
-                        carbTarget = carbTarget,
-                        proteinConsumed = proteinConsumed,
-                        proteinTarget = proteinTarget,
-                        fatConsumed = fatConsumed,
-                        fatTarget = fatTarget,
+                // ── 4b. NHẮC NHỞ BỮA ĂN + UỐNG NƯỚC ─────────────────────────────────
+                item {
+                    MealReminderCard(
+                        pick = pickMealReminder(
+                            reminderState.reminders,
+                            loggedMealTypes = if (selectedDateIso == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+                                uiState.meals.map { it.mealType }.toSet() else emptySet()
+                        ),
                         isDarkTheme = isDarkTheme,
-                        shadowColor = shadowColor
+                        onClick = { showReminderSheet = true }
+                    )
+                }
+                item {
+                    WaterCard(
+                        water = water,
+                        errorMessage = waterError,
+                        onRetry = waterViewModel::refresh,
+                        isDarkTheme = isDarkTheme,
+                        onAddGlass = waterViewModel::addGlass,
+                        onRemoveGlass = waterViewModel::removeGlass,
+                        onOpenSettings = { showReminderSheet = true }
                     )
                 }
 
@@ -201,6 +220,14 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        if (showReminderSheet) {
+            HabitReminderCenterSheet(
+                isDarkTheme = isDarkTheme,
+                onDismiss = { showReminderSheet = false },
+                viewModel = reminderViewModel
+            )
         }
 
         // ── FLOATING BOTTOM DOCK ────────────────────────────────────────────────
@@ -361,359 +388,6 @@ private fun FloatingIconButton(
     }
 }
 
-/**
- * Hero Calorie Card — focal point của dashboard
- * Ring ở giữa, label + consumed/target ở dưới
- */
-@Composable
-private fun CalorieHeroCard(
-    targetCalories: Int,
-    remainingCalories: Int,
-    consumedCalories: Int,
-    isDarkTheme: Boolean,
-    shadowColor: Color
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = if (isDarkTheme) 8.dp else 16.dp,
-                shape = RoundedCornerShape(28.dp),
-                ambientColor = shadowColor,
-                spotColor = shadowColor
-            )
-            .clip(RoundedCornerShape(28.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White,
-                        MaterialTheme.colorScheme.outline
-                    )
-                ),
-                shape = RoundedCornerShape(28.dp)
-            )
-            .padding(horizontal = 22.dp, vertical = 24.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Card label row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(VividOrange)
-                    )
-                    Text(
-                        text = "Calo hôm nay",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = (-0.3).sp
-                    )
-                }
-
-                // Mục tiêu badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Mục tiêu: ${String.format("%,d", targetCalories)} kcal",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Calorie Ring — HERO visual
-            ArcCaloriesGauge(
-                remainingCalories = remainingCalories,
-                targetCalories = targetCalories,
-                isDarkTheme = isDarkTheme,
-                ringSize = 196.dp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Bottom stats row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                CalorieStatChip(
-                    label = "Đã nạp",
-                    value = "${String.format("%,d", consumedCalories)} kcal",
-                    valueColor = VividOrange
-                )
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(32.dp)
-                        .background(MaterialTheme.colorScheme.outline)
-                )
-                CalorieStatChip(
-                    label = "Còn lại",
-                    value = "${String.format("%,d", remainingCalories.coerceAtLeast(0))} kcal",
-                    valueColor = MaterialTheme.colorScheme.onBackground
-                )
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(32.dp)
-                        .background(MaterialTheme.colorScheme.outline)
-                )
-                CalorieStatChip(
-                    label = "Mục tiêu",
-                    value = "${String.format("%,d", targetCalories)} kcal",
-                    valueColor = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalorieStatChip(label: String, value: String, valueColor: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = value,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-            letterSpacing = (-0.2).sp
-        )
-    }
-}
-
-/**
- * Macro section: 2-col Carbs+Protein + 1 Fat row ngang
- */
-@Composable
-private fun MacroSection(
-    carbConsumed: Int,
-    carbTarget: Int,
-    proteinConsumed: Int,
-    proteinTarget: Int,
-    fatConsumed: Int,
-    fatTarget: Int,
-    isDarkTheme: Boolean,
-    shadowColor: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // Section title
-        Text(
-            text = "Dinh dưỡng đa lượng",
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            letterSpacing = (-0.3).sp
-        )
-
-        // 2-column row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            BentoMacroCard(
-                title = "Carbs",
-                consumedGrams = carbConsumed,
-                targetGrams = carbTarget,
-                gradientColors = if (isDarkTheme)
-                    listOf(CarbGradientStart, CarbGradientEnd)
-                else
-                    listOf(CarbGradientStartLight, CarbGradientEndLight),
-                icon = Icons.Default.Grain,
-                modifier = Modifier.weight(1f),
-                isDarkTheme = isDarkTheme
-            )
-            BentoMacroCard(
-                title = "Protein",
-                consumedGrams = proteinConsumed,
-                targetGrams = proteinTarget,
-                gradientColors = if (isDarkTheme)
-                    listOf(ProteinGradientStart, ProteinGradientEnd)
-                else
-                    listOf(ProteinGradientStartLight, ProteinGradientEndLight),
-                icon = Icons.Default.Egg,
-                modifier = Modifier.weight(1f),
-                isDarkTheme = isDarkTheme
-            )
-        }
-
-        // Fat card ngang — redesigned với progress bar
-        FatCard(
-            fatConsumed = fatConsumed,
-            fatTarget = fatTarget,
-            isDarkTheme = isDarkTheme,
-            shadowColor = shadowColor
-        )
-    }
-}
-
-/**
- * Fat Card ngang — progress bar + percentage
- */
-@Composable
-private fun FatCard(
-    fatConsumed: Int,
-    fatTarget: Int,
-    isDarkTheme: Boolean,
-    shadowColor: Color
-) {
-    val rawProgress = if (fatTarget > 0) {
-        (fatConsumed.toFloat() / fatTarget.toFloat()).coerceIn(0f, 1f)
-    } else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = rawProgress,
-        animationSpec = tween(durationMillis = 900),
-        label = "fat_progress"
-    )
-    val percentage = (rawProgress * 100).toInt()
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = if (isDarkTheme) 6.dp else 10.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = shadowColor,
-                spotColor = shadowColor
-            )
-            .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) FatBrush else FatBrushLight)
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDarkTheme) 0.35f else 0.65f),
-                        Color.White.copy(alpha = 0.05f),
-                        Color.Transparent
-                    )
-                ),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .padding(horizontal = 20.dp, vertical = 16.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(TextDeepInk.copy(alpha = 0.09f))
-                            .border(0.75.dp, Color.White.copy(alpha = 0.35f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Opacity,
-                            contentDescription = null,
-                            tint = TextDeepInk,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Chất béo",
-                            fontWeight = FontWeight.Bold,
-                            color = TextDeepInk,
-                            fontSize = 15.sp,
-                            letterSpacing = (-0.2).sp
-                        )
-                        Text(
-                            text = "${fatConsumed}g / ${fatTarget}g",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDeepInk.copy(alpha = 0.60f)
-                        )
-                    }
-                }
-
-                // Percentage badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(TextDeepInk.copy(alpha = 0.10f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${percentage}%",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextDeepInk
-                    )
-                }
-            }
-
-            // Progress bar
-            androidx.compose.foundation.Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(7.dp)
-            ) {
-                val barHeight = size.height
-                val cornerRadius = barHeight / 2f
-
-                // Track
-                drawRoundRect(
-                    color = TextDeepInk.copy(alpha = 0.12f),
-                    size = androidx.compose.ui.geometry.Size(size.width, barHeight),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
-                )
-
-                if (animatedProgress > 0.01f) {
-                    val progressWidth = size.width * animatedProgress
-                    drawRoundRect(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                FatGradientStart.copy(alpha = 0.8f),
-                                TextDeepInk.copy(alpha = 0.5f)
-                            ),
-                            startX = 0f,
-                            endX = progressWidth
-                        ),
-                        size = androidx.compose.ui.geometry.Size(progressWidth, barHeight),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Food Diary section header
- */
 @Composable
 private fun FoodDiaryHeader(onAddMealClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }

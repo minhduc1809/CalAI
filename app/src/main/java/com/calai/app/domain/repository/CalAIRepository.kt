@@ -35,6 +35,10 @@ interface CalAIRepository {
     suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit>
 
     // --- Habit Reminders ---
+    suspend fun getWaterToday(): Result<WaterTodayDto>
+    suspend fun addWaterGlass(): Result<WaterTodayDto>
+    suspend fun undoWaterGlass(): Result<WaterTodayDto>
+
     suspend fun getHabitReminders(): Result<List<HabitReminderDto>>
     suspend fun createHabitReminder(request: CreateHabitReminderRequest): Result<HabitReminderDto>
     suspend fun updateHabitReminder(id: String, request: UpdateHabitReminderRequest): Result<HabitReminderDto>

@@ -243,6 +243,16 @@ interface CalAIApi {
     @GET("ai/suggest-meal")
     suspend fun getSuggestMeal(): ApiResponse<SuggestMealResponseDto>
 
+    // --- WATER LOGS ---
+    @GET("water-logs/today")
+    suspend fun getWaterToday(): ApiResponse<WaterTodayDto>
+
+    @POST("water-logs")
+    suspend fun addWaterGlass(): ApiResponse<WaterTodayDto>
+
+    @DELETE("water-logs/last")
+    suspend fun undoWaterGlass(): ApiResponse<WaterTodayDto>
+
     // --- HABIT REMINDERS ---
     @GET("habit-reminders")
     suspend fun getHabitReminders(): ApiResponse<List<HabitReminderDto>>

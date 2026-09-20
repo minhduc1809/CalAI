@@ -43,6 +43,9 @@ data class HomeUiState(
     val dailySummary: DailyNutritionSummaryData? = null,
     val meals: List<MealResponseDto> = emptyList(),
     val mealStructureMode: String = "TIMELINE",
+    val weightText: String? = null,
+    val targetWeightText: String? = null,
+    val weightProgress: Float? = null,
     val errorMessage: String? = null
 ) {
     /** Nhóm `meals` theo chế độ hiển thị đang chọn — dữ liệu gốc không đổi, chỉ khác cách nhóm (đúng BRD). */
@@ -120,6 +123,20 @@ class HomeViewModel @Inject constructor(
 
             mealsResult.onSuccess { mealList ->
                 _uiState.update { it.copy(meals = mealList) }
+            }
+
+            repository.fetchRemoteProfile().onSuccess { profile ->
+                val current = profile.weightKg
+                val target = profile.targetWeightKg
+                _uiState.update {
+                    it.copy(
+                        weightText = current?.let { kg -> preferencesManager.formatWeight(kg) },
+                        targetWeightText = target?.let { kg -> preferencesManager.formatWeight(kg) },
+                        // Độ gần mục tiêu: min/max giữa cân nặng hiện tại và mục tiêu (1.0 = đã đạt)
+                        weightProgress = if (current != null && target != null && current > 0f && target > 0f)
+                            minOf(current, target) / maxOf(current, target) else null
+                    )
+                }
             }
         }
     }
