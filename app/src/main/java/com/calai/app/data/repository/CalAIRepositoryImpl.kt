@@ -2,8 +2,11 @@ package com.calai.app.data.repository
 
 import com.calai.app.data.local.CalAIDao
 import com.calai.app.data.local.TokenManager
+import com.calai.app.data.local.entity.PendingCustomFoodEntity
+import com.calai.app.data.local.entity.PendingFavoriteEntity
 import com.calai.app.data.local.entity.toDomain
 import com.calai.app.data.local.entity.toEntity
+import com.calai.app.data.local.entity.toRequest
 import com.calai.app.data.remote.CalAIApi
 import com.calai.app.data.remote.dto.*
 import com.calai.app.domain.model.Meal
@@ -33,12 +36,6 @@ class CalAIRepositoryImpl @Inject constructor(
     private val api: CalAIApi,
     private val tokenManager: TokenManager
 ) : CalAIRepository {
-
-    // Bộ nhớ tạm cho Favorite Foods khi offline (không có bảng Room riêng cho favorites)
-    private val mockFavoriteFoods = mutableSetOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
-
-    // Bộ nhớ tạm cho Custom Foods khi offline (không có bảng Room riêng cho custom foods)
-    private val mockCustomFoods = mutableListOf<CustomFoodDto>()
 
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
@@ -486,11 +483,17 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateRemoteMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
-        val request = UpdateMealRequest(mealType = mealType, date = date)
+    override suspend fun updateRemoteMeal(
+        mealId: String,
+        mealType: String?,
+        date: String?,
+        items: List<CreateMealItemDto>?
+    ): Result<MealResponseDto?> {
+        val request = UpdateMealRequest(mealType = mealType, date = date, items = items)
         return try {
             val response = api.updateMeal(mealId, request)
-            if (response.success && response.data != null) {
+            // items=[] (xoá món cuối cùng) -> backend xoá luôn bữa ăn, trả success với data=null — hợp lệ, không phải lỗi.
+            if (response.success) {
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.message ?: "Không thể cập nhật bữa ăn"))
@@ -734,39 +737,95 @@ class CalAIRepositoryImpl @Inject constructor(
         return Result.success(listOf("Tất cả", "Cơm / Bún / Phở", "Thịt / Trứng", "Rau / Củ", "Đồ uống"))
     }
 
+    /**
+     * Đẩy lại lên server các thay đổi món yêu thích/món tự tạo từng thất bại lúc mất mạng
+     * (lưu ở Room, xem PendingSyncEntity.kt) — gọi mỗi lần vừa xác nhận có kết nối tới server
+     * (một request khác vừa thành công), để không phải chờ người dùng tự thử lại thủ công.
+     */
+    private suspend fun flushPendingOfflineSync() {
+        dao.getPendingFavorites().forEach { pending ->
+            try {
+                val response = if (pending.isAdd) {
+                    api.addFavoriteFood(AddFavoriteFoodRequest(pending.foodName))
+                } else {
+                    api.removeFavoriteFood(pending.foodName)
+                }
+                if (response.success) dao.deletePendingFavorite(pending.foodName)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // Vẫn lỗi mạng — để nguyên trong hàng đợi, thử lại ở lần flush kế tiếp
+            }
+        }
+        dao.getPendingCustomFoods().forEach { pending ->
+            try {
+                val response = api.createCustomFood(pending.toRequest())
+                if (response.success) dao.deletePendingCustomFood(pending.localId)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
+        }
+    }
+
     override suspend fun fetchFavoriteFoods(): Result<List<String>> {
         return try {
             val response = api.getFavoriteFoods()
             if (response.success && response.data != null) {
-                Result.success(response.data)
+                flushPendingOfflineSync()
+                // Món vừa thêm offline mà flush ở trên chưa kịp lên server (network rớt giữa chừng)
+                // vẫn cần hiện luôn, không đợi lần tải sau.
+                val stillPendingAdds = dao.getPendingFavorites().filter { it.isAdd }.map { it.foodName }
+                Result.success((response.data + stillPendingAdds).distinct())
             } else {
-                Result.success(mockFavoriteFoods.toList())
+                Result.success(offlineFavoriteFoodsSnapshot())
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(mockFavoriteFoods.toList())
+            Result.success(offlineFavoriteFoodsSnapshot())
         }
     }
 
+    /** Không có kết nối tới server — hiện danh sách mặc định gợi ý cộng với các món đã bấm thêm offline. */
+    private suspend fun offlineFavoriteFoodsSnapshot(): List<String> {
+        val defaults = setOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
+        val pending = dao.getPendingFavorites()
+        val added = pending.filter { it.isAdd }.map { it.foodName }
+        val removed = pending.filter { !it.isAdd }.map { it.foodName }.toSet()
+        return ((defaults + added) - removed).toList()
+    }
+
     override suspend fun addFavoriteFood(foodName: String): Result<Unit> {
-        mockFavoriteFoods.add(foodName)
         return try {
-            api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
-            Result.success(Unit)
+            val response = api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
+            if (response.success) {
+                dao.deletePendingFavorite(foodName)
+                Result.success(Unit)
+            } else {
+                // Server từ chối (không phải lỗi mạng) — vẫn xếp hàng đợi Room để lần tới thử lại
+                // và không mất trạng thái người dùng đã chọn, nhưng KHÔNG báo thành công giả.
+                dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = true))
+                Result.failure(Exception(response.message ?: "Không lưu được món yêu thích"))
+            }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(Unit)
+            dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = true))
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
     override suspend fun removeFavoriteFood(foodName: String): Result<Unit> {
-        mockFavoriteFoods.remove(foodName)
         return try {
-            api.removeFavoriteFood(foodName)
-            Result.success(Unit)
+            val response = api.removeFavoriteFood(foodName)
+            dao.deletePendingFavorite(foodName)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = false))
+                Result.failure(Exception(response.message ?: "Không gỡ được món yêu thích"))
+            }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(Unit)
+            dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = false))
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
@@ -987,7 +1046,8 @@ class CalAIRepositoryImpl @Inject constructor(
         calories: Float,
         protein: Float,
         carb: Float,
-        fat: Float
+        fat: Float,
+        ingredients: List<RecipeIngredientDto>?
     ): Result<CustomFoodDto> {
         val request = CreateCustomFoodRequest(
             name = name,
@@ -997,35 +1057,47 @@ class CalAIRepositoryImpl @Inject constructor(
             calories = calories,
             protein = protein,
             carb = carb,
-            fat = fat
+            fat = fat,
+            ingredients = ingredients
         )
         return try {
             val response = api.createCustomFood(request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockCreatedCustomFood(request)
+                queuePendingCustomFood(request)
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            getMockCreatedCustomFood(request)
+            queuePendingCustomFood(request)
         }
     }
 
-    private fun getMockCreatedCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+    private val PENDING_CUSTOM_FOOD_PREFIX = "pending_"
+
+    /** Server chưa tạo được — lưu vào hàng đợi Room (id giả "pending_<localId>" để deleteCustomFood
+     * biết đường xoá đúng chỗ) thay vì chỉ giữ trong bộ nhớ tiến trình như trước, để không mất khi
+     * app bị đóng và còn cơ hội tự đồng bộ lên server ở lần fetch kế tiếp có mạng. */
+    private suspend fun queuePendingCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+        val localId = dao.insertPendingCustomFood(
+            PendingCustomFoodEntity(
+                name = request.name, servingSize = request.servingSize,
+                servingAmount = request.servingAmount, servingUnit = request.servingUnit,
+                calories = request.calories ?: 0f, protein = request.protein, carb = request.carb, fat = request.fat
+            )
+        )
         val food = CustomFoodDto(
-            id = UUID.randomUUID().toString(),
-            userId = "mock_user_01",
+            id = "$PENDING_CUSTOM_FOOD_PREFIX$localId",
+            userId = "offline",
             name = request.name,
             servingSize = request.servingSize,
             servingAmount = request.servingAmount,
             servingUnit = request.servingUnit,
-            calories = request.calories,
+            calories = request.calories ?: 0f,
             protein = request.protein,
             carb = request.carb,
             fat = request.fat
         )
-        mockCustomFoods.add(0, food)
         return Result.success(food)
     }
 
@@ -1043,28 +1115,41 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun PendingCustomFoodEntity.toOfflineDto() = CustomFoodDto(
+        id = "$PENDING_CUSTOM_FOOD_PREFIX$localId", userId = "offline", name = name,
+        servingSize = servingSize, servingAmount = servingAmount, servingUnit = servingUnit,
+        calories = calories, protein = protein, carb = carb, fat = fat
+    )
+
     override suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>> {
         return try {
             val response = api.getCustomFoods()
             if (response.success && response.data != null) {
-                Result.success(response.data)
+                flushPendingOfflineSync()
+                val stillPending = dao.getPendingCustomFoods().map { it.toOfflineDto() }
+                Result.success(stillPending + response.data)
             } else {
-                Result.success(mockCustomFoods.toList())
+                Result.success(dao.getPendingCustomFoods().map { it.toOfflineDto() })
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(mockCustomFoods.toList())
+            Result.success(dao.getPendingCustomFoods().map { it.toOfflineDto() })
         }
     }
 
     override suspend fun deleteCustomFood(id: String): Result<Unit> {
-        mockCustomFoods.removeAll { it.id == id }
+        if (id.startsWith(PENDING_CUSTOM_FOOD_PREFIX)) {
+            val localId = id.removePrefix(PENDING_CUSTOM_FOOD_PREFIX).toLongOrNull()
+            if (localId != null) dao.deletePendingCustomFood(localId)
+            return Result.success(Unit)
+        }
         return try {
-            api.deleteCustomFood(id)
-            Result.success(Unit)
+            val response = api.deleteCustomFood(id)
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không xoá được món tự tạo"))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(Unit)
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 

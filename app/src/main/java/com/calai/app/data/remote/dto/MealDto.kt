@@ -80,7 +80,9 @@ data class UpdateMealRequest(
     @SerializedName("mealType")
     val mealType: String? = null,
     @SerializedName("date")
-    val date: String? = null
+    val date: String? = null,
+    @SerializedName("items")
+    val items: List<CreateMealItemDto>? = null
 )
 
 data class CopyMealRequest(

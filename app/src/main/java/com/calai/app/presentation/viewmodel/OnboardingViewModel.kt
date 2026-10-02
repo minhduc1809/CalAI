@@ -74,8 +74,6 @@ data class OnboardingUiState(
     // ── Trường đã bị loại khỏi luồng hỏi nhưng vẫn giữ default để không phá DTO/backend ──
     val activityLevel: String = "MODERATELY_ACTIVE", // giờ được suy ra tự động từ sessionsPerWeek
     val dietType: String = "BALANCED", // đã bị thay thế hoàn toàn bởi macroStyle, giữ default cho tương thích
-    val programType: String = "COACHED",
-    val proteinPreference: String = "MID",
     val sleepHours: Float = 7f,
     val stressLevel: String = "MEDIUM",
     val takesSupplements: Boolean = false,
@@ -367,8 +365,9 @@ class OnboardingViewModel @Inject constructor(
                 oneRepMaxBenchKg = state.oneRepMaxBenchKg,
                 oneRepMaxDeadliftKg = state.oneRepMaxDeadliftKg,
                 macroStyle = state.macroStyle,
-                programType = state.programType,
-                proteinPreference = state.proteinPreference,
+                // programType/proteinPreference KHÔNG gửi ở đây — Onboarding không còn hỏi 2 câu này
+                // (xem CHANGELOG_Onboarding_v2.md), để backend tự áp default DB (COACHED/MID) cho user mới
+                // thay vì App luôn ghi đè bằng giá trị mặc định cứng.
                 allergies = state.allergies
             )
             repository.updateProfile(request).onSuccess { profile ->

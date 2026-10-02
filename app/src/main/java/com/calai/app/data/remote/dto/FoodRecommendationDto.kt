@@ -33,15 +33,25 @@ data class AddFavoriteFoodRequest(
     val foodName: String
 )
 
+data class RecipeIngredientDto(
+    @SerializedName("name") val name: String,
+    @SerializedName("servingSize") val servingSize: String? = null,
+    @SerializedName("calories") val calories: Float,
+    @SerializedName("protein") val protein: Float = 0f,
+    @SerializedName("carb") val carb: Float = 0f,
+    @SerializedName("fat") val fat: Float = 0f
+)
+
 data class CreateCustomFoodRequest(
     @SerializedName("name") val name: String,
     @SerializedName("servingSize") val servingSize: String? = null,
     @SerializedName("servingAmount") val servingAmount: Float? = null,
     @SerializedName("servingUnit") val servingUnit: String? = null,
-    @SerializedName("calories") val calories: Float,
+    @SerializedName("calories") val calories: Float? = null,
     @SerializedName("protein") val protein: Float = 0f,
     @SerializedName("carb") val carb: Float = 0f,
-    @SerializedName("fat") val fat: Float = 0f
+    @SerializedName("fat") val fat: Float = 0f,
+    @SerializedName("ingredients") val ingredients: List<RecipeIngredientDto>? = null
 )
 
 data class CustomFoodDto(
@@ -54,7 +64,8 @@ data class CustomFoodDto(
     @SerializedName("calories") val calories: Float,
     @SerializedName("protein") val protein: Float = 0f,
     @SerializedName("carb") val carb: Float = 0f,
-    @SerializedName("fat") val fat: Float = 0f
+    @SerializedName("fat") val fat: Float = 0f,
+    @SerializedName("ingredients") val ingredients: List<RecipeIngredientDto>? = null
 )
 
 /** Kết quả tra cứu mã vạch (GET recommendations/barcode/:code) — null nếu không tìm thấy sản phẩm. */

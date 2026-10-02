@@ -34,6 +34,8 @@ data class ChatbotUiState(
     val isUpgrading: Boolean = false,
     val quota: ChatQuotaInfoDto = ChatQuotaInfoDto(),
     val plans: List<ChatPlanDto> = emptyList(),
+    val isLoadingPlans: Boolean = false,
+    val plansErrorMessage: String? = null,
     val suggestedPrompts: List<String> = listOf(
         "Gợi ý bữa tối dưới 500 kcal giàu đạm",
         "Sau buổi tập gym nên ăn gì?",
@@ -64,9 +66,7 @@ class ChatbotViewModel @Inject constructor(
             }
 
             // 2. Tải danh mục các bản nâng cấp
-            repository.fetchChatPlans().onSuccess { p ->
-                _uiState.update { it.copy(plans = p) }
-            }
+            loadPlans()
 
             // 3. Tải lịch sử hội thoại 7 ngày từ DB
             _uiState.update { it.copy(isLoadingHistory = true) }
@@ -92,6 +92,19 @@ class ChatbotViewModel @Inject constructor(
             }.onFailure {
                 _uiState.update { it.copy(isLoadingHistory = false) }
             }
+        }
+    }
+
+    fun loadPlans() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingPlans = true, plansErrorMessage = null) }
+            repository.fetchChatPlans()
+                .onSuccess { p -> _uiState.update { it.copy(plans = p, isLoadingPlans = false) } }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isLoadingPlans = false, plansErrorMessage = e.message ?: "Không tải được danh sách gói")
+                    }
+                }
         }
     }
 

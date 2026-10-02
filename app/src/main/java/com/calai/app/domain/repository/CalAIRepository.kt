@@ -59,7 +59,12 @@ interface CalAIRepository {
     suspend fun fetchDailySummary(date: String? = null): Result<DailyNutritionSummaryData>
     suspend fun fetchMealsFromRemote(date: String? = null): Result<List<MealResponseDto>>
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
-    suspend fun updateRemoteMeal(mealId: String, mealType: String? = null, date: String? = null): Result<MealResponseDto>
+    suspend fun updateRemoteMeal(
+        mealId: String,
+        mealType: String? = null,
+        date: String? = null,
+        items: List<CreateMealItemDto>? = null
+    ): Result<MealResponseDto?>
     suspend fun copyRemoteMeal(mealId: String, targetDate: String, mealType: String? = null): Result<MealResponseDto>
     suspend fun deleteRemoteMeal(mealId: String): Result<Unit>
     suspend fun fetchNutritionStatistics(startDate: String? = null, endDate: String? = null, preset: String? = null): Result<NutritionStatisticsData>
@@ -86,7 +91,17 @@ interface CalAIRepository {
     suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
     suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
     suspend fun fetchMonthlyDiet(goal: String? = null, level: String? = null): Result<MonthlyDietData>
-    suspend fun createCustomFood(name: String, servingSize: String?, servingAmount: Float? = null, servingUnit: String? = null, calories: Float, protein: Float = 0f, carb: Float = 0f, fat: Float = 0f): Result<CustomFoodDto>
+    suspend fun createCustomFood(
+        name: String,
+        servingSize: String?,
+        servingAmount: Float? = null,
+        servingUnit: String? = null,
+        calories: Float,
+        protein: Float = 0f,
+        carb: Float = 0f,
+        fat: Float = 0f,
+        ingredients: List<RecipeIngredientDto>? = null
+    ): Result<CustomFoodDto>
     suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?>
     suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>>
     suspend fun deleteCustomFood(id: String): Result<Unit>

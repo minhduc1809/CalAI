@@ -47,6 +47,7 @@ object ReminderScheduler {
             .putString(ReminderWorker.KEY_HABIT_TITLE, title)
             .putString(ReminderWorker.KEY_HABIT_MESSAGE, message)
             .putString(ReminderWorker.KEY_REPEAT_DAYS, repeatDaysCsv)
+            .putBoolean(ReminderWorker.KEY_IS_WATER, reminder.type == "WATER")
             .build()
 
         val request = if (reminder.type == "WATER") {

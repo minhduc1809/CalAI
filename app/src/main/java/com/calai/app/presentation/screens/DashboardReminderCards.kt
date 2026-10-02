@@ -71,17 +71,7 @@ fun pickMealReminder(
     return tomorrow?.let { MealReminderPick(it, MealPhase.TOMORROW, 24 * 60 - nowMin + start(it)) }
 }
 
-// ── Rule tiến độ uống nước ─────────────────────────────────────────────────
-
-private const val WATER_DAY_START_MIN = 7 * 60
-private const val WATER_DAY_END_MIN = 22 * 60
-
-/** Lượng nước kỳ vọng đã uống tại thời điểm hiện tại — tuyến tính từ 07:00 đến 22:00. */
-fun expectedWaterMl(goalMl: Int, now: Calendar = Calendar.getInstance()): Int {
-    val nowMin = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-    val fraction = ((nowMin - WATER_DAY_START_MIN).toFloat() / (WATER_DAY_END_MIN - WATER_DAY_START_MIN)).coerceIn(0f, 1f)
-    return (goalMl * fraction).toInt()
-}
+// Rule tiến độ uống nước dùng chung với ReminderWorker — xem WaterProgressRule.kt
 
 // ── UI ─────────────────────────────────────────────────────────────────────
 
@@ -208,7 +198,7 @@ fun WaterCard(
     val waterBlue = Color(0xFF3B9EF5)
     val totalGlasses = (goalMl / glassMl).coerceAtLeast(1)
     val filled = (drankMl / glassMl).coerceAtMost(totalGlasses)
-    val behindMl = expectedWaterMl(goalMl) - drankMl
+    val behindMl = com.calai.app.domain.WaterProgressRule.expectedMl(goalMl) - drankMl
 
     Column(
         modifier = modifier

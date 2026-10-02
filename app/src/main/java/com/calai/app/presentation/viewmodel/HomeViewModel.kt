@@ -164,6 +164,43 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** Sửa số lượng 1 món bên trong bữa ăn đã log, hoặc gỡ hẳn (newQuantity <= 0). */
+    fun updateMealItemQuantity(meal: com.calai.app.data.remote.dto.MealResponseDto, itemId: String, newQuantity: Float) {
+        val updatedItems = if (newQuantity <= 0f) {
+            meal.items.filterNot { it.id == itemId }
+        } else {
+            meal.items.map { if (it.id == itemId) it.copy(quantity = newQuantity) else it }
+        }
+        submitMealItems(meal.id, updatedItems)
+    }
+
+    /** Gỡ hẳn 1 món khỏi bữa ăn đã log (menu 'Sửa món ăn'). */
+    fun removeMealItem(meal: com.calai.app.data.remote.dto.MealResponseDto, itemId: String) {
+        submitMealItems(meal.id, meal.items.filterNot { it.id == itemId })
+    }
+
+    private fun submitMealItems(mealId: String, items: List<com.calai.app.data.remote.dto.MealItemResponseDto>) {
+        val request = items.map { item ->
+            com.calai.app.data.remote.dto.CreateMealItemDto(
+                name = item.name,
+                servingSize = item.servingSize,
+                quantity = item.quantity,
+                calories = item.calories,
+                protein = item.protein,
+                carb = item.carb,
+                fat = item.fat,
+                source = item.source
+            )
+        }
+        viewModelScope.launch {
+            repository.updateRemoteMeal(mealId, items = request).onSuccess {
+                loadData()
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Không thể sửa món ăn") }
+            }
+        }
+    }
+
     fun copyMeal(mealId: String, targetDate: String) {
         viewModelScope.launch {
             repository.copyRemoteMeal(mealId, targetDate).onSuccess {

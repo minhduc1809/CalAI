@@ -34,7 +34,12 @@ object AppModule {
             context,
             CalAIDatabase::class.java,
             "calai_db"
-        ).build()
+        )
+            // Chưa có Migration thủ công cho các bump version — DB chỉ là cache của dữ liệu server
+            // (meals/weight logs tải lại được, pending queue mới thêm không đáng để giữ qua migration),
+            // nên chấp nhận xoá & tạo lại khi đổi schema thay vì crash app.
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

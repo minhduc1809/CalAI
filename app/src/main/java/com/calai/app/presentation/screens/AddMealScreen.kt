@@ -91,8 +91,8 @@ fun AddMealScreen(
         CreateCustomFoodDialog(
             isDark = isDarkTheme,
             onDismiss = { showCreateCustomFoodDialog = false },
-            onConfirm = { name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat ->
-                viewModel.createCustomFood(name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat)
+            onConfirm = { name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat, ingredients ->
+                viewModel.createCustomFood(name, servingSize, servingAmount, servingUnit, calories, protein, carb, fat, ingredients)
                 showCreateCustomFoodDialog = false
             }
         )
@@ -869,11 +869,24 @@ private fun QuickAddDialog(
     }
 }
 
+private data class RecipeIngredientDraft(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    var name: String = "",
+    var calories: String = "",
+    var protein: String = "",
+    var carb: String = "",
+    var fat: String = ""
+)
+
 @Composable
 private fun CreateCustomFoodDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, servingSize: String, servingAmount: Float?, servingUnit: String?, calories: Float, protein: Float, carb: Float, fat: Float) -> Unit
+    onConfirm: (
+        name: String, servingSize: String, servingAmount: Float?, servingUnit: String?,
+        calories: Float, protein: Float, carb: Float, fat: Float,
+        ingredients: List<com.calai.app.data.remote.dto.RecipeIngredientDto>?
+    ) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var servingSize by remember { mutableStateOf("") }
@@ -884,19 +897,39 @@ private fun CreateCustomFoodDialog(
     var carb by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
+    // Recipe: nhiều nguyên liệu, calo/macro tổng tự cộng dồn — thay vì bắt tự tính tay rồi nhập 1 số duy nhất.
+    var isRecipeMode by remember { mutableStateOf(false) }
+    val ingredientDrafts = remember { mutableStateListOf(RecipeIngredientDraft()) }
+
     val proteinColor = if (isDark) ProteinGradientStart else ProteinGradientStartLight
     val carbColor = if (isDark) CarbGradientStart else CarbGradientStartLight
     val fatColor = if (isDark) FatGradientStart else FatGradientStartLight
 
+    val recipeTotalCalories = ingredientDrafts.sumOf { (it.calories.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
+    val recipeTotalProtein = ingredientDrafts.sumOf { (it.protein.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
+    val recipeTotalCarb = ingredientDrafts.sumOf { (it.carb.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
+    val recipeTotalFat = ingredientDrafts.sumOf { (it.fat.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
+
+    val effectiveCalories = if (isRecipeMode) recipeTotalCalories else (calories.toFloatOrNull() ?: 0f)
+    val effectiveProtein = if (isRecipeMode) recipeTotalProtein else (protein.toFloatOrNull() ?: 0f)
+    val effectiveCarb = if (isRecipeMode) recipeTotalCarb else (carb.toFloatOrNull() ?: 0f)
+    val effectiveFat = if (isRecipeMode) recipeTotalFat else (fat.toFloatOrNull() ?: 0f)
+
     // Tỷ lệ macro theo calo (Protein/Carb = 4 kcal/g, Fat = 9 kcal/g) — chỉ mang tính minh họa,
-    // không phải nguồn tính calo chính thức (calo vẫn do người dùng tự nhập ở field riêng).
-    val proteinKcal = (protein.toFloatOrNull() ?: 0f) * 4f
-    val carbKcal = (carb.toFloatOrNull() ?: 0f) * 4f
-    val fatKcal = (fat.toFloatOrNull() ?: 0f) * 9f
+    // không phải nguồn tính calo chính thức.
+    val proteinKcal = effectiveProtein * 4f
+    val carbKcal = effectiveCarb * 4f
+    val fatKcal = effectiveFat * 9f
     val macroKcalTotal = proteinKcal + carbKcal + fatKcal
     val proteinRatio = if (macroKcalTotal > 0f) proteinKcal / macroKcalTotal else 0f
     val carbRatio = if (macroKcalTotal > 0f) carbKcal / macroKcalTotal else 0f
     val fatRatio = if (macroKcalTotal > 0f) fatKcal / macroKcalTotal else 0f
+
+    val canSave = name.isNotBlank() && if (isRecipeMode) {
+        ingredientDrafts.any { it.name.isNotBlank() && (it.calories.toFloatOrNull() ?: 0f) > 0f }
+    } else {
+        calories.toFloatOrNull() != null
+    }
 
     AppFormDialog(
         title = "Thêm mới — Món ăn riêng",
@@ -915,18 +948,33 @@ private fun CreateCustomFoodDialog(
             AppButton(
                 text = "Lưu món ăn",
                 onClick = {
+                    val ingredientsPayload = if (isRecipeMode) {
+                        ingredientDrafts
+                            .filter { it.name.isNotBlank() && (it.calories.toFloatOrNull() ?: 0f) > 0f }
+                            .map {
+                                com.calai.app.data.remote.dto.RecipeIngredientDto(
+                                    name = it.name,
+                                    calories = it.calories.toFloatOrNull() ?: 0f,
+                                    protein = it.protein.toFloatOrNull() ?: 0f,
+                                    carb = it.carb.toFloatOrNull() ?: 0f,
+                                    fat = it.fat.toFloatOrNull() ?: 0f
+                                )
+                            }
+                    } else null
+
                     onConfirm(
                         name,
                         servingSize,
                         servingAmount.toFloatOrNull(),
                         servingUnit,
-                        calories.toFloatOrNull() ?: 0f,
-                        protein.toFloatOrNull() ?: 0f,
-                        carb.toFloatOrNull() ?: 0f,
-                        fat.toFloatOrNull() ?: 0f
+                        effectiveCalories,
+                        effectiveProtein,
+                        effectiveCarb,
+                        effectiveFat,
+                        ingredientsPayload
                     )
                 },
-                enabled = name.isNotBlank() && calories.toFloatOrNull() != null,
+                enabled = canSave,
                 modifier = Modifier.weight(1f),
                 height = 44.dp,
                 shape = RoundedCornerShape(12.dp)
@@ -940,6 +988,24 @@ private fun CreateCustomFoodDialog(
             placeholder = "VD: Cơm gà xối mỡ",
             trailingHint = "bắt buộc"
         )
+
+        // Chuyển đổi Món đơn giản (nhập thẳng 1 số calo) / Công thức nhiều nguyên liệu (tự cộng dồn)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectionPill(
+                label = "Món đơn giản",
+                isSelected = !isRecipeMode,
+                isDarkTheme = isDark,
+                modifier = Modifier.weight(1f),
+                onClick = { isRecipeMode = false }
+            )
+            SelectionPill(
+                label = "Công thức nhiều nguyên liệu",
+                isSelected = isRecipeMode,
+                isDarkTheme = isDark,
+                modifier = Modifier.weight(1f),
+                onClick = { isRecipeMode = true }
+            )
+        }
 
         AppTextField(
             label = "Khẩu phần chuẩn",
@@ -1027,110 +1093,206 @@ private fun CreateCustomFoodDialog(
             }
         }
 
-        // Năng lượng — thẻ nổi bật riêng (icon duotone lửa, đúng ngữ nghĩa Calories),
-        // thay vì dồn chung 1 ô nhập trần như 3 field macro bên dưới.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(VividOrangeSoft)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            DuotoneFlameIcon(size = 26.dp)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "NĂNG LƯỢNG",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextInkSecondary
-                )
-                Text(
-                    text = "Calories (kcal)",
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            androidx.compose.material3.TextField(
-                value = calories,
-                onValueChange = { calories = it.filter { c -> c.isDigit() } },
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    color = VividOrange,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End
-                ),
-                placeholder = { Text("0", textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.fillMaxWidth()) },
-                singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.width(96.dp)
-            )
-        }
+        if (isRecipeMode) {
+            // Danh sách nguyên liệu — mỗi dòng tự cộng dồn vào tổng calo/macro của cả món,
+            // thay vì bắt người dùng tự cộng tay rồi nhập 1 số duy nhất.
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ingredientDrafts.forEachIndexed { index, draft ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.TextField(
+                                value = draft.name,
+                                onValueChange = { ingredientDrafts[index] = draft.copy(name = it) },
+                                placeholder = { Text("Tên nguyên liệu ${index + 1}") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (ingredientDrafts.size > 1) {
+                                IconButton(onClick = { ingredientDrafts.removeAt(index) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Gỡ nguyên liệu", tint = CoralWarning, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AppTextFieldCompact(
+                                label = "Kcal", value = draft.calories,
+                                onValueChange = { ingredientDrafts[index] = draft.copy(calories = it.filter { c -> c.isDigit() }) },
+                                modifier = Modifier.weight(1f), leadingDot = VividOrange
+                            )
+                            AppTextFieldCompact(
+                                label = "P", value = draft.protein,
+                                onValueChange = { ingredientDrafts[index] = draft.copy(protein = it.filter { c -> c.isDigit() }) },
+                                modifier = Modifier.weight(1f), leadingDot = proteinColor
+                            )
+                            AppTextFieldCompact(
+                                label = "C", value = draft.carb,
+                                onValueChange = { ingredientDrafts[index] = draft.copy(carb = it.filter { c -> c.isDigit() }) },
+                                modifier = Modifier.weight(1f), leadingDot = carbColor
+                            )
+                            AppTextFieldCompact(
+                                label = "F", value = draft.fat,
+                                onValueChange = { ingredientDrafts[index] = draft.copy(fat = it.filter { c -> c.isDigit() }) },
+                                modifier = Modifier.weight(1f), leadingDot = fatColor
+                            )
+                        }
+                    }
+                }
 
-        // Tỷ lệ dinh dưỡng đa lượng — thanh nhiều màu theo đúng token macro có sẵn (Protein/Carb/Fat),
-        // chỉ minh họa tỷ lệ giữa 3 macro đã nhập, không phải nguồn tính calo.
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Tỷ lệ dinh dưỡng đa lượng",
-                    fontSize = 11.sp,
-                    color = TextInkSecondary
-                )
-                Text(
-                    text = "100% Khẩu phần",
-                    fontSize = 11.sp,
-                    color = TextInkSecondary
-                )
+                OutlinedButton(
+                    onClick = { ingredientDrafts.add(RecipeIngredientDraft()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = VividOrange, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Thêm nguyên liệu", color = VividOrange, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+
+                // Tổng cộng — chỉ đọc, tự tính từ các nguyên liệu bên trên
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(VividOrangeSoft)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("TỔNG CỘNG MÓN", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = TextInkSecondary)
+                        Text(
+                            "${recipeTotalProtein.toInt()}g P • ${recipeTotalCarb.toInt()}g C • ${recipeTotalFat.toInt()}g F",
+                            fontSize = 11.5.sp, color = TextInkSecondary
+                        )
+                    }
+                    Text("${recipeTotalCalories.toInt()} kcal", fontSize = 20.sp, fontWeight = FontWeight.Black, color = VividOrange)
+                }
             }
+        } else {
+            // Năng lượng — thẻ nổi bật riêng (icon duotone lửa, đúng ngữ nghĩa Calories),
+            // thay vì dồn chung 1 ô nhập trần như 3 field macro bên dưới.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(VividOrangeSoft)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (macroKcalTotal > 0f) {
-                    Box(modifier = Modifier.weight(proteinRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(proteinColor))
-                    Box(modifier = Modifier.weight(carbRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(carbColor))
-                    Box(modifier = Modifier.weight(fatRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(fatColor))
+                DuotoneFlameIcon(size = 26.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "NĂNG LƯỢNG",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextInkSecondary
+                    )
+                    Text(
+                        text = "Calories (kcal)",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                androidx.compose.material3.TextField(
+                    value = calories,
+                    onValueChange = { calories = it.filter { c -> c.isDigit() } },
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = VividOrange,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    ),
+                    placeholder = { Text("0", textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.width(96.dp)
+                )
+            }
+
+            // Tỷ lệ dinh dưỡng đa lượng — thanh nhiều màu theo đúng token macro có sẵn (Protein/Carb/Fat),
+            // chỉ minh họa tỷ lệ giữa 3 macro đã nhập, không phải nguồn tính calo.
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Tỷ lệ dinh dưỡng đa lượng",
+                        fontSize = 11.sp,
+                        color = TextInkSecondary
+                    )
+                    Text(
+                        text = "100% Khẩu phần",
+                        fontSize = 11.sp,
+                        color = TextInkSecondary
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (macroKcalTotal > 0f) {
+                        Box(modifier = Modifier.weight(proteinRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(proteinColor))
+                        Box(modifier = Modifier.weight(carbRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(carbColor))
+                        Box(modifier = Modifier.weight(fatRatio.coerceAtLeast(0.0001f)).fillMaxHeight().background(fatColor))
+                    }
                 }
             }
-        }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AppTextFieldCompact(
-                label = "Protein",
-                value = protein,
-                onValueChange = { protein = it.filter { c -> c.isDigit() } },
-                modifier = Modifier.weight(1f),
-                leadingDot = proteinColor
-            )
-            AppTextFieldCompact(
-                label = "Carb",
-                value = carb,
-                onValueChange = { carb = it.filter { c -> c.isDigit() } },
-                modifier = Modifier.weight(1f),
-                leadingDot = carbColor
-            )
-            AppTextFieldCompact(
-                label = "Fat",
-                value = fat,
-                onValueChange = { fat = it.filter { c -> c.isDigit() } },
-                modifier = Modifier.weight(1f),
-                leadingDot = fatColor
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppTextFieldCompact(
+                    label = "Protein",
+                    value = protein,
+                    onValueChange = { protein = it.filter { c -> c.isDigit() } },
+                    modifier = Modifier.weight(1f),
+                    leadingDot = proteinColor
+                )
+                AppTextFieldCompact(
+                    label = "Carb",
+                    value = carb,
+                    onValueChange = { carb = it.filter { c -> c.isDigit() } },
+                    modifier = Modifier.weight(1f),
+                    leadingDot = carbColor
+                )
+                AppTextFieldCompact(
+                    label = "Fat",
+                    value = fat,
+                    onValueChange = { fat = it.filter { c -> c.isDigit() } },
+                    modifier = Modifier.weight(1f),
+                    leadingDot = fatColor
+                )
+            }
         }
     }
 }

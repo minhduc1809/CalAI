@@ -65,7 +65,8 @@ class AddMealViewModel @Inject constructor(
         calories: Float,
         protein: Float,
         carb: Float,
-        fat: Float
+        fat: Float,
+        ingredients: List<com.calai.app.data.remote.dto.RecipeIngredientDto>? = null
     ) {
         if (name.isBlank() || calories <= 0f) {
             _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập tên món và lượng calo hợp lệ")
@@ -80,7 +81,8 @@ class AddMealViewModel @Inject constructor(
                 calories = calories,
                 protein = protein,
                 carb = carb,
-                fat = fat
+                fat = fat,
+                ingredients = ingredients
             ).onSuccess {
                 loadCustomFoods()
             }.onFailure { e ->
@@ -126,10 +128,16 @@ class AddMealViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(favoriteNames = updated)
 
         viewModelScope.launch {
-            if (isCurrentlyFavorite) {
+            val result = if (isCurrentlyFavorite) {
                 repository.removeFavoriteFood(foodName)
             } else {
                 repository.addFavoriteFood(foodName)
+            }
+            // Server từ chối lưu — hoàn tác lại trạng thái lạc quan để không hiển thị sai với thực tế đã lưu.
+            result.onFailure {
+                val reverted = _uiState.value.favoriteNames.toMutableSet()
+                if (isCurrentlyFavorite) reverted.add(foodName) else reverted.remove(foodName)
+                _uiState.value = _uiState.value.copy(favoriteNames = reverted)
             }
         }
     }

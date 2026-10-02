@@ -382,20 +382,29 @@ fun ChatbotScreen(
 
                     val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
 
-                    val plans = if (uiState.plans.isNotEmpty()) uiState.plans else listOf(
-                        com.calai.app.data.remote.dto.ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
-                        com.calai.app.data.remote.dto.ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
-                        com.calai.app.data.remote.dto.ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
-                    )
-
-                    plans.forEach { plan ->
-                        PlanCard(
-                            plan = plan,
-                            isCurrent = uiState.quota.currentTier == plan.id,
-                            enabled = !uiState.isUpgrading,
-                            onSelect = { viewModel.purchasePlan(plan.id) }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                    when {
+                        uiState.isLoadingPlans && uiState.plans.isEmpty() -> {
+                            CircularProgressIndicator(color = VividOrange, modifier = Modifier.padding(vertical = 16.dp))
+                        }
+                        uiState.plansErrorMessage != null && uiState.plans.isEmpty() -> {
+                            Text(
+                                text = "Không tải được danh sách gói. ${uiState.plansErrorMessage}",
+                                fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            OutlinedButton(onClick = { viewModel.loadPlans() }) { Text("Thử lại") }
+                        }
+                        else -> {
+                            uiState.plans.forEach { plan ->
+                                PlanCard(
+                                    plan = plan,
+                                    isCurrent = uiState.quota.currentTier == plan.id,
+                                    enabled = !uiState.isUpgrading,
+                                    onSelect = { viewModel.purchasePlan(plan.id) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
                     }
 
                     if (uiState.isUpgrading) {

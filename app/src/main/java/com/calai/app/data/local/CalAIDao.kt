@@ -2,6 +2,8 @@ package com.calai.app.data.local
 
 import androidx.room.*
 import com.calai.app.data.local.entity.MealEntity
+import com.calai.app.data.local.entity.PendingCustomFoodEntity
+import com.calai.app.data.local.entity.PendingFavoriteEntity
 import com.calai.app.data.local.entity.UserEntity
 import com.calai.app.data.local.entity.WeightLogEntity
 import kotlinx.coroutines.flow.Flow
@@ -28,4 +30,22 @@ interface CalAIDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWeightLog(log: WeightLogEntity)
+
+    @Query("SELECT * FROM pending_favorite_actions")
+    suspend fun getPendingFavorites(): List<PendingFavoriteEntity>
+
+    @Upsert
+    suspend fun upsertPendingFavorite(entity: PendingFavoriteEntity)
+
+    @Query("DELETE FROM pending_favorite_actions WHERE foodName = :foodName")
+    suspend fun deletePendingFavorite(foodName: String)
+
+    @Query("SELECT * FROM pending_custom_foods ORDER BY createdAt ASC")
+    suspend fun getPendingCustomFoods(): List<PendingCustomFoodEntity>
+
+    @Insert
+    suspend fun insertPendingCustomFood(entity: PendingCustomFoodEntity): Long
+
+    @Query("DELETE FROM pending_custom_foods WHERE localId = :localId")
+    suspend fun deletePendingCustomFood(localId: Long)
 }

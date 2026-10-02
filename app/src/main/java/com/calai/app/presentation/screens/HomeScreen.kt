@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.R
 import com.calai.app.data.remote.dto.MealResponseDto
@@ -69,6 +72,21 @@ fun HomeScreen(
     var showReminderSheet by remember { mutableStateOf(false) }
     var selectedDateIso by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+    }
+
+    // Quay lại Home sau khi log bữa (camera/thêm món) hay đổi habit reminder không tự phát dữ liệu mới
+    // vì NavHost giữ nguyên ViewModel của back-stack entry — phải tự tải lại khi màn hình resume.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.loadData(selectedDateIso)
+                reminderViewModel.loadReminders()
+                waterViewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     BoxWithConstraints(
@@ -214,7 +232,9 @@ fun HomeScreen(
                                 showTimelineTime = uiState.mealStructureMode != "FIXED_MEALS",
                                 onDelete = { viewModel.deleteMeal(meal.id) },
                                 onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
-                                onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) }
+                                onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) },
+                                onUpdateItemQuantity = { itemId, qty -> viewModel.updateMealItemQuantity(meal, itemId, qty) },
+                                onRemoveItem = { itemId -> viewModel.removeMealItem(meal, itemId) }
                             )
                         }
                     }
@@ -643,10 +663,13 @@ private fun MealItemRow(
     showTimelineTime: Boolean = true,
     onDelete: () -> Unit,
     onChangeMealType: (String) -> Unit,
-    onCopy: (String) -> Unit
+    onCopy: (String) -> Unit,
+    onUpdateItemQuantity: (itemId: String, newQuantity: Float) -> Unit = { _, _ -> },
+    onRemoveItem: (itemId: String) -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showCopyDialog by remember { mutableStateOf(false) }
+    var showEditItemsDialog by remember { mutableStateOf(false) }
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
     val mealTypeName = when (meal.mealType) {
@@ -665,6 +688,16 @@ private fun MealItemRow(
                 onCopy(targetDate)
                 showCopyDialog = false
             }
+        )
+    }
+
+    if (showEditItemsDialog) {
+        EditMealItemsDialog(
+            meal = meal,
+            isDarkTheme = isDarkTheme,
+            onDismiss = { showEditItemsDialog = false },
+            onUpdateQuantity = onUpdateItemQuantity,
+            onRemoveItem = onRemoveItem
         )
     }
 
@@ -807,6 +840,16 @@ private fun MealItemRow(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         DropdownMenuItem(
                             text = {
+                                Text("Sửa món ăn", color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            },
+                            onClick = { showMenu = false; showEditItemsDialog = true }
+                        )
+                        DropdownMenuItem(
+                            text = {
                                 Text("Sao chép sang ngày khác", color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp)
                             },
                             leadingIcon = {
@@ -826,6 +869,84 @@ private fun MealItemRow(
                     }
                 }
             }
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EDIT MEAL ITEMS DIALOG — sửa số lượng / gỡ từng món riêng lẻ trong 1 bữa ăn đã log
+// ════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun EditMealItemsDialog(
+    meal: MealResponseDto,
+    isDarkTheme: Boolean,
+    onDismiss: () -> Unit,
+    onUpdateQuantity: (itemId: String, newQuantity: Float) -> Unit,
+    onRemoveItem: (itemId: String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text("Sửa món ăn", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+            Text(
+                "Chỉnh số lượng hoặc gỡ từng món khỏi bữa ăn này",
+                fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                meal.items.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(item.name, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
+                            Text(
+                                "${(item.calories * item.quantity).toInt()} kcal",
+                                fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            IconButton(
+                                onClick = { onUpdateQuantity(item.id, item.quantity - 0.5f) },
+                                modifier = Modifier.size(28.dp)
+                            ) { Icon(Icons.Default.RemoveCircleOutline, contentDescription = "Giảm", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) }
+                            Text(
+                                "${item.quantity}x", fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.widthIn(min = 28.dp), textAlign = TextAlign.Center
+                            )
+                            IconButton(
+                                onClick = { onUpdateQuantity(item.id, item.quantity + 0.5f) },
+                                modifier = Modifier.size(28.dp)
+                            ) { Icon(Icons.Default.AddCircleOutline, contentDescription = "Tăng", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) }
+                            IconButton(
+                                onClick = { onRemoveItem(item.id) },
+                                modifier = Modifier.size(28.dp)
+                            ) { Icon(Icons.Default.Delete, contentDescription = "Gỡ món", tint = CoralWarning, modifier = Modifier.size(16.dp)) }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            AppButton(text = "Xong", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(14.dp))
         }
     }
 }
