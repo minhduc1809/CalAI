@@ -30,7 +30,10 @@ data class WeightLogResponseDto(
     @SerializedName("note")
     val note: String? = null,
     @SerializedName("date")
-    val date: String
+    val date: String,
+    /** true nếu cân nặng lệch nhiều so với xu hướng (có thể nhầm kg/lb) — app hỏi lại người dùng (BR-09.3). */
+    @SerializedName("suspicious")
+    val suspicious: Boolean? = null
 )
 
 /** Một điểm trên đường Trend Weight (EWMA, alpha = 0.1) do backend tính sẵn. */

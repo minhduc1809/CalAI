@@ -2,7 +2,6 @@ package com.calai.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.calai.app.data.remote.dto.ChatPlanDto
 import com.calai.app.data.remote.dto.ChatQuotaInfoDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,19 +30,14 @@ data class ChatbotUiState(
     ),
     val isTyping: Boolean = false,
     val isLoadingHistory: Boolean = false,
-    val isUpgrading: Boolean = false,
     val quota: ChatQuotaInfoDto = ChatQuotaInfoDto(),
-    val plans: List<ChatPlanDto> = emptyList(),
-    val isLoadingPlans: Boolean = false,
-    val plansErrorMessage: String? = null,
     val suggestedPrompts: List<String> = listOf(
         "Gợi ý bữa tối dưới 500 kcal giàu đạm",
         "Sau buổi tập gym nên ăn gì?",
         "Bữa phụ Eat Clean khi đói chiều?",
         "Cách tính thâm hụt calo an toàn"
     ),
-    val errorMessage: String? = null,
-    val upgradeSuccessMessage: String? = null
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
@@ -60,15 +54,12 @@ class ChatbotViewModel @Inject constructor(
 
     fun loadInitialData() {
         viewModelScope.launch {
-            // 1. Tải hạn mức bản hiện tại (Plus, Pro, Max)
+            // 1. Tải hạn mức theo gói hiện tại (Miễn phí: 10 tin/ngày, Premium: 50.000 token/ngày)
             repository.fetchChatQuota().onSuccess { q ->
                 _uiState.update { it.copy(quota = q) }
             }
 
-            // 2. Tải danh mục các bản nâng cấp
-            loadPlans()
-
-            // 3. Tải lịch sử hội thoại 7 ngày từ DB
+            // 2. Tải lịch sử hội thoại từ DB (Free xem 3 ngày, Premium 7 ngày)
             _uiState.update { it.copy(isLoadingHistory = true) }
             repository.fetchChatHistory().onSuccess { history ->
                 if (history.messages.isNotEmpty()) {
@@ -92,19 +83,6 @@ class ChatbotViewModel @Inject constructor(
             }.onFailure {
                 _uiState.update { it.copy(isLoadingHistory = false) }
             }
-        }
-    }
-
-    fun loadPlans() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingPlans = true, plansErrorMessage = null) }
-            repository.fetchChatPlans()
-                .onSuccess { p -> _uiState.update { it.copy(plans = p, isLoadingPlans = false) } }
-                .onFailure { e ->
-                    _uiState.update {
-                        it.copy(isLoadingPlans = false, plansErrorMessage = e.message ?: "Không tải được danh sách gói")
-                    }
-                }
         }
     }
 
@@ -152,28 +130,6 @@ class ChatbotViewModel @Inject constructor(
         }
     }
 
-    fun purchasePlan(packageId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isUpgrading = true, errorMessage = null) }
-            repository.purchaseChatPlan(packageId).onSuccess { updatedQuota ->
-                _uiState.update {
-                    it.copy(
-                        isUpgrading = false,
-                        quota = updatedQuota,
-                        upgradeSuccessMessage = "Chúc mừng bạn đã nâng cấp thành công lên ${updatedQuota.tierName}!"
-                    )
-                }
-            }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isUpgrading = false,
-                        errorMessage = error.message ?: "Nâng cấp gói thất bại. Vui lòng thử lại sau."
-                    )
-                }
-            }
-        }
-    }
-
     fun clearHistory() {
         viewModelScope.launch {
             repository.clearChatHistory().onSuccess {
@@ -189,10 +145,6 @@ class ChatbotViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    fun dismissUpgradeSuccess() {
-        _uiState.update { it.copy(upgradeSuccessMessage = null) }
     }
 
     fun dismissError() {

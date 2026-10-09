@@ -110,6 +110,36 @@ fun WeightHistoryScreen(
         )
     }
 
+    uiState.suspiciousLog?.let { log ->
+        AlertDialog(
+            onDismissRequest = { viewModel.keepSuspiciousLog() },
+            containerColor = surface,
+            title = { Text("Cân nặng này có đúng không?", color = textPrimary, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Số cân bạn vừa nhập chênh khá nhiều so với xu hướng gần đây. Bạn có nhập đúng đơn vị ($inputUnitLabel) không?",
+                    color = textSecondary,
+                    fontSize = 13.5.sp,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                AppButton(
+                    text = "Đúng, giữ lại",
+                    onClick = { viewModel.keepSuspiciousLog() },
+                    modifier = Modifier.width(140.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.deleteSuspiciousLog() }) {
+                    Text("Nhập nhầm, xoá", color = textSecondary)
+                }
+            }
+        )
+    }
+
     if (uiState.editingLog != null) {
         AlertDialog(
             onDismissRequest = { viewModel.cancelEdit() },

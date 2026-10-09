@@ -57,6 +57,7 @@ import java.io.File
 @Composable
 fun CameraScanScreen(
     onBack: () -> Unit,
+    onOpenPremium: () -> Unit = {},
     viewModel: CameraScanViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -223,7 +224,7 @@ fun CameraScanScreen(
             if (uiState.selectedImageUri == null) {
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Badge hạn mức — dữ liệu thật từ ai/quota, bấm vào để mua thêm lượt
+                // Badge hạn mức — dữ liệu thật từ ai/quota; hết lượt thì bấm để xem gói Premium
                 val quota = uiState.aiQuota
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
@@ -234,7 +235,7 @@ fun CameraScanScreen(
                     ),
                     modifier = Modifier
                         .padding(bottom = 14.dp)
-                        .clickable { viewModel.openPurchaseSheet() }
+                        .clickable(enabled = uiState.isQuotaExhausted) { onOpenPremium() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -250,8 +251,8 @@ fun CameraScanScreen(
                         Text(
                             text = when {
                                 quota == null -> "Đang tải hạn mức chụp ảnh AI..."
-                                uiState.isQuotaExhausted -> "Đã hết lượt chụp hôm nay — bấm để mua thêm"
-                                else -> "Còn ${quota.totalRemaining} lượt chụp AI (${quota.freeRemaining} miễn phí hôm nay)"
+                                uiState.isQuotaExhausted -> "Đã hết lượt chụp hôm nay — bấm để xem gói Premium"
+                                else -> "Còn ${quota.totalRemaining} lượt chụp AI hôm nay"
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -641,76 +642,6 @@ fun CameraScanScreen(
             }
 
             Spacer(modifier = Modifier.height(30.dp))
-        }
-    }
-
-    if (uiState.showPurchaseSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.dismissPurchaseSheet() },
-            containerColor = MaterialTheme.colorScheme.background
-        ) {
-            Column(modifier = Modifier.padding(20.dp).padding(bottom = 24.dp)) {
-                Text(
-                    "Mua Thêm Lượt Chụp Ảnh AI",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Lượt mua không bao giờ hết hạn, dùng sau khi hết 5 lượt miễn phí mỗi ngày",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (uiState.aiPackages.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = VividOrange)
-                    }
-                } else {
-                    uiState.aiPackages.forEach { pkg ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(
-                                if (pkg.isPopular || pkg.bestValue) 1.5.dp else 1.dp,
-                                if (pkg.isPopular || pkg.bestValue) VividOrange else MaterialTheme.colorScheme.outline
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 10.dp)
-                                .clickable(enabled = !uiState.isPurchasingCredits) {
-                                    viewModel.purchaseAiCredits(pkg.id)
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(pkg.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                                    Text("${pkg.credits} lượt chụp", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Text(
-                                    "${pkg.priceVnd}đ",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = VividOrange
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (uiState.isPurchasingCredits) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = VividOrange, modifier = Modifier.size(24.dp))
-                    }
-                }
-            }
         }
     }
 }
