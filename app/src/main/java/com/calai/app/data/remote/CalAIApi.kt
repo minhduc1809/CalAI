@@ -55,6 +55,16 @@ interface CalAIApi {
     @GET("users/me/expenditure")
     suspend fun getExpenditureStatus(): ApiResponse<ExpenditureStatusDto>
 
+    /** BR-02.4: Lưu và lấy bản nháp Onboarding */
+    @GET("users/me/onboarding-draft")
+    suspend fun getOnboardingDraft(): ApiResponse<OnboardingDraftData?>
+
+    @PUT("users/me/onboarding-draft")
+    suspend fun saveOnboardingDraft(@Body request: SaveOnboardingDraftRequest): ApiResponse<OnboardingDraftData>
+
+    @DELETE("users/me/onboarding-draft")
+    suspend fun clearOnboardingDraft(): ApiResponse<Any?>
+
     // --- MEALS ---
     @POST("meals")
     suspend fun createMeal(@Body request: CreateMealRequest): ApiResponse<MealResponseDto>
