@@ -48,6 +48,10 @@ interface CalAIApi {
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfileDto>
 
+    /** BR-04 (E5): áp dụng mục tiêu tính lại từ hồ sơ hiện tại sau khi người dùng xác nhận. */
+    @POST("users/me/target/apply")
+    suspend fun applyProposedTarget(): ApiResponse<Any?>
+
     @GET("users/me/expenditure")
     suspend fun getExpenditureStatus(): ApiResponse<ExpenditureStatusDto>
 
@@ -63,6 +67,29 @@ interface CalAIApi {
 
     @GET("meals/summary")
     suspend fun getDailySummary(@Query("date") date: String? = null): ApiResponse<DailyNutritionSummaryData>
+
+    /** BR-05.2: người dùng đánh dấu ngày "Đã ghi đủ" / "Chưa đủ" / để hệ thống quyết định (AUTO). */
+    @PUT("daily-status/{date}")
+    suspend fun setDayStatus(
+        @Path("date") date: String,
+        @Body request: SetDayStatusRequest
+    ): ApiResponse<Any?>
+
+    @GET("meals/week-summary")
+    suspend fun getWeekSummary(@Query("startDate") startDate: String): ApiResponse<List<WeekDaySummaryDto>>
+
+    // --- NOTIFICATIONS ---
+    @GET("notifications")
+    suspend fun getNotifications(): ApiResponse<NotificationListDto>
+
+    @PATCH("notifications/{id}/read")
+    suspend fun markNotificationRead(@Path("id") id: String): ApiResponse<NotificationDto>
+
+    @PATCH("notifications/read-all")
+    suspend fun markAllNotificationsRead(): ApiResponse<Any?>
+
+    @DELETE("notifications/{id}")
+    suspend fun deleteNotification(@Path("id") id: String): ApiResponse<Any?>
 
     @GET("meals/statistics")
     suspend fun getMealsStatistics(
@@ -130,8 +157,11 @@ interface CalAIApi {
     @DELETE("recommendations/favorites/{foodName}")
     suspend fun removeFavoriteFood(@Path("foodName") foodName: String): ApiResponse<Any?>
 
-    @GET("recommendations/diet")
-    suspend fun getDietRecommendation(): ApiResponse<DietRecommendationData>
+    @GET("meal-plan/today")
+    suspend fun getTodayMealPlan(): ApiResponse<TodayMealPlanDto>
+
+    @GET("meal-plan")
+    suspend fun getMealPlan(@Query("days") days: Int): ApiResponse<MealPlanDto>
 
     @GET("recommendations/workout")
     suspend fun getWorkoutRecommendation(): ApiResponse<WorkoutRecommendationData>
@@ -141,12 +171,6 @@ interface CalAIApi {
         @Query("gender") gender: String? = null,
         @Query("level") level: String? = null
     ): ApiResponse<ExerciseListData>
-
-    @GET("recommendations/diet/monthly")
-    suspend fun getMonthlyDiet(
-        @Query("goal") goal: String? = null,
-        @Query("level") level: String? = null
-    ): ApiResponse<MonthlyDietData>
 
     @POST("recommendations/custom-foods")
     suspend fun createCustomFood(@Body request: CreateCustomFoodRequest): ApiResponse<CustomFoodDto>
@@ -212,27 +236,38 @@ interface CalAIApi {
         @Body request: ChatAiRequest
     ): ApiResponse<ChatAiResponseDto>
 
-    @GET("ai/chat/packages")
-    suspend fun getChatPlans(): ApiResponse<List<ChatPlanDto>>
+    @GET("payments/plans")
+    suspend fun getQrPlans(): ApiResponse<List<QrPlanDto>>
 
-    @POST("ai/chat/purchase")
-    suspend fun purchaseChatPlan(
-        @Body request: PurchaseChatPlanRequest
-    ): ApiResponse<ChatQuotaInfoDto>
+    @POST("payments/orders")
+    suspend fun createPaymentOrder(
+        @Body request: CreatePaymentOrderRequest
+    ): ApiResponse<PaymentOrderDto>
+
+    @GET("payments/orders/{id}")
+    suspend fun getPaymentOrder(@Path("id") id: String): ApiResponse<PaymentOrderDto>
+
+    @POST("payments/orders/{id}/cancel")
+    suspend fun cancelPaymentOrder(@Path("id") id: String): ApiResponse<PaymentOrderDto>
+
+    /** Xuất toàn bộ dữ liệu cá nhân (BR-18): trả thẳng file ZIP, không bọc JSON. Tối đa 1 lần/ngày. */
+    @Streaming
+    @POST("me/export")
+    suspend fun exportData(): retrofit2.Response<okhttp3.ResponseBody>
+
+    @GET("me/entitlement")
+    suspend fun getEntitlement(): ApiResponse<EntitlementDto>
+
+    @POST("billing/verify")
+    suspend fun verifyPurchase(
+        @Body request: VerifyPurchaseRequest
+    ): ApiResponse<EntitlementDto>
 
     @GET("ai/chat/quota")
     suspend fun getChatQuota(): ApiResponse<ChatQuotaInfoDto>
 
     @GET("ai/quota")
     suspend fun getAiQuota(): ApiResponse<AiQuotaDto>
-
-    @GET("ai/packages")
-    suspend fun getAiPackages(): ApiResponse<List<AiPackageDto>>
-
-    @POST("ai/purchase-credits")
-    suspend fun purchaseAiCredits(
-        @Body request: PurchaseAiQuotaRequest
-    ): ApiResponse<AiQuotaDto>
 
     @GET("ai/chat/history")
     suspend fun getChatHistory(): ApiResponse<ChatHistoryResponseDto>
