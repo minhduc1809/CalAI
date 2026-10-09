@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,79 +81,156 @@ fun MealReminderCard(
     pick: MealReminderPick?,
     isDarkTheme: Boolean,
     onClick: () -> Unit,
+    onAddClick: () -> Unit = onClick,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(20.dp)
-    val bg = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
+    val shape = RoundedCornerShape(22.dp)
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    // Màu phối theo loại bữa — cùng tông với thanh accent của Nhật ký bữa ăn (amber/mint/blue/
+    // purple), gradient pastel→trắng để chữ vẫn rõ, tránh mất hẳn màu như bản vừa viết lại trước đó.
+    val typeAccent = when (pick?.reminder?.type) {
+        "BREAKFAST" -> Color(0xFFFBBF24)
+        "LUNCH" -> Color(0xFF34D399)
+        "DINNER" -> VividOrange
+        "SNACK" -> Color(0xFFA78BFA)
+        else -> VividOrange
+    }
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val bg = if (isDarkTheme) Brush.verticalGradient(listOf(surfaceColor, surfaceColor))
+    else Brush.verticalGradient(listOf(typeAccent.copy(alpha = 0.14f), Color.White))
+
+    if (pick == null) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .shadow(6.dp, shape, ambientColor = shadowColor, spotColor = shadowColor)
+                .clip(shape)
+                .background(bg)
+                .clickable(onClick = onClick)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(Icons.Default.NotificationsActive, null, tint = VividOrange, modifier = Modifier.size(20.dp))
+            Text(
+                "Chưa có nhắc nhở bữa ăn — chạm để thiết lập",
+                fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    val r = pick.reminder
+    val (statusText, statusColor) = when (pick.phase) {
+        MealPhase.IN_WINDOW -> "Đến giờ ăn" to EmeraldSuccess
+        MealPhase.UPCOMING -> (if (pick.minutesUntil < 60) "Còn ${pick.minutesUntil} phút" else "Còn ${pick.minutesUntil / 60}h${pick.minutesUntil % 60}p") to VividOrange
+        MealPhase.TOMORROW -> "Ngày mai" to TextInkSecondary
+    }
+    val window = if (r.windowStart != null && r.windowEnd != null) "${r.windowStart} - ${r.windowEnd}" else r.timeOfDay
+    val totalKcal = if (r.foods.isNotEmpty()) r.foods.sumOf { it.calories.toInt() } else (r.targetCalorieMax ?: r.targetCalorieMin)?.toInt()
+    val dotColors = listOf(VividOrange, CarbGradientStart, VividMint, VividCyan)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, shape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.10f))
+            .shadow(6.dp, shape, ambientColor = shadowColor, spotColor = shadowColor)
             .clip(shape)
             .background(bg)
-            .clickable(onClick = onClick)
-            .padding(16.dp)
     ) {
-        if (pick == null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Default.NotificationsActive, null, tint = VividOrange, modifier = Modifier.size(20.dp))
-                Text(
-                    "Chưa có nhắc nhở bữa ăn — chạm để thiết lập",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // ── Phần đầu: icon + tiêu đề/khung giờ + 2 nút hành động ──
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Icons.Default.MenuBook, null, tint = VividOrange, modifier = Modifier.size(18.dp)) }
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(r.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                            Box(
+                                modifier = Modifier.clip(RoundedCornerShape(999.dp))
+                                    .background(statusColor.copy(alpha = 0.14f)).padding(horizontal = 9.dp, vertical = 3.dp)
+                            ) { Text(statusText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor) }
+                        }
+                        Text(window, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IconButton(
+                        onClick = onClick,
+                        modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) { Icon(Icons.Default.Edit, "Sửa nhắc nhở", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) }
+                    IconButton(
+                        onClick = onAddClick,
+                        modifier = Modifier.size(36.dp).clip(CircleShape).background(VividOrange)
+                    ) { Icon(Icons.Default.Add, "Thêm món", tint = Color.White, modifier = Modifier.size(18.dp)) }
+                }
             }
-            return@Column
+
+            if (r.foods.isEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                Text("Chạm để nhận gợi ý món phù hợp", fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Spacer(Modifier.height(8.dp))
+                Row {
+                    Text("Gợi ý: ", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+                    Text(
+                        r.foods.joinToString(", ") { it.name.substringBefore(" (") },
+                        fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
 
-        val r = pick.reminder
-        val (statusText, statusColor) = when (pick.phase) {
-            MealPhase.IN_WINDOW -> "Đến giờ ăn" to EmeraldSuccess
-            MealPhase.UPCOMING -> (if (pick.minutesUntil < 60) "Còn ${pick.minutesUntil} phút" else "Còn ${pick.minutesUntil / 60}h${pick.minutesUntil % 60}p") to VividOrange
-            MealPhase.TOMORROW -> "Ngày mai" to TextInkSecondary
-        }
-        val kcal = r.targetCalorieMax ?: r.targetCalorieMin
-        val window = if (r.windowStart != null && r.windowEnd != null) "${r.windowStart} - ${r.windowEnd}" else r.timeOfDay
+        // ── Danh sách món gợi ý — dữ liệu thật từ reminder.foods, không fake giờ ăn (API chưa có) ──
+        if (r.foods.isNotEmpty()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                r.foods.forEachIndexed { index, food ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Bọc "chấm + tên món" trong 1 Row CHIẾM PHẦN CÒN LẠI (weight ở đúng scope
+                        // Row ngoài) — lỗi trước đó đặt weight() vào Text bên trong Row con lồng nhau,
+                        // Row con không bị ràng buộc độ rộng nên tên món tràn đè lên số kcal bên phải.
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(Modifier.size(6.dp).clip(CircleShape).background(dotColors[index % dotColors.size]))
+                            Text(
+                                text = food.servingSize?.let { "${food.name} ($it)" } ?: food.name,
+                                fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Text("${food.calories.toInt()} kcal", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(r.label, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                Box(
-                    modifier = Modifier.clip(RoundedCornerShape(999.dp))
-                        .background(statusColor.copy(alpha = 0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)
-                ) { Text(statusText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor) }
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Tổng ước tính", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(VividOrange.copy(alpha = 0.14f))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.LocalFireDepartment, null, tint = VividOrange, modifier = Modifier.size(13.dp))
+                            Text("$totalKcal kcal", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+                        }
+                    }
+                }
             }
-            Text(window, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = if (r.foods.isEmpty()) "Chạm để nhận gợi ý món phù hợp" else r.foods.joinToString(", ") { it.name.substringBefore(" (") },
-            fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1, overflow = TextOverflow.Ellipsis
-        )
-
-        Spacer(Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Default.LocalFireDepartment, null, tint = EmeraldSuccess, modifier = Modifier.size(16.dp))
-                Text(
-                    text = if (kcal != null) "${kcal.toInt()} kcal" else "-- kcal",
-                    fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Box(
-                modifier = Modifier.size(34.dp).clip(CircleShape).background(EmeraldSuccess),
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Default.Add, "Thêm món", tint = Color.White, modifier = Modifier.size(20.dp)) }
         }
     }
 }
@@ -203,7 +281,7 @@ fun WaterCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, shape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.10f))
+            .shadow(6.dp, shape, ambientColor = if (isDarkTheme) DarkShadow else WarmShadow, spotColor = if (isDarkTheme) DarkShadow else WarmShadow)
             .clip(shape)
             .background(bg)
             .padding(16.dp)

@@ -50,6 +50,7 @@ import java.util.Locale
 @Composable
 fun ChatbotScreen(
     onNavigateTab: (DockTab) -> Unit,
+    onOpenPremium: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: ChatbotViewModel = hiltViewModel()
 ) {
@@ -58,7 +59,6 @@ fun ChatbotScreen(
     val listState = rememberLazyListState()
     val context = LocalContext.current
 
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     // Tự động cuộn xuống tin nhắn mới nhất
@@ -68,15 +68,6 @@ fun ChatbotScreen(
         }
     }
 
-    // Báo kết quả nâng cấp gói — trước đây sheet đóng ngay khi bấm chọn mà không hiện
-    // thông báo gì, người dùng không biết mua thành công hay chưa (CALAI-CHAT-001).
-    LaunchedEffect(uiState.upgradeSuccessMessage) {
-        uiState.upgradeSuccessMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-            showUpgradeSheet = false
-            viewModel.dismissUpgradeSuccess()
-        }
-    }
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
@@ -143,25 +134,14 @@ fun ChatbotScreen(
                     }
                 }
 
-                // Badge Bản Nâng Cấp (Plus / Pro / Max)
+                // Huy hiệu gói hiện tại (Miễn phí / Premium); bấm để xem gói Premium
+                val isPremiumTier = uiState.quota.currentTier == "PREMIUM"
+                val badgeColor = if (isPremiumTier) VividOrange else MaterialTheme.colorScheme.outline
                 Surface(
-                    color = when (uiState.quota.currentTier) {
-                        "MAX" -> VividOrange.copy(alpha = 0.2f)
-                        "PRO" -> PastelLavender.copy(alpha = 0.2f)
-                        "PLUS" -> MintJade.copy(alpha = 0.2f)
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                    },
+                    color = badgeColor.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        when (uiState.quota.currentTier) {
-                            "MAX" -> VividOrange
-                            "PRO" -> PastelLavender
-                            "PLUS" -> MintJade
-                            else -> MaterialTheme.colorScheme.outline
-                        }
-                    ),
-                    modifier = Modifier.clickable { showUpgradeSheet = true }
+                    border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor),
+                    modifier = Modifier.clickable { onOpenPremium() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -171,12 +151,7 @@ fun ChatbotScreen(
                         Icon(
                             imageVector = Icons.Default.WorkspacePremium,
                             contentDescription = null,
-                            tint = when (uiState.quota.currentTier) {
-                                "MAX" -> VividOrange
-                                "PRO" -> PastelLavender
-                                "PLUS" -> MintJade
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            tint = if (isPremiumTier) VividOrange else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -355,67 +330,6 @@ fun ChatbotScreen(
             }
         }
 
-        // BottomSheet Nâng Cấp 3 Bản: Plus, Pro, Max
-        if (showUpgradeSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showUpgradeSheet = false },
-                containerColor = MaterialTheme.colorScheme.background
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Nâng Cấp Bản AI Coach",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Chọn gói trải nghiệm để trò chuyện thoải mái và đồng hành dài hạn",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
-                    )
-
-                    val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-
-                    when {
-                        uiState.isLoadingPlans && uiState.plans.isEmpty() -> {
-                            CircularProgressIndicator(color = VividOrange, modifier = Modifier.padding(vertical = 16.dp))
-                        }
-                        uiState.plansErrorMessage != null && uiState.plans.isEmpty() -> {
-                            Text(
-                                text = "Không tải được danh sách gói. ${uiState.plansErrorMessage}",
-                                fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            OutlinedButton(onClick = { viewModel.loadPlans() }) { Text("Thử lại") }
-                        }
-                        else -> {
-                            uiState.plans.forEach { plan ->
-                                PlanCard(
-                                    plan = plan,
-                                    isCurrent = uiState.quota.currentTier == plan.id,
-                                    enabled = !uiState.isUpgrading,
-                                    onSelect = { viewModel.purchasePlan(plan.id) }
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        }
-                    }
-
-                    if (uiState.isUpgrading) {
-                        CircularProgressIndicator(color = VividOrange, modifier = Modifier.padding(top = 4.dp))
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-        }
-
         // Dialog xác nhận xóa lịch sử trò chuyện
         if (showClearConfirmDialog) {
             AlertDialog(
@@ -466,110 +380,6 @@ fun ChatbotScreen(
             onTabSelected = onNavigateTab,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-    }
-}
-
-@Composable
-private fun PlanCard(
-    plan: com.calai.app.data.remote.dto.ChatPlanDto,
-    isCurrent: Boolean,
-    enabled: Boolean = true,
-    onSelect: () -> Unit
-) {
-    val borderColor = when {
-        plan.bestValue -> VividOrange
-        plan.isPopular -> PastelLavender
-        else -> MaterialTheme.colorScheme.outline
-    }
-
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(if (plan.isPopular || plan.bestValue) 1.5.dp else 1.dp, borderColor),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled && !isCurrent) { onSelect() }
-            .alpha(if (enabled) 1f else 0.5f)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = plan.name,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    if (plan.isPopular) {
-                        Surface(
-                            color = PastelLavender.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Phổ biến",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PastelLavender,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                    if (plan.bestValue) {
-                        Surface(
-                            color = VividOrange.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Tốt nhất",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = VividOrange,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                val formattedPrice = NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(plan.priceVnd)
-                Text(
-                    text = formattedPrice,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MintJade
-                )
-            }
-
-            Text(
-                text = plan.description,
-                fontSize = 12.5.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp, bottom = 10.dp)
-            )
-
-            Button(
-                onClick = onSelect,
-                enabled = !isCurrent,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrent) MaterialTheme.colorScheme.outline else PastelLavender,
-                    contentColor = MaterialTheme.colorScheme.background
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (isCurrent) "Đang sử dụng bản này" else "Nâng Cấp Ngay",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp
-                )
-            }
-        }
     }
 }
 

@@ -131,8 +131,10 @@ val ShadowSecondarySpot    = Color(0x1C1A2540)   // L1 spot, slightly stronger
 
 // Deprecated aliases — kept for callers not yet migrated; do NOT use in new code
 // TODO: remove once all callsites migrate to graduated scale above
-val WarmShadow = ShadowLightL2Ambient            // was: Color(0x141A2540) @ 8%
-val DarkShadow = ShadowDarkL2Ambient             // was: Color(0x75000000) — 46% black (too harsh!)
+// Nâng từ L2→L3: card trước đó bóng quá nhẹ (12%/10%) nên "chìm" vào nền sáng, khó phân biệt
+// ranh giới/bo góc. L3 (15%/13%) vẫn mềm (không phải shadow đen nặng) nhưng tách bạch rõ hơn hẳn.
+val WarmShadow = ShadowLightL3Ambient
+val DarkShadow = ShadowDarkL3Ambient
 
 // Bento Pastel trên nền sáng — Độ bão hòa tươi 55-70% (Spec 10.6 - Không xỉn màu)
 val PastelProteinLight = Color(0xFF10B981)       // Xanh ngọc lục bảo tươi

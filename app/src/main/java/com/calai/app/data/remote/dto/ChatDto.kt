@@ -11,9 +11,9 @@ data class ChatQuotaInfoDto(
     @SerializedName("hasQuota")
     val hasQuota: Boolean = true,
     @SerializedName("currentTier")
-    val currentTier: String = "FREE", // FREE, PLUS, PRO, MAX
+    val currentTier: String = "FREE", // FREE | PREMIUM
     @SerializedName("tierName")
-    val tierName: String = "Bản Miễn Phí",
+    val tierName: String = "Gói Miễn phí",
     @SerializedName("remainingPercent")
     val remainingPercent: Int = 100,
     @SerializedName("status")
@@ -21,7 +21,14 @@ data class ChatQuotaInfoDto(
     @SerializedName("statusMessage")
     val statusMessage: String = "Hạn mức trò chuyện dồi dào",
     @SerializedName("resetsAt")
-    val resetsAt: String? = null
+    val resetsAt: String? = null,
+    // Free đếm theo tin nhắn (MESSAGES), Premium đếm theo token (TOKENS)
+    @SerializedName("unit")
+    val unit: String = "MESSAGES",
+    @SerializedName("limit")
+    val limit: Int = 0,
+    @SerializedName("used")
+    val used: Int = 0
 )
 
 data class ChatAiResponseDto(
@@ -53,26 +60,6 @@ data class ChatHistoryResponseDto(
     val quota: ChatQuotaInfoDto? = null
 )
 
-data class ChatPlanDto(
-    @SerializedName("id")
-    val id: String, // PLUS, PRO, MAX
-    @SerializedName("name")
-    val name: String,
-    @SerializedName("priceVnd")
-    val priceVnd: Long,
-    @SerializedName("description")
-    val description: String,
-    @SerializedName("isPopular")
-    val isPopular: Boolean = false,
-    @SerializedName("bestValue")
-    val bestValue: Boolean = false
-)
-
-data class PurchaseChatPlanRequest(
-    @SerializedName("packageId")
-    val packageId: String // PLUS, PRO, MAX
-)
-
 data class AiQuotaDto(
     @SerializedName("feature")
     val feature: String = "food_recognition",
@@ -88,26 +75,4 @@ data class AiQuotaDto(
     val totalRemaining: Int = 5,
     @SerializedName("resetsAt")
     val resetsAt: String? = null
-)
-
-data class AiPackageDto(
-    @SerializedName("id")
-    val id: String,
-    @SerializedName("name")
-    val name: String,
-    @SerializedName("credits")
-    val credits: Int,
-    @SerializedName("priceVnd")
-    val priceVnd: Long,
-    @SerializedName("description")
-    val description: String,
-    @SerializedName("isPopular")
-    val isPopular: Boolean = false,
-    @SerializedName("bestValue")
-    val bestValue: Boolean = false
-)
-
-data class PurchaseAiQuotaRequest(
-    @SerializedName("packageId")
-    val packageId: String
 )

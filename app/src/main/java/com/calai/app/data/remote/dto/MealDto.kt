@@ -121,7 +121,7 @@ data class MacroDetailDto(
     @SerializedName("consumed")
     val consumed: Float,
     @SerializedName("target")
-    val target: Float,
+    val target: Float? = null,
     @SerializedName("unit")
     val unit: String
 )
@@ -138,14 +138,31 @@ data class MacrosSummaryDto(
 data class DailySummaryDto(
     @SerializedName("consumedCalories")
     val consumedCalories: Float,
+    // null = hồ sơ chưa hoàn tất nên chưa có mục tiêu
     @SerializedName("targetCalories")
-    val targetCalories: Float,
+    val targetCalories: Float? = null,
+    // Âm khi ăn vượt mục tiêu
     @SerializedName("remainingCalories")
-    val remainingCalories: Float,
+    val remainingCalories: Float? = null,
+    @SerializedName("overCalories")
+    val overCalories: Float = 0f,
     @SerializedName("progressPercent")
-    val progressPercent: Int,
+    val progressPercent: Int? = null,
     @SerializedName("macros")
     val macros: MacrosSummaryDto
+)
+
+/** Trạng thái "đầy đủ" của một ngày ghi bữa ăn (BR-05.2). completeness: AUTO | COMPLETE | INCOMPLETE. */
+data class DayLogStatusDto(
+    @SerializedName("completeness")
+    val completeness: String = "AUTO",
+    @SerializedName("isComplete")
+    val isComplete: Boolean = false
+)
+
+data class SetDayStatusRequest(
+    @SerializedName("completeness")
+    val completeness: String
 )
 
 data class DailyNutritionSummaryData(
@@ -153,6 +170,8 @@ data class DailyNutritionSummaryData(
     val date: String,
     @SerializedName("summary")
     val summary: DailySummaryDto,
+    @SerializedName("logStatus")
+    val logStatus: DayLogStatusDto? = null,
     @SerializedName("mealsCount")
     val mealsCount: Int,
     @SerializedName("meals")
@@ -189,7 +208,9 @@ data class DailyStatDto(
     @SerializedName("fat")
     val fat: Float,
     @SerializedName("mealsCount")
-    val mealsCount: Int
+    val mealsCount: Int,
+    @SerializedName("isComplete")
+    val isComplete: Boolean = true
 )
 
 /** Thống kê dinh dưỡng theo dải ngày — trả về từ GET /meals/statistics. */
@@ -199,5 +220,19 @@ data class NutritionStatisticsData(
     @SerializedName("averages")
     val averages: StatisticsAveragesDto,
     @SerializedName("dailyStats")
-    val dailyStats: List<DailyStatDto>
+    val dailyStats: List<DailyStatDto>,
+    // Trung bình chỉ tính trên các ngày ghi đầy đủ
+    @SerializedName("loggedDays")
+    val loggedDays: Int = 0,
+    @SerializedName("completeDays")
+    val completeDays: Int = 0
+)
+
+/** Một ngày trong tóm tắt tuần (meals/week-summary) dùng cho Week Strip (BR-07.6). */
+data class WeekDaySummaryDto(
+    @SerializedName("date") val date: String,
+    @SerializedName("hasData") val hasData: Boolean = false,
+    @SerializedName("metGoal") val metGoal: Boolean = false,
+    @SerializedName("completeness") val completeness: String = "AUTO",
+    @SerializedName("isComplete") val isComplete: Boolean = false
 )

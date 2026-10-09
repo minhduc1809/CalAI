@@ -52,6 +52,19 @@ fun SettingsScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    // Chọn nơi lưu tệp ZIP trước (không cần quyền lưu trữ), rồi mới gọi máy chủ để không tốn lượt xuất khi người dùng huỷ
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) viewModel.exportData(context.contentResolver, uri)
+    }
+    LaunchedEffect(uiState.exportMessage) {
+        uiState.exportMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.consumeExportMessage()
+        }
+    }
+
     var showChangePasswordSheet by remember { mutableStateOf(false) }
     var showReminderSheet by remember { mutableStateOf(false) }
     var showUnitDialog by remember { mutableStateOf(false) }
@@ -377,13 +390,14 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.CloudDownload,
                     title = "Xuất dữ liệu cá nhân (Export)",
-                    subtitle = "Tải toàn bộ lịch sử calo, cân nặng dạng file",
+                    subtitle = if (uiState.isExporting) "Đang chuẩn bị dữ liệu..." else "Tải toàn bộ dữ liệu của bạn (ZIP gồm JSON và CSV), tối đa 1 lần mỗi ngày",
                     isDark = isDarkTheme,
                     isLast = false,
                     onClick = {
-                        // Backend chưa có endpoint Export — tránh Toast giả vờ "đang chuẩn bị"
-                        // rồi không có gì xảy ra tiếp theo (đánh lừa người dùng là đang xử lý).
-                        Toast.makeText(context, "Tính năng xuất dữ liệu đang được phát triển, sẽ có trong bản cập nhật tới.", Toast.LENGTH_LONG).show()
+                        if (!uiState.isExporting) {
+                            val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                            exportLauncher.launch("nutriwise-export-$day.zip")
+                        }
                     }
                 )
                 SettingsActionRow(

@@ -59,6 +59,8 @@ fun HomeScreen(
     onNavigateTab: (DockTab) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenSuggestions: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     isDarkTheme: Boolean = true,
     onThemeChanged: (Boolean) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -103,9 +105,11 @@ fun HomeScreen(
                         radius = 1200f
                     )
                 } else {
+                    // Giảm độ xám-xanh của nền (trước là 0xFFF0F4FF, ngả xám khiến card trắng bị "chìm"
+                    // vào nền) — giờ sáng/sạch hơn, card nổi rõ nhờ chênh lệch độ sáng + shadow mạnh hơn.
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFFF0F4FF),
+                            Color(0xFFFAFBFD),
                             IvoryBackground
                         ),
                         radius = 1400f
@@ -138,9 +142,8 @@ fun HomeScreen(
                     DashboardHeader(
                         username = uiState.username,
                         isDarkTheme = isDarkTheme,
-                        onThemeChanged = onThemeChanged,
-                        onOpenSuggestions = onOpenSuggestions,
-                        onLogout = onLogout
+                        onSearchClick = onSearchClick,
+                        onOpenNotifications = onOpenNotifications
                     )
                 }
 
@@ -149,6 +152,7 @@ fun HomeScreen(
                     WeeklyCalendarStrip(
                         selectedDateIso = selectedDateIso,
                         isDarkTheme = isDarkTheme,
+                        incompleteDates = uiState.incompleteDates,
                         onDateSelected = { newDate ->
                             selectedDateIso = newDate
                             viewModel.loadData(newDate)
@@ -238,6 +242,20 @@ fun HomeScreen(
                             )
                         }
                     }
+
+                    // BR-05.2 / BR-07.6: hỏi người dùng đã ghi đủ các bữa của ngày chưa (không hỏi ngày tương lai)
+                    val todayIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    if (selectedDateIso <= todayIso) {
+                        item(key = "day_completeness") {
+                            DayCompletenessCard(
+                                status = uiState.dailySummary?.logStatus,
+                                isDarkTheme = isDarkTheme,
+                                onSelect = { completeness ->
+                                    viewModel.setDayCompleteness(selectedDateIso, completeness)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -277,9 +295,8 @@ fun HomeScreen(
 private fun DashboardHeader(
     username: String,
     isDarkTheme: Boolean,
-    onThemeChanged: (Boolean) -> Unit,
-    onOpenSuggestions: () -> Unit,
-    onLogout: () -> Unit
+    onSearchClick: () -> Unit,
+    onOpenNotifications: () -> Unit
 ) {
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Row(
@@ -341,25 +358,20 @@ private fun DashboardHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TactileThemeSwitch(
-                isDarkTheme = isDarkTheme,
-                onThemeChanged = onThemeChanged
-            )
-
             FloatingIconButton(
-                icon = Icons.Default.AutoAwesome,
-                iconTint = VividOrange,
-                isDarkTheme = isDarkTheme,
-                contentDescription = "Gợi ý cho bạn",
-                onClick = onOpenSuggestions
-            )
-
-            FloatingIconButton(
-                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                icon = Icons.Default.Search,
                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 isDarkTheme = isDarkTheme,
-                contentDescription = "Đăng xuất",
-                onClick = onLogout
+                contentDescription = "Tìm kiếm",
+                onClick = onSearchClick
+            )
+
+            FloatingIconButton(
+                icon = Icons.Default.NotificationsNone,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                isDarkTheme = isDarkTheme,
+                contentDescription = "Thông báo",
+                onClick = onOpenNotifications
             )
         }
     }
@@ -377,7 +389,7 @@ private fun FloatingIconButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = tween(120),
         label = "fab_scale"
     )
@@ -1025,5 +1037,58 @@ private fun getGreeting(): String {
         hour < 12 -> "Chào buổi sáng,"
         hour < 18 -> "Chào buổi chiều,"
         else -> "Chào buổi tối,"
+    }
+}
+
+/**
+ * Thẻ "Bạn đã ghi đủ các bữa của ngày này chưa?" (BR-05.2). Chỉ những ngày đầy đủ mới được dùng để
+ * tính mức tiêu hao và điều chỉnh mục tiêu, nên ngày quên ghi bữa không làm app bắt bạn ăn ít đi.
+ * Bấm lại lựa chọn đang chọn sẽ trả về chế độ tự động.
+ */
+@Composable
+private fun DayCompletenessCard(
+    status: com.calai.app.data.remote.dto.DayLogStatusDto?,
+    isDarkTheme: Boolean,
+    onSelect: (String) -> Unit
+) {
+    val completeness = status?.completeness ?: "AUTO"
+    val isComplete = status?.isComplete ?: false
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Text(
+            "Bạn đã ghi đủ các bữa của ngày này chưa?",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            when (completeness) {
+                "COMPLETE" -> "Đã ghi nhận: ngày này được dùng để tính mức tiêu hao của bạn."
+                "INCOMPLETE" -> "Đã ghi nhận: ngày này sẽ không được dùng để tính toán."
+                else ->
+                    if (isComplete) "Hệ thống đang tính ngày này là đã đủ vì bạn ghi nhiều bữa."
+                    else "Chỉ ngày ghi đủ mới được dùng để tính mức tiêu hao, giúp mục tiêu chính xác hơn."
+            },
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectionPill("Đã ghi đủ", completeness == "COMPLETE", isDarkTheme, Modifier.weight(1f)) {
+                onSelect(if (completeness == "COMPLETE") "AUTO" else "COMPLETE")
+            }
+            SelectionPill("Chưa đủ", completeness == "INCOMPLETE", isDarkTheme, Modifier.weight(1f)) {
+                onSelect(if (completeness == "INCOMPLETE") "AUTO" else "INCOMPLETE")
+            }
+        }
     }
 }

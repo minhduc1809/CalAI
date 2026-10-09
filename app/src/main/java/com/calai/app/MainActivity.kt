@@ -41,6 +41,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var repository: CalAIRepository
 
+    @Inject
+    lateinit var billingManager: com.calai.app.data.billing.BillingManager
+
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* Nếu bị từ chối, worker tự bỏ qua notify() — không cần xử lý thêm ở đây. */ }
@@ -57,6 +60,11 @@ class MainActivity : ComponentActivity() {
 
         // Đồng bộ lịch nhắc nhở từ server (habit-reminders) ngay khi mở app, nếu đã đăng nhập —
         // đảm bảo WorkManager luôn khớp dữ liệu mới nhất kể cả khi user chưa mở màn Nhắc nhở lần nào.
+        // BR-16.7: khôi phục giao dịch mỗi lần mở app (idempotent ở server), kể cả khi lần trước mất mạng trước khi xác minh
+        if (tokenManager.isLoggedIn()) {
+            billingManager.restorePurchases()
+        }
+
         if (tokenManager.isLoggedIn()) {
             lifecycleScope.launch {
                 repository.getHabitReminders().onSuccess { reminders ->
@@ -180,8 +188,19 @@ class MainActivity : ComponentActivity() {
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
                                 },
+                                onOpenNotifications = {
+                                    navController.navigate(Screen.Notifications.route)
+                                },
                                 isDarkTheme = isDarkTheme,
                                 onThemeChanged = { onThemeChanged(it) }
+                            )
+                        }
+
+                        // 2a. Màn hình Thông báo
+                        composable(Screen.Notifications.route) {
+                            NotificationScreen(
+                                onBack = { navController.popBackStack() },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -196,6 +215,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToWorkoutHub = {
                                     navController.navigate(Screen.WorkoutHub.route)
+                                },
+                                onOpenPremium = {
+                                    navController.navigate(Screen.Premium.route)
+                                },
+                                onOpenProfile = {
+                                    navController.navigate(Screen.GoalSetup.route)
                                 },
                                 isDarkTheme = isDarkTheme
                             )
@@ -245,9 +270,10 @@ class MainActivity : ComponentActivity() {
 
                         // 4. Màn hình Quét Camera AI (AI Camera Scan)
                         composable(Screen.CameraScan.route) {
-                            CameraScanScreen(onBack = {
-                                navController.popBackStack()
-                            })
+                            CameraScanScreen(
+                                onBack = { navController.popBackStack() },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) }
+                            )
                         }
 
                         // 4b. Màn hình Quét Mã Vạch (Barcode Scanner)
@@ -286,6 +312,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
                                 },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -308,8 +335,15 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSettings = {
                                     navController.navigate(Screen.Settings.route)
+                                },
+                                onOpenPremium = {
+                                    navController.navigate(Screen.Premium.route)
                                 }
                             )
+                        }
+
+                        composable(Screen.Premium.route) {
+                            PremiumScreen(onBack = { navController.popBackStack() })
                         }
 
                         // 8. Màn hình Mục tiêu & Chương trình (Goal Setup)

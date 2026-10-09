@@ -38,6 +38,8 @@ data class MealGroup(
 )
 
 data class HomeUiState(
+    /** Các ngày trong tuần hiện tại đã có bữa ăn nhưng chưa được tính là đầy đủ (hiện chấm trên Week Strip). */
+    val incompleteDates: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val username: String = "",
     val dailySummary: DailyNutritionSummaryData? = null,
@@ -96,7 +98,31 @@ class HomeViewModel @Inject constructor(
         loadData()
     }
 
+    /** Tải trạng thái "đầy đủ" của tuần hiện tại để Week Strip đánh dấu những ngày còn thiếu bữa. */
+    private fun loadWeekStatus() {
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val cal = java.util.Calendar.getInstance().apply {
+            firstDayOfWeek = java.util.Calendar.MONDAY
+            set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY)
+        }
+        val monday = fmt.format(cal.time)
+        val today = fmt.format(java.util.Date())
+        viewModelScope.launch {
+            repository.fetchWeekSummary(monday).onSuccess { days ->
+                _uiState.update {
+                    it.copy(
+                        incompleteDates = days
+                            .filter { d -> d.hasData && !d.isComplete && d.date < today }
+                            .map { d -> d.date }
+                            .toSet()
+                    )
+                }
+            }
+        }
+    }
+
     fun loadData(date: String? = null) {
+        loadWeekStatus()
         val username = repository.getCurrentUsername() ?: "Người dùng"
         _uiState.update { it.copy(username = username, isLoading = true, errorMessage = null) }
 
@@ -197,6 +223,20 @@ class HomeViewModel @Inject constructor(
                 loadData()
             }.onFailure { e ->
                 _uiState.update { it.copy(errorMessage = e.message ?: "Không thể sửa món ăn") }
+            }
+        }
+    }
+
+    /**
+     * BR-05.2: người dùng bấm "Đã ghi đủ" / "Chưa đủ" cho ngày đang xem; bấm lại lựa chọn đang chọn
+     * thì trả về AUTO (để hệ thống tự quyết định). Tải lại ngày để cập nhật trạng thái.
+     */
+    fun setDayCompleteness(date: String, completeness: String) {
+        viewModelScope.launch {
+            repository.setDayStatus(date, completeness).onSuccess {
+                loadData(date)
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Không thể cập nhật trạng thái ngày") }
             }
         }
     }

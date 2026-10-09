@@ -134,6 +134,20 @@ fun GoalSetupScreen(
                         fontSize = 12.5.sp,
                         color = textSecondary
                     )
+                    profile.targetLimitedBy?.let { limit ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            when (limit) {
+                                "FLOOR" -> "Mục tiêu đã được nâng lên mức calo tối thiểu an toàn cho bạn, nên tốc độ giảm cân thực tế sẽ chậm hơn mong muốn."
+                                "DEFICIT_CAP" -> "Mức thâm hụt đã được giới hạn để đảm bảo an toàn, nên tốc độ giảm cân thực tế sẽ chậm hơn mong muốn."
+                                "SURPLUS_CAP" -> "Mức thặng dư đã được giới hạn để đảm bảo an toàn, nên tốc độ tăng cân thực tế sẽ chậm hơn mong muốn."
+                                else -> "Mục tiêu đã được giới hạn để đảm bảo an toàn."
+                            },
+                            fontSize = 11.5.sp,
+                            lineHeight = 15.sp,
+                            color = CoralWarning
+                        )
+                    }
                     uiState.expenditure?.let { expenditure ->
                         Spacer(modifier = Modifier.height(10.dp))
                         val isHolding = expenditure.status == "HOLDING"

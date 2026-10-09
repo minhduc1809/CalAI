@@ -28,6 +28,8 @@ data class WeightHistoryUiState(
     val addNoteText: String = "",
     val isSaving: Boolean = false,
     val pendingDeleteLog: WeightLogResponseDto? = null,
+    // Bản ghi vừa lưu nhưng lệch nhiều so với xu hướng: hỏi người dùng giữ hay xoá (BR-09.3)
+    val suspiciousLog: WeightLogResponseDto? = null,
     val isDeleting: Boolean = false
 )
 
@@ -86,11 +88,32 @@ class WeightHistoryViewModel @Inject constructor(
             repository.createRemoteWeightLog(
                 weightKg = weightKg,
                 note = state.addNoteText.ifBlank { null }
-            ).onSuccess {
-                _uiState.update { it.copy(isSaving = false, isAddingLog = false, addWeightText = "", addNoteText = "") }
+            ).onSuccess { saved ->
+                _uiState.update {
+                    it.copy(
+                        isSaving = false, isAddingLog = false, addWeightText = "", addNoteText = "",
+                        suspiciousLog = if (saved.suspicious == true) saved else null
+                    )
+                }
                 loadLogs()
             }.onFailure { e ->
                 _uiState.update { it.copy(isSaving = false, errorMessage = e.message ?: "Không thể thêm bản ghi") }
+            }
+        }
+    }
+
+    /** Người dùng xác nhận số cân lệch nhiều là đúng. */
+    fun keepSuspiciousLog() {
+        _uiState.update { it.copy(suspiciousLog = null) }
+    }
+
+    /** Người dùng nhập nhầm (ví dụ kg/lb): xoá bản ghi vừa lưu. */
+    fun deleteSuspiciousLog() {
+        val log = _uiState.value.suspiciousLog ?: return
+        _uiState.update { it.copy(suspiciousLog = null) }
+        viewModelScope.launch {
+            repository.deleteRemoteWeightLog(log.id).onSuccess { loadLogs() }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Không thể xóa bản ghi") }
             }
         }
     }

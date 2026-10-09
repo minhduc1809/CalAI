@@ -51,7 +51,8 @@ data class OnboardingUiState(
     val targetWeightKg: Float = 65f,
     val weightRateKgPerWeek: Float = 0.5f,
 
-    // ── DIET STYLE (màn 7 — macro_style 8 giá trị, thay thế dietType) ──
+    // ── DIET STYLE (màn 7, BR-02.1 — 2 câu hỏi độc lập) ──
+    // dietType: OMNIVORE | PESCATARIAN | VEGETARIAN | VEGAN | HALAL (lọc món); macroStyle: BALANCED | HIGH_CARB_LOW_FAT | LOW_CARB_HIGH_FAT | KETO (chia macro)
     val macroStyle: String = "BALANCED",
 
     // ── ALLERGIES (màn 8) ──
@@ -73,7 +74,7 @@ data class OnboardingUiState(
 
     // ── Trường đã bị loại khỏi luồng hỏi nhưng vẫn giữ default để không phá DTO/backend ──
     val activityLevel: String = "MODERATELY_ACTIVE", // giờ được suy ra tự động từ sessionsPerWeek
-    val dietType: String = "BALANCED", // đã bị thay thế hoàn toàn bởi macroStyle, giữ default cho tương thích
+    val dietType: String = "OMNIVORE", // BR-02.1: chế độ ăn, tách riêng khỏi macroStyle
     val sleepHours: Float = 7f,
     val stressLevel: String = "MEDIUM",
     val takesSupplements: Boolean = false,
@@ -87,15 +88,20 @@ data class OnboardingUiState(
     val dateOfBirth: String
         get() = "%04d-%02d-%02d".format(birthYear, birthMonth, birthDay)
 
-    /** Suy ra activityLevel tự động từ số buổi tập/tuần (thay cho câu hỏi ActivityLevel cũ). */
+    /** Số buổi tập/tuần đại diện của lựa chọn hiện tại; backend suy ra activityLevel từ số này (BR-03.6). */
+    val trainingDaysPerWeek: Int
+        get() = sessionsPerWeekToInt(sessionsPerWeek)
+
+    /** Chỉ dùng để hiển thị ước tính tạm; giá trị chính thức do backend suy ra. */
     val derivedActivityLevel: String
         get() {
             val n = sessionsPerWeekToInt(sessionsPerWeek)
             return when {
                 n <= 0 -> "SEDENTARY"
-                n in 1..3 -> "LIGHTLY_ACTIVE"
-                n in 4..6 -> "MODERATELY_ACTIVE"
-                else -> "VERY_ACTIVE"
+                n <= 2 -> "LIGHTLY_ACTIVE"
+                n <= 4 -> "MODERATELY_ACTIVE"
+                n <= 6 -> "VERY_ACTIVE"
+                else -> "EXTRA_ACTIVE"
             }
         }
 
@@ -118,7 +124,7 @@ data class OnboardingUiState(
                 weightRateKgPerWeek in 0.1f..1.5f &&
                 !(weightRateKgPerWeek == 0f && targetWeightKg != weightKg) // Chặn cứng nếu rate=0 nhưng target khác hiện tại
         } else true // Goal
-        6 -> macroStyle.isNotBlank() // Diet Style
+        6 -> dietType.isNotBlank() && macroStyle.isNotBlank() // Diet Style (chế độ ăn + cách chia macro)
         7 -> true // Allergies — optional
         8 -> true // Step 3 intro
         9 -> true // Training Experience & Goal — có default hợp lệ
@@ -133,7 +139,7 @@ private fun sessionsPerWeekToInt(sessionsPerWeek: String): Int = when (sessionsP
     "ZERO" -> 0
     "ONE_TO_TWO" -> 2
     "THREE_TO_FOUR" -> 4
-    "FIVE_TO_SIX" -> 6
+    "FIVE_TO_SIX" -> 5
     "SEVEN" -> 7
     else -> 3
 }
@@ -252,6 +258,10 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(macroStyle = value, errorMessage = null) }
     }
 
+    fun selectDietType(value: String) {
+        _uiState.update { it.copy(dietType = value, errorMessage = null) }
+    }
+
     // ── ALLERGIES ──
     /** "Không có" loại trừ mọi lựa chọn khác; các dị ứng khác toggle độc lập. */
     fun toggleAllergy(value: String) {
@@ -340,7 +350,6 @@ class OnboardingViewModel @Inject constructor(
                 dateOfBirth = state.dateOfBirth,
                 heightCm = state.heightCm,
                 weightKg = state.weightKg,
-                activityLevel = state.derivedActivityLevel,
                 goal = state.goal,
                 bodyFatPercent = state.bodyFatPercent,
                 targetWeightKg = state.targetWeightKg,
@@ -357,7 +366,8 @@ class OnboardingViewModel @Inject constructor(
                 ifWindowEnd = if (state.isIntermittentFasting) state.ifWindowEnd else null,
                 trainingExperience = state.trainingExperience,
                 trainingGoal = state.trainingGoal,
-                sessionsPerWeek = state.sessionsPerWeek,
+                // activityLevel và nhóm buổi tập do backend suy ra từ số buổi tập (BR-03.6)
+                trainingDaysPerWeek = state.trainingDaysPerWeek,
                 equipmentAccess = state.equipmentAccess,
                 injuries = state.injuries,
                 injuriesOtherNote = state.injuriesOtherNote.ifBlank { null },
@@ -368,7 +378,9 @@ class OnboardingViewModel @Inject constructor(
                 // programType/proteinPreference KHÔNG gửi ở đây — Onboarding không còn hỏi 2 câu này
                 // (xem CHANGELOG_Onboarding_v2.md), để backend tự áp default DB (COACHED/MID) cho user mới
                 // thay vì App luôn ghi đè bằng giá trị mặc định cứng.
-                allergies = state.allergies
+                allergies = state.allergies,
+                // Hoàn tất Onboarding: người dùng đã xem màn Tổng kết → áp dụng mục tiêu (BR-04, E1)
+                applyTarget = true
             )
             repository.updateProfile(request).onSuccess { profile ->
                 _uiState.update {

@@ -77,6 +77,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.billing.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
