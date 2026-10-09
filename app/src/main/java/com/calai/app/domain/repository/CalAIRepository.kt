@@ -53,10 +53,25 @@ interface CalAIRepository {
     // --- User Profile ---
     suspend fun fetchRemoteProfile(): Result<UserProfileDto>
     suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfileDto>
+
+    /** Áp dụng mục tiêu đề xuất sau khi người dùng bấm "Áp dụng" (BR-04, E5). */
+    suspend fun applyProposedTarget(): Result<Unit>
     suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto>
 
     // --- Meals Remote & Sync ---
     suspend fun fetchDailySummary(date: String? = null): Result<DailyNutritionSummaryData>
+
+    /** 7 ngày từ startDate (YYYY-MM-DD) với trạng thái đầy đủ của từng ngày, dùng cho Week Strip. */
+    suspend fun fetchWeekSummary(startDate: String): Result<List<WeekDaySummaryDto>>
+
+    /** Đánh dấu ngày đã ghi đủ / chưa đủ / để hệ thống quyết định (BR-05.2). */
+    suspend fun setDayStatus(date: String, completeness: String): Result<Unit>
+
+    // --- Notifications ---
+    suspend fun getNotifications(): Result<NotificationListDto>
+    suspend fun markNotificationRead(id: String): Result<Unit>
+    suspend fun markAllNotificationsRead(): Result<Unit>
+    suspend fun deleteNotification(id: String): Result<Unit>
     suspend fun fetchMealsFromRemote(date: String? = null): Result<List<MealResponseDto>>
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
     suspend fun updateRemoteMeal(
@@ -87,10 +102,12 @@ interface CalAIRepository {
     suspend fun fetchFavoriteFoods(): Result<List<String>>
     suspend fun addFavoriteFood(foodName: String): Result<Unit>
     suspend fun removeFavoriteFood(foodName: String): Result<Unit>
-    suspend fun fetchDietRecommendation(): Result<DietRecommendationData>
+    /** Ghi file ZIP dữ liệu cá nhân vào [output]; trả số byte đã ghi. Lỗi (kể cả hết lượt trong ngày) trả Result.failure kèm thông báo của máy chủ. */
+    suspend fun exportData(output: java.io.OutputStream): Result<Long>
+    suspend fun fetchTodayMealPlan(): Result<TodayMealPlanDto>
+    suspend fun fetchMealPlan(days: Int): Result<MealPlanDto>
     suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
     suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
-    suspend fun fetchMonthlyDiet(goal: String? = null, level: String? = null): Result<MonthlyDietData>
     suspend fun createCustomFood(
         name: String,
         servingSize: String?,
@@ -118,12 +135,8 @@ interface CalAIRepository {
     suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto>
     suspend fun recognizeFoodBase64(base64: String): Result<FoodRecognitionResultDto>
     suspend fun chatAi(message: String): Result<ChatAiResponseDto>
-    suspend fun fetchChatPlans(): Result<List<ChatPlanDto>>
-    suspend fun purchaseChatPlan(packageId: String): Result<ChatQuotaInfoDto>
     suspend fun fetchChatQuota(): Result<ChatQuotaInfoDto>
     suspend fun fetchAiQuota(): Result<AiQuotaDto>
-    suspend fun fetchAiPackages(): Result<List<AiPackageDto>>
-    suspend fun purchaseAiCredits(packageId: String): Result<AiQuotaDto>
     suspend fun fetchChatHistory(): Result<ChatHistoryResponseDto>
     suspend fun clearChatHistory(): Result<Unit>
     suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto>
