@@ -436,6 +436,48 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getOnboardingDraft(): Result<OnboardingDraftData?> {
+        return try {
+            val response = api.getOnboardingDraft()
+            if (response.success) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tải bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun saveOnboardingDraft(step: Int, data: Map<String, Any?>): Result<OnboardingDraftData> {
+        return try {
+            val response = api.saveOnboardingDraft(SaveOnboardingDraftRequest(step = step, data = data))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể lưu bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun clearOnboardingDraft(): Result<Unit> {
+        return try {
+            val response = api.clearOnboardingDraft()
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể xóa bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
 
     // --- Meals Remote & Sync ---
     override suspend fun fetchWeekSummary(startDate: String): Result<List<WeekDaySummaryDto>> {

@@ -577,6 +577,55 @@ private fun BodyMetricsPage(
             }
         }
 
+        if (uiState.gender == "FEMALE") {
+            Spacer(Modifier.height(18.dp))
+            SectionDivider("Tình trạng đặc biệt (BR-02.2)")
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(4.dp)
+            ) {
+                listOf(
+                    "NONE" to "Bình thường",
+                    "PREGNANT" to "Mang thai",
+                    "LACTATING" to "Cho con bú"
+                ).forEach { (key, label) ->
+                    val isSelected = uiState.pregnancyStatus == key
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (isSelected) VividOrange else Color.Transparent)
+                            .clickable { viewModel.selectPregnancyStatus(key) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) TextWhite else textSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+            if (uiState.pregnancyStatus in listOf("PREGNANT", "LACTATING")) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Vì sức khỏe mẹ và bé, hệ thống sẽ tự động bổ sung năng lượng (+300 đến +500 kcal) và khóa chế độ giảm cân.",
+                    fontSize = 11.sp,
+                    color = VividOrange,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 15.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+        }
+
         Spacer(Modifier.height(24.dp))
         SectionDivider("Ngày sinh")
         Spacer(Modifier.height(12.dp))
@@ -621,12 +670,12 @@ private fun BodyMetricsPage(
                 isDarkTheme = isDarkTheme
             )
             WheelPicker3D(
-                value = uiState.birthYear,
+                value = uiState.birthYear.coerceIn(1926, 2008),
                 onValueChange = { newYear ->
                     val maxDay = getDaysInMonth(uiState.birthMonth, newYear)
                     viewModel.setDateOfBirth(uiState.birthDay.coerceAtMost(maxDay), uiState.birthMonth, newYear)
                 },
-                range = 1940..2015,
+                range = 1926..2008,
                 modifier = Modifier.weight(1.2f),
                 itemHeight = 44.dp,
                 isDarkTheme = isDarkTheme
@@ -897,6 +946,27 @@ private fun GoalPage(
 
         Spacer(Modifier.height(24.dp))
 
+        val isPregnancyRestricted = uiState.pregnancyStatus in listOf("PREGNANT", "LACTATING")
+        if (isPregnancyRestricted) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(VividOrangeSoft)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    "Đang mang thai / cho con bú: Mục tiêu được giới hạn ở Duy trì hoặc Tăng cân để bảo vệ thai nhi và nguồn sữa mẹ.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = VividOrange,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+        }
+
         if (uiState.goalMode == "general") {
             val choices = listOf(
                 Triple("lose_fat", "Giảm mỡ", "Giảm mỡ thừa, cơ thể thon gọn và săn chắc") to Icons.AutoMirrored.Filled.TrendingDown,
@@ -906,6 +976,7 @@ private fun GoalPage(
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 choices.forEach { (info, icon) ->
                     val (key, title, subtitle) = info
+                    val isRestrictedOption = isPregnancyRestricted && key == "lose_fat"
                     val isSelected = uiState.generalChoice == key
                     val cardBg = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else surface
                     val borderCol = if (isSelected) VividOrange else border
@@ -914,9 +985,9 @@ private fun GoalPage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(20.dp))
-                            .background(cardBg)
+                            .background(if (isRestrictedOption) surface.copy(alpha = 0.5f) else cardBg)
                             .border(if (isSelected) 2.dp else 1.dp, borderCol, RoundedCornerShape(20.dp))
-                            .clickable { viewModel.selectGeneralGoalChoice(key) }
+                            .clickable(enabled = !isRestrictedOption) { viewModel.selectGeneralGoalChoice(key) }
                             .padding(18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

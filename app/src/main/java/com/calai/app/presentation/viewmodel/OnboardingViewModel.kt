@@ -30,6 +30,7 @@ data class OnboardingUiState(
 
     // ── BODY METRICS (màn 2 — gộp Gender/BirthDate/Height/Weight/Units) ──
     val gender: String = "",
+    val pregnancyStatus: String = "NONE", // "NONE" | "PREGNANT" | "LACTATING"
     val birthDay: Int = 15,
     val birthMonth: Int = 5,
     val birthYear: Int = 1998,
@@ -109,9 +110,12 @@ data class OnboardingUiState(
     fun canProceed(step: Int): Boolean = when (step) {
         0 -> true // Overview
         1 -> true // Step 1 intro
-        2 -> gender.isNotBlank() &&
-            birthYear in 1920..2020 && birthMonth in 1..12 && birthDay in 1..31 &&
-            heightCm in 50f..250f && weightKg in 20f..300f // Body Metrics
+        2 -> {
+            val age = calculateAge(birthYear, birthMonth, birthDay)
+            gender.isNotBlank() &&
+                age in 18..100 &&
+                heightCm in 50f..250f && weightKg in 20f..300f // Body Metrics (BR-02.2)
+        }
         3 -> if (bodyFatSource == "navy_tape") {
             val neckOk = neckCm != null && neckCm in 20f..200f
             val waistOk = waistCm != null && waistCm in 20f..200f
@@ -119,19 +123,37 @@ data class OnboardingUiState(
             neckOk && waistOk && hipOk
         } else true // Body Fat — optional (manual luôn hợp lệ, kể cả để trống)
         4 -> true // Step 2 intro
-        5 -> if (goalMode == "precise") {
-            targetWeightKg in 20f..300f &&
-                weightRateKgPerWeek in 0.1f..1.5f &&
-                !(weightRateKgPerWeek == 0f && targetWeightKg != weightKg) // Chặn cứng nếu rate=0 nhưng target khác hiện tại
-        } else true // Goal
+        5 -> {
+            val isRestricted = pregnancyStatus in listOf("PREGNANT", "LACTATING")
+            if (isRestricted && (goal == "LOSE_WEIGHT" || (goalMode == "general" && generalChoice == "lose_fat") || (goalMode == "precise" && targetWeightKg < weightKg))) {
+                false // Phụ nữ mang thai hoặc cho con bú bị cấm giảm cân (BR-02.2)
+            } else if (goalMode == "precise") {
+                targetWeightKg in 20f..300f &&
+                    weightRateKgPerWeek in 0.0f..1.5f &&
+                    !(weightRateKgPerWeek == 0f && targetWeightKg != weightKg)
+            } else true
+        } // Goal
         6 -> dietType.isNotBlank() && macroStyle.isNotBlank() // Diet Style (chế độ ăn + cách chia macro)
         7 -> true // Allergies — optional
         8 -> true // Step 3 intro
         9 -> true // Training Experience & Goal — có default hợp lệ
         10 -> true // Training Schedule & Equipment — có default hợp lệ
         11 -> true // Injuries — optional
+        12 -> true // Summary
         else -> true
     }
+}
+
+/** Tính tuổi chính xác từ ngày tháng năm sinh (BR-02.2: 18–100 tuổi). */
+private fun calculateAge(year: Int, month: Int, day: Int): Int {
+    val today = java.util.Calendar.getInstance()
+    var age = today.get(java.util.Calendar.YEAR) - year
+    val currentMonth = today.get(java.util.Calendar.MONTH) + 1
+    val currentDay = today.get(java.util.Calendar.DAY_OF_MONTH)
+    if (currentMonth < month || (currentMonth == month && currentDay < day)) {
+        age--
+    }
+    return age
 }
 
 /** Chuyển sessionsPerWeek (enum chuỗi) sang số buổi/tuần đại diện, dùng để suy ra activityLevel. */
@@ -152,9 +174,99 @@ class OnboardingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
+    init {
+        loadDraft()
+    }
+
+    private fun loadDraft() {
+        viewModelScope.launch {
+            repository.getOnboardingDraft().onSuccess { draft ->
+                if (draft != null && draft.data != null) {
+                    val d = draft.data
+                    _uiState.update { s ->
+                        s.copy(
+                            currentStep = draft.step.coerceIn(0, ONBOARDING_STEP_COUNT - 1),
+                            gender = (d["gender"] as? String) ?: s.gender,
+                            pregnancyStatus = (d["pregnancyStatus"] as? String) ?: s.pregnancyStatus,
+                            birthYear = (d["birthYear"] as? Number)?.toInt() ?: s.birthYear,
+                            birthMonth = (d["birthMonth"] as? Number)?.toInt() ?: s.birthMonth,
+                            birthDay = (d["birthDay"] as? Number)?.toInt() ?: s.birthDay,
+                            heightCm = (d["heightCm"] as? Number)?.toFloat() ?: s.heightCm,
+                            weightKg = (d["weightKg"] as? Number)?.toFloat() ?: s.weightKg,
+                            units = (d["units"] as? String) ?: s.units,
+                            bodyFatPercent = (d["bodyFatPercent"] as? Number)?.toFloat() ?: s.bodyFatPercent,
+                            goal = (d["goal"] as? String) ?: s.goal,
+                            goalMode = (d["goalMode"] as? String) ?: s.goalMode,
+                            generalChoice = (d["generalChoice"] as? String) ?: s.generalChoice,
+                            targetWeightKg = (d["targetWeightKg"] as? Number)?.toFloat() ?: s.targetWeightKg,
+                            weightRateKgPerWeek = (d["weightRateKgPerWeek"] as? Number)?.toFloat() ?: s.weightRateKgPerWeek,
+                            macroStyle = (d["macroStyle"] as? String) ?: s.macroStyle,
+                            dietType = (d["dietType"] as? String) ?: s.dietType,
+                            allergies = (d["allergies"] as? List<*>)?.filterIsInstance<String>() ?: s.allergies,
+                            trainingExperience = (d["trainingExperience"] as? String) ?: s.trainingExperience,
+                            trainingGoal = (d["trainingGoal"] as? String) ?: s.trainingGoal,
+                            sessionsPerWeek = (d["sessionsPerWeek"] as? String) ?: s.sessionsPerWeek,
+                            equipmentAccess = (d["equipmentAccess"] as? String) ?: s.equipmentAccess
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun saveDraft() {
+        val state = _uiState.value
+        if (state.currentStep == 0) return
+        viewModelScope.launch {
+            val dataMap = mapOf(
+                "gender" to state.gender,
+                "pregnancyStatus" to state.pregnancyStatus,
+                "birthYear" to state.birthYear,
+                "birthMonth" to state.birthMonth,
+                "birthDay" to state.birthDay,
+                "heightCm" to state.heightCm,
+                "weightKg" to state.weightKg,
+                "units" to state.units,
+                "bodyFatPercent" to state.bodyFatPercent,
+                "goal" to state.goal,
+                "goalMode" to state.goalMode,
+                "generalChoice" to state.generalChoice,
+                "targetWeightKg" to state.targetWeightKg,
+                "weightRateKgPerWeek" to state.weightRateKgPerWeek,
+                "macroStyle" to state.macroStyle,
+                "dietType" to state.dietType,
+                "allergies" to state.allergies,
+                "trainingExperience" to state.trainingExperience,
+                "trainingGoal" to state.trainingGoal,
+                "sessionsPerWeek" to state.sessionsPerWeek,
+                "equipmentAccess" to state.equipmentAccess
+            )
+            repository.saveOnboardingDraft(state.currentStep, dataMap)
+        }
+    }
+
     // ── BODY METRICS ──
     fun selectGender(value: String) {
-        _uiState.update { it.copy(gender = value, errorMessage = null) }
+        _uiState.update {
+            val resetPregnancy = if (value != "FEMALE") "NONE" else it.pregnancyStatus
+            it.copy(gender = value, pregnancyStatus = resetPregnancy, errorMessage = null)
+        }
+    }
+
+    fun selectPregnancyStatus(value: String) {
+        _uiState.update { state ->
+            val updated = state.copy(pregnancyStatus = value, errorMessage = null)
+            if (value in listOf("PREGNANT", "LACTATING")) {
+                updated.copy(
+                    goal = "MAINTAIN",
+                    generalChoice = "maintain",
+                    targetWeightKg = updated.weightKg,
+                    weightRateKgPerWeek = 0f
+                )
+            } else {
+                updated
+            }
+        }
     }
 
     fun setHeightCm(value: Float) {
@@ -334,7 +446,9 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun setCurrentStep(step: Int) {
-        _uiState.update { it.copy(currentStep = step.coerceIn(0, ONBOARDING_STEP_COUNT - 1)) }
+        val target = step.coerceIn(0, ONBOARDING_STEP_COUNT - 1)
+        _uiState.update { it.copy(currentStep = target) }
+        saveDraft()
     }
 
     /**
@@ -347,6 +461,7 @@ class OnboardingViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
             val request = UpdateProfileRequest(
                 gender = state.gender,
+                pregnancyStatus = if (state.gender == "FEMALE") state.pregnancyStatus else "NONE",
                 dateOfBirth = state.dateOfBirth,
                 heightCm = state.heightCm,
                 weightKg = state.weightKg,
@@ -383,6 +498,9 @@ class OnboardingViewModel @Inject constructor(
                 applyTarget = true
             )
             repository.updateProfile(request).onSuccess { profile ->
+                viewModelScope.launch {
+                    repository.clearOnboardingDraft()
+                }
                 _uiState.update {
                     it.copy(
                         isSaving = false,

@@ -48,6 +48,10 @@ data class UserProfileDto(
     val targetWeightKg: Float? = null,
     @SerializedName("weightRateKgPerWeek")
     val weightRateKgPerWeek: Float? = null,
+    @SerializedName("weightRatePercent")
+    val weightRatePercent: Float? = null,
+    @SerializedName("pregnancyStatus")
+    val pregnancyStatus: String? = null,
     @SerializedName("bodyFatPercent")
     val bodyFatPercent: Float? = null,
     @SerializedName("macroStyle")
@@ -223,6 +227,10 @@ data class UpdateProfileRequest(
     val ifWindowEnd: String? = null,
     @SerializedName("allergies")
     val allergies: List<String>? = null,
+    @SerializedName("pregnancyStatus")
+    val pregnancyStatus: String? = null,
+    @SerializedName("weightRatePercent")
+    val weightRatePercent: Float? = null,
     /**
      * true = người dùng đã xác nhận áp dụng mục tiêu tính lại (BR-04: Onboarding, đổi mục tiêu).
      * Không truyền thì backend chỉ trả proposedTarget và giữ nguyên mục tiêu đang dùng.
@@ -230,3 +238,18 @@ data class UpdateProfileRequest(
     @SerializedName("applyTarget")
     val applyTarget: Boolean? = null
 )
+
+data class OnboardingDraftData(
+    @SerializedName("step")
+    val step: Int,
+    @SerializedName("data")
+    val data: Map<String, Any?>? = null
+)
+
+data class SaveOnboardingDraftRequest(
+    @SerializedName("step")
+    val step: Int,
+    @SerializedName("data")
+    val data: Map<String, Any?>
+)
+

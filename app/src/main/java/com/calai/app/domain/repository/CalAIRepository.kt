@@ -58,6 +58,11 @@ interface CalAIRepository {
     suspend fun applyProposedTarget(): Result<Unit>
     suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto>
 
+    /** BR-02.4: Onboarding draft */
+    suspend fun getOnboardingDraft(): Result<OnboardingDraftData?>
+    suspend fun saveOnboardingDraft(step: Int, data: Map<String, Any?>): Result<OnboardingDraftData>
+    suspend fun clearOnboardingDraft(): Result<Unit>
+
     // --- Meals Remote & Sync ---
     suspend fun fetchDailySummary(date: String? = null): Result<DailyNutritionSummaryData>
 
