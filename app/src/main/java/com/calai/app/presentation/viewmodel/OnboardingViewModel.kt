@@ -113,8 +113,8 @@ data class OnboardingUiState(
         2 -> {
             val age = calculateAge(birthYear, birthMonth, birthDay)
             gender.isNotBlank() &&
-                age in 18..100 &&
-                heightCm in 50f..250f && weightKg in 20f..300f // Body Metrics (BR-02.2)
+                age in 13..100 &&
+                heightCm in 50f..250f && weightKg in 20f..300f // Cho phép từ đủ 13 tuổi (B1 / BR-02.2)
         }
         3 -> if (bodyFatSource == "navy_tape") {
             val neckOk = neckCm != null && neckCm in 20f..200f
@@ -124,9 +124,26 @@ data class OnboardingUiState(
         } else true // Body Fat — optional (manual luôn hợp lệ, kể cả để trống)
         4 -> true // Step 2 intro
         5 -> {
-            val isRestricted = pregnancyStatus in listOf("PREGNANT", "LACTATING")
-            if (isRestricted && (goal == "LOSE_WEIGHT" || (goalMode == "general" && generalChoice == "lose_fat") || (goalMode == "precise" && targetWeightKg < weightKg))) {
-                false // Phụ nữ mang thai hoặc cho con bú bị cấm giảm cân (BR-02.2)
+            val age = calculateAge(birthYear, birthMonth, birthDay)
+            val isMinor = age in 13..17
+            val isPregnancyRestricted = pregnancyStatus in listOf("PREGNANT", "LACTATING")
+
+            if (isMinor) {
+                // Người dưới 18 tuổi: chỉ cho phép mục tiêu Duy trì (B1 / BR-02.2)
+                if (goal != "MAINTAIN" || (goalMode == "general" && generalChoice != "maintain")) {
+                    false
+                } else if (goalMode == "precise") {
+                    targetWeightKg == weightKg || weightRateKgPerWeek == 0f
+                } else true
+            } else if (isPregnancyRestricted) {
+                // Phụ nữ mang thai hoặc cho con bú: cấm giảm cân
+                if (goal == "LOSE_WEIGHT" || (goalMode == "general" && generalChoice == "lose_fat") || (goalMode == "precise" && targetWeightKg < weightKg)) {
+                    false
+                } else if (goalMode == "precise") {
+                    targetWeightKg in 20f..300f &&
+                        weightRateKgPerWeek in 0.0f..1.5f &&
+                        !(weightRateKgPerWeek == 0f && targetWeightKg != weightKg)
+                } else true
             } else if (goalMode == "precise") {
                 targetWeightKg in 20f..300f &&
                     weightRateKgPerWeek in 0.0f..1.5f &&
@@ -278,13 +295,25 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun setDateOfBirth(day: Int, month: Int, year: Int) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            val age = calculateAge(year, month, day)
+            val isMinor = age in 13..17
+            val updated = state.copy(
                 birthDay = day,
                 birthMonth = month,
                 birthYear = year,
                 errorMessage = null
             )
+            if (isMinor) {
+                updated.copy(
+                    goal = "MAINTAIN",
+                    generalChoice = "maintain",
+                    targetWeightKg = updated.weightKg,
+                    weightRateKgPerWeek = 0f
+                )
+            } else {
+                updated
+            }
         }
     }
 
@@ -324,15 +353,21 @@ class OnboardingViewModel @Inject constructor(
     // ── GOAL ──
     fun selectGoalMode(value: String) {
         _uiState.update { state ->
-            // Prefill cân nặng mục tiêu = cân nặng hiện tại khi lần đầu chuyển sang chế độ chính xác
-            val prefilledTarget = if (value == "precise" && state.targetWeightKg == 65f) state.weightKg else state.targetWeightKg
-            state.copy(goalMode = value, targetWeightKg = prefilledTarget, errorMessage = null).let(::syncDerivedGoal)
+            val age = calculateAge(state.birthYear, state.birthMonth, state.birthDay)
+            val targetMode = if (age in 13..17) "general" else value
+            val prefilledTarget = if (targetMode == "precise" && state.targetWeightKg == 65f) state.weightKg else state.targetWeightKg
+            state.copy(goalMode = targetMode, targetWeightKg = prefilledTarget, errorMessage = null).let(::syncDerivedGoal)
         }
     }
 
     fun selectGeneralGoalChoice(value: String) {
         _uiState.update { state ->
-            state.copy(generalChoice = value, errorMessage = null).let(::syncDerivedGoal)
+            val age = calculateAge(state.birthYear, state.birthMonth, state.birthDay)
+            if (age in 13..17 && value != "maintain") {
+                state
+            } else {
+                state.copy(generalChoice = value, errorMessage = null).let(::syncDerivedGoal)
+            }
         }
     }
 

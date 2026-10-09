@@ -670,12 +670,12 @@ private fun BodyMetricsPage(
                 isDarkTheme = isDarkTheme
             )
             WheelPicker3D(
-                value = uiState.birthYear.coerceIn(1926, 2008),
+                value = uiState.birthYear.coerceIn(1926, 2013),
                 onValueChange = { newYear ->
                     val maxDay = getDaysInMonth(uiState.birthMonth, newYear)
                     viewModel.setDateOfBirth(uiState.birthDay.coerceAtMost(maxDay), uiState.birthMonth, newYear)
                 },
-                range = 1926..2008,
+                range = 1926..2013,
                 modifier = Modifier.weight(1.2f),
                 itemHeight = 44.dp,
                 isDarkTheme = isDarkTheme
@@ -946,8 +946,38 @@ private fun GoalPage(
 
         Spacer(Modifier.height(24.dp))
 
+        val userAge = remember(uiState.birthYear, uiState.birthMonth, uiState.birthDay) {
+            val today = java.util.Calendar.getInstance()
+            var age = today.get(java.util.Calendar.YEAR) - uiState.birthYear
+            val currentMonth = today.get(java.util.Calendar.MONTH) + 1
+            val currentDay = today.get(java.util.Calendar.DAY_OF_MONTH)
+            if (currentMonth < uiState.birthMonth || (currentMonth == uiState.birthMonth && currentDay < uiState.birthDay)) {
+                age--
+            }
+            age
+        }
+        val isMinor = userAge in 13..17
         val isPregnancyRestricted = uiState.pregnancyStatus in listOf("PREGNANT", "LACTATING")
-        if (isPregnancyRestricted) {
+
+        if (isMinor) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(VividOrangeSoft)
+                    .padding(14.dp)
+            ) {
+                Text(
+                    "Với người dưới 18 tuổi, NutriWise áp dụng chế độ Duy trì để bảo đảm dinh dưỡng phát triển tự nhiên. Hãy trao đổi với bác sĩ hoặc chuyên gia dinh dưỡng trước khi giảm hoặc tăng cân.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = VividOrange,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+        } else if (isPregnancyRestricted) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -976,7 +1006,7 @@ private fun GoalPage(
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 choices.forEach { (info, icon) ->
                     val (key, title, subtitle) = info
-                    val isRestrictedOption = isPregnancyRestricted && key == "lose_fat"
+                    val isRestrictedOption = (isMinor && key != "maintain") || (isPregnancyRestricted && key == "lose_fat")
                     val isSelected = uiState.generalChoice == key
                     val cardBg = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else surface
                     val borderCol = if (isSelected) VividOrange else border
