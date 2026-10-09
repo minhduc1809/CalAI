@@ -29,10 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.remote.dto.DayWorkoutPlanDto
-import com.calai.app.data.remote.dto.DietMealsDto
-import com.calai.app.data.remote.dto.DietRecommendationData
 import com.calai.app.data.remote.dto.ExerciseGuideDto
-import com.calai.app.data.remote.dto.MonthlyDietData
 import com.calai.app.R
 import com.calai.app.data.remote.dto.WorkoutRecommendationData
 import com.calai.app.presentation.components.*
@@ -51,6 +48,8 @@ fun SuggestionsScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit = {},
     onNavigateToWorkoutHub: () -> Unit = {},
+    onOpenPremium: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: SuggestionsViewModel = hiltViewModel()
 ) {
@@ -84,7 +83,7 @@ fun SuggestionsScreen(
             )
         }
     ) { padding ->
-        if (uiState.isLoading && uiState.diet == null && uiState.workout == null) {
+        if (uiState.isLoading && uiState.workout == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,76 +136,12 @@ fun SuggestionsScreen(
                 contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp) // Khoảng thở rộng rãi (Spec 10.5)
             ) {
-                // 1. SECTION THỰC ĐƠN PHÙ HỢP
+                // 1. THỰC ĐƠN HÔM NAY + KẾ HOẠCH 7/30 NGÀY (từ kho món an toàn, đã lọc dị ứng và chế độ ăn)
                 item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        DuotoneDietIcon(size = 24.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = VividOrange)
-                        Text(
-                            text = "Thực đơn phù hợp mục tiêu",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            letterSpacing = (-0.3).sp
-                        )
-                    }
-                }
-
-                // Thẻ thực đơn Bento Pastel Đá Quý với tab bữa ăn gọn gàng (Anti-crowding)
-                uiState.diet?.let { item { DietCard(it, isDarkTheme = isDarkTheme) } }
-
-                // Lịch thực đơn nhiều ngày
-                uiState.monthlyDiet?.let { monthly ->
-                    item {
-                        val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(
-                                    elevation = if (isDarkTheme) 3.dp else 6.dp,
-                                    shape = RoundedCornerShape(18.dp),
-                                    ambientColor = shadowColor,
-                                    spotColor = shadowColor
-                                )
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                                .clickable { viewModel.toggleMonthlyView() }
-                                .padding(horizontal = 18.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                DuotoneCalendarIcon(size = 20.dp, outlineColor = MaterialTheme.colorScheme.onSecondaryContainer, accentColor = LavenderGradientStart)
-                                Text(
-                                    "Xem thực đơn ${monthly.totalDays ?: monthly.monthlyPlans?.size ?: 0} ngày",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                            }
-                            Icon(
-                                if (uiState.showMonthlyDiet) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    if (uiState.showMonthlyDiet) {
-                        item {
-                            MonthlyDietSection(
-                                data = monthly,
-                                selectedDay = uiState.selectedDayNumber,
-                                onSelectDay = viewModel::selectDay
-                            )
-                        }
-                    }
+                    MealPlanSection(
+                        onOpenPremium = onOpenPremium,
+                        onOpenProfile = onOpenProfile
+                    )
                 }
 
                 // 2. SECTION LỘ TRÌNH TẬP LUYỆN
@@ -289,291 +224,6 @@ fun SuggestionsScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DietCard(data: DietRecommendationData, isDarkTheme: Boolean = true) {
-    val plan = data.recommendedPlan
-    var selectedMealType by remember { mutableStateOf("BREAKFAST") }
-    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = if (isDarkTheme) 6.dp else 12.dp,
-                shape = RoundedCornerShape(28.dp),
-                ambientColor = shadowColor,
-                spotColor = shadowColor
-            )
-            .clip(RoundedCornerShape(28.dp))
-            .background(if (isDarkTheme) ProteinBrush else ProteinBrushLight)
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDarkTheme) 0.35f else 0.65f),
-                        Color.White.copy(alpha = 0.05f),
-                        Color.Transparent
-                    )
-                ),
-                shape = RoundedCornerShape(28.dp)
-            )
-            .padding(20.dp)
-    ) {
-        Column {
-            Text(
-                text = plan.title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Black,
-                color = TextDeepInk,
-                letterSpacing = (-0.3).sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = plan.description,
-                fontSize = 13.sp,
-                color = TextDeepInk.copy(alpha = 0.75f),
-                lineHeight = 18.sp
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Tag dinh dưỡng dạng Glassmorphism Pill (Spec 10.2)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassStatPill("${plan.targetCalo.toInt()} kcal")
-                GlassStatPill("P ${plan.macroRatio.proteinPercent}%")
-                GlassStatPill("C ${plan.macroRatio.carbPercent}%")
-                GlassStatPill("F ${plan.macroRatio.fatPercent}%")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Tab chọn nhanh bữa ăn (Chống dồn text dày đặc - Spec 10.5)
-            val mealTabs = listOf(
-                "BREAKFAST" to "Sáng",
-                "LUNCH" to "Trưa",
-                "DINNER" to "Tối",
-                "SNACK" to "Phụ"
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(TextDeepInk.copy(alpha = 0.08f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                mealTabs.forEach { (type, label) ->
-                    val isTabActive = selectedMealType == type
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(if (isTabActive) Color.White else Color.Transparent)
-                            .clickable { selectedMealType = type }
-                            .padding(vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            fontSize = 12.sp,
-                            fontWeight = if (isTabActive) FontWeight.Black else FontWeight.SemiBold,
-                            color = TextDeepInk
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Chi tiết bữa ăn đang chọn
-            val activeMealBlock = when (selectedMealType) {
-                "BREAKFAST" -> plan.meals.breakfast
-                "LUNCH" -> plan.meals.lunch
-                "DINNER" -> plan.meals.dinner
-                else -> plan.meals.snack
-            }
-
-            activeMealBlock?.let { block ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.45f))
-                        .border(0.75.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-                        .padding(14.dp)
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = block.title,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDeepInk
-                            )
-                            Text(
-                                text = "${block.totalCalories.toInt()} kcal",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                color = TextDeepInk
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        block.items.forEach { food ->
-                            Text(
-                                text = "• ${food.name} (${food.serving})",
-                                fontSize = 12.5.sp,
-                                color = TextDeepInk.copy(alpha = 0.8f),
-                                modifier = Modifier.padding(vertical = 1.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (data.availableOptions.size > 1) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Lựa chọn thực đơn khác:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDeepInk.copy(alpha = 0.65f)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    data.availableOptions.filter { it.id != plan.id }.forEach { option ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(TextDeepInk.copy(alpha = 0.08f))
-                                .border(0.75.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                        ) {
-                            Text(
-                                text = "${option.title} · ${option.targetCalo.toInt()} kcal",
-                                fontSize = 11.5.sp,
-                                color = TextDeepInk,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GlassStatPill(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(TextDeepInk.copy(alpha = 0.09f))
-            .border(0.75.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 11.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDeepInk
-        )
-    }
-}
-
-@Composable
-private fun MonthlyDietSection(
-    data: MonthlyDietData,
-    selectedDay: Int,
-    onSelectDay: (Int) -> Unit
-) {
-    val plans = data.monthlyPlans ?: emptyList()
-    val currentPlan = plans.find { it.dayNumber == selectedDay } ?: plans.firstOrNull()
-
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            plans.forEach { day ->
-                val isSelected = day.dayNumber == (currentPlan?.dayNumber ?: -1)
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surface)
-                        .border(1.dp, if (isSelected) VividOrangeLight else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                        .clickable { onSelectDay(day.dayNumber) }
-                        .padding(horizontal = 14.dp, vertical = 9.dp)
-                ) {
-                    Text(
-                        "Ngày ${day.dayNumber}",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        currentPlan?.let { plan ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
-                    .padding(18.dp)
-            ) {
-                Column {
-                    Text(
-                        plan.dayTitle,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = (-0.2).sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(plan.focusMessage, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniStatPillDark("${plan.targetCalories.toInt()} kcal")
-                        MiniStatPillDark("P ${plan.macroSummary.proteinGrams.toInt()}g")
-                        MiniStatPillDark("C ${plan.macroSummary.carbGrams.toInt()}g")
-                        MiniStatPillDark("F ${plan.macroSummary.fatGrams.toInt()}g")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MiniStatPillDark(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(0.75.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 

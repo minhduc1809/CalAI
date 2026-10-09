@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -36,6 +38,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.calai.app.presentation.theme.DarkShadow
+import com.calai.app.presentation.theme.PearlBorder
+import com.calai.app.presentation.theme.WarmShadow
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -55,13 +60,18 @@ private val TileHeight = 156.dp
 private fun TileFrame(
     bg: Color,
     modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
+    // Shadow mềm, màu nhuốm tông nền (không đen) — để tile có cảm giác "nổi nhẹ" thay vì phẳng
+    // tuyệt đối, đúng tinh thần premium card (floating slightly above background).
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     Box(
         modifier = modifier
             .height(TileHeight)
+            .shadow(elevation = 4.dp, shape = TileShape, ambientColor = shadowColor, spotColor = shadowColor)
             .clip(TileShape)
             .background(bg)
             .then(if (onClick != null) Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick) else Modifier),
@@ -82,10 +92,23 @@ private fun TileTexts(
     pillText: String,
     ink: Color,
     accent: Color,
+    dark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val number = valueText.substringBefore(" ")
+    val rawNumber = valueText.substringBefore(" ")
     val unit = if (valueText.contains(" ")) valueText.substringAfter(" ") else ""
+    val targetFloat = rawNumber.toFloatOrNull()
+    val hasDecimal = rawNumber.contains(".")
+    val animated by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = targetFloat ?: 0f,
+        animationSpec = androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+        label = "tile_count_up"
+    )
+    // Hiệu ứng "chạy số" đếm từ 0 lên giá trị thật mỗi khi dữ liệu BE thay đổi — chỉ áp dụng khi
+    // parse được số (không áp cho "--" lúc chưa có dữ liệu, tránh hiểu nhầm là số 0 thật).
+    val number = if (targetFloat != null) {
+        if (hasDecimal) "%.1f".format(animated) else "${animated.toInt()}"
+    } else rawNumber
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp)) {
         Row(
@@ -102,9 +125,11 @@ private fun TileTexts(
                 modifier = Modifier.weight(1f), maxLines = 1
             )
             Box(
-                modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(accent.copy(alpha = 0.32f))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) { Text(pillText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = ink) }
+                modifier = Modifier.clip(RoundedCornerShape(999.dp))
+                    .background(if (dark) accent.copy(alpha = 0.18f) else Color.White)
+                    .border(1.dp, accent.copy(alpha = if (dark) 0f else 0.9f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = 9.dp, vertical = 3.dp)
+            ) { Text(pillText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (dark) ink else accent) }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -201,7 +226,7 @@ private fun MacroGaugeTile(
     // Mực sóng: luôn còn một dải sóng mỏng ở đáy (trang trí), phần dâng lên tỉ lệ thuận với % thật.
     val level = 0.13f + 0.25f * progress
 
-    TileFrame(if (dark) accent.copy(alpha = 0.14f) else lightBg, modifier) {
+    TileFrame(if (dark) accent.copy(alpha = 0.14f) else lightBg, modifier, isDarkTheme = dark) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -245,7 +270,8 @@ private fun MacroGaugeTile(
             subText = subText ?: "Đang tải...",
             pillText = if (valueText != null) "${(ratio * 100).toInt()}%" else "--",
             ink = if (dark) Color.White else lightInk,
-            accent = accent
+            accent = accent,
+            dark = dark
         )
     }
 }
@@ -266,15 +292,36 @@ fun CalorieHeroCard(
     val ink = if (isDarkTheme) Color.White else Color(0xFF14151C)
     val muted = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color(0xFF7B7F92)
     val shape = RoundedCornerShape(28.dp)
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     fun fmt(v: Int?) = v?.let { "%,d".format(java.util.Locale("vi", "VN"), it) } ?: "--"
+    // Hiệu ứng "chạy số" — kcal còn lại đếm từ 0 lên giá trị thật mỗi khi đổi ngày/log bữa mới.
+    val animatedRemaining by animateFloatAsState(
+        targetValue = remaining?.toFloat() ?: 0f,
+        animationSpec = tween(900, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+        label = "hero_remaining_count_up"
+    )
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(if (isDarkTheme) androidx.compose.material3.MaterialTheme.colorScheme.surface else Color.White)
-            .padding(horizontal = 20.dp, vertical = 18.dp)
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        // Ambient glow orb — rất nhẹ, blur lớn, chỉ tạo chiều sâu phía sau hero card, không che nội dung.
+        Box(
+            modifier = Modifier
+                .size(220.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 50.dp, y = (-40).dp)
+                .blur(70.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = if (isDarkTheme) 0.10f else 0.07f))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 10.dp, shape = shape, ambientColor = shadowColor, spotColor = shadowColor)
+                .clip(shape)
+                .background(if (isDarkTheme) androidx.compose.material3.MaterialTheme.colorScheme.surface else Color.White)
+                .border(1.dp, if (isDarkTheme) Color.White.copy(alpha = 0.06f) else PearlBorder, shape)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -314,17 +361,29 @@ fun CalorieHeroCard(
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 26.dp)) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(fmt(remaining), fontSize = 48.sp, fontWeight = FontWeight.Black, color = ink, letterSpacing = (-1).sp)
-                    Text(" kcal", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = muted, modifier = Modifier.padding(bottom = 8.dp))
+                if (target == null && consumed != null) {
+                    // Chưa có mục tiêu thật: không vẽ số giả, mời hoàn tất hồ sơ
+                    Text("Chưa có mục tiêu", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ink)
+                    Text("Hoàn tất hồ sơ để có mục tiêu hằng ngày", fontSize = 13.sp, color = muted)
+                } else {
+                    // Ăn vượt: hiện phần vượt (số dương), nhãn trung tính, không phán xét
+                    val over = remaining != null && remaining < 0
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            if (remaining != null) fmt(kotlin.math.abs(animatedRemaining.toInt())) else "--",
+                            fontSize = 48.sp, fontWeight = FontWeight.Black, color = ink, letterSpacing = (-1).sp
+                        )
+                        Text(" kcal", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = muted, modifier = Modifier.padding(bottom = 8.dp))
+                    }
+                    Text(if (over) "Vượt mục tiêu hôm nay" else "Còn lại hôm nay", fontSize = 14.sp, color = muted)
                 }
-                Text("Còn lại hôm nay", fontSize = 14.sp, color = muted)
             }
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("0 kcal", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = muted)
             Text("Mục tiêu: ${target ?: "--"} kcal", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ink.copy(alpha = 0.75f))
+        }
         }
     }
 }

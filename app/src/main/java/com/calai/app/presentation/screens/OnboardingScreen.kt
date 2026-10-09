@@ -214,7 +214,13 @@ fun OnboardingScreen(
                                 subtitle = "Cho biết bạn muốn hướng tới điều gì và ăn uống theo phong cách nào"
                             )
                             5 -> GoalPage(uiState, viewModel, isDarkTheme)
-                            6 -> DietStylePage(uiState.macroStyle, viewModel::selectMacroStyle, isDarkTheme)
+                            6 -> DietStylePage(
+                                dietType = uiState.dietType,
+                                macroStyle = uiState.macroStyle,
+                                onSelectDietType = viewModel::selectDietType,
+                                onSelectMacroStyle = viewModel::selectMacroStyle,
+                                isDarkTheme = isDarkTheme
+                            )
                             7 -> AllergiesPage(uiState.allergies, viewModel::toggleAllergy, isDarkTheme)
                             8 -> StepIntroPage(
                                 stepNumber = 3,
@@ -1011,29 +1017,63 @@ private fun GoalPage(
 }
 
 // ══════════════════════════════════════════════════════════════
-//  TRANG 6: DIET_STYLE (Q071) — macro_style, 8 lựa chọn gộp
+//  TRANG 6: PHONG CÁCH ĂN (BR-02.1) — TÁCH THÀNH 2 CÂU HỎI ĐỘC LẬP
+//  • dietType  : chế độ ăn → quyết định MÓN NÀO được phép gợi ý (bộ lọc cứng)
+//  • macroStyle: cách chia Đạm/Tinh bột/Béo → chỉ quyết định tỷ lệ macro
+//  Giá trị gửi lên backend là enum viết hoa, đúng với DietType/MacroStyle của backend.
 // ══════════════════════════════════════════════════════════════
 @Composable
-private fun DietStylePage(macroStyle: String, onSelect: (String) -> Unit, isDarkTheme: Boolean) {
+private fun DietStylePage(
+    dietType: String,
+    macroStyle: String,
+    onSelectDietType: (String) -> Unit,
+    onSelectMacroStyle: (String) -> Unit,
+    isDarkTheme: Boolean
+) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    QuestionPageScaffold("Bạn ưu tiên phong cách ăn nào?", "Quyết định cách phân bổ tỷ lệ Đạm/Tinh bột/Béo và gợi ý món ăn") {
+    QuestionPageScaffold("Bạn ăn uống theo kiểu nào?", "Chế độ ăn quyết định món nào được gợi ý; cách chia năng lượng quyết định tỷ lệ Đạm/Tinh bột/Béo") {
+        Text(
+            "Bạn ăn theo chế độ nào?",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
         listOf(
-            "any" to ("Bất cứ điều gì" to "Ăn đa dạng, không loại trừ nhóm thực phẩm nào"),
-            "balanced" to ("Cân bằng" to "Không loại trừ — 30% đạm · 40% tinh bột · 30% béo"),
-            "high_protein" to ("Nhiều đạm" to "Ưu tiên protein cho tăng cơ/giảm mỡ"),
-            "low_carb_high_fat" to ("Ít tinh bột, nhiều béo" to "Không gồm tinh bột tinh chế, đường"),
-            "keto" to ("Keto" to "Không gồm ngũ cốc giàu tinh bột, đường"),
-            "mediterranean" to ("Địa Trung Hải" to "Không gồm thịt đỏ, thịt chế biến"),
-            "vegan" to ("Thuần chay" to "Không gồm mọi sản phẩm từ động vật"),
-            "vegetarian" to ("Ăn chay" to "Không gồm thịt, cá")
+            "OMNIVORE" to ("Ăn tạp" to "Không loại trừ nhóm thực phẩm nào"),
+            "PESCATARIAN" to ("Ăn cá, không ăn thịt" to "Không gồm thịt; vẫn ăn cá và hải sản"),
+            "VEGETARIAN" to ("Ăn chay" to "Không gồm thịt, cá"),
+            "VEGAN" to ("Thuần chay" to "Không gồm mọi sản phẩm từ động vật"),
+            "HALAL" to ("Halal" to "Không gồm thịt heo")
         ).forEach { (key, pair) ->
             val (label, desc) = pair
-            MacroStyleOptionRow(label, desc, macroStyle == key, isDarkTheme) { onSelect(key) }
+            MacroStyleOptionRow(label, desc, dietType == key, isDarkTheme) { onSelectDietType(key) }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Bạn thích chia năng lượng thế nào?",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
+        listOf(
+            "BALANCED" to ("Cân bằng (mặc định)" to "Phù hợp với đa số mọi người; chọn mục này nếu bạn chưa rõ"),
+            "HIGH_CARB_LOW_FAT" to ("Nhiều tinh bột, ít béo" to "Hợp người vận động nhiều hoặc tập sức bền"),
+            "LOW_CARB_HIGH_FAT" to ("Ít tinh bột, nhiều béo" to "Hạn chế tinh bột, tăng tỷ lệ chất béo"),
+            "KETO" to ("Keto" to "Rất ít tinh bột, chất béo là nguồn năng lượng chính")
+        ).forEach { (key, pair) ->
+            val (label, desc) = pair
+            MacroStyleOptionRow(label, desc, macroStyle == key, isDarkTheme) { onSelectMacroStyle(key) }
             Spacer(Modifier.height(8.dp))
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "Không tìm thấy phong cách phù hợp? Chọn \"Bất cứ điều gì\" để tuỳ chỉnh chi tiết sau trong Cài đặt",
+            "Bạn có thể đổi cách chia năng lượng sau trong phần Mục tiêu",
             fontSize = 11.5.sp,
             color = textSecondary,
             textAlign = TextAlign.Center,
@@ -1239,8 +1279,8 @@ private fun TrainingScheduleEquipmentPage(
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                "ONE_TO_TWO" to "1-2 buổi", "THREE_TO_FOUR" to "3-4 buổi",
-                "FIVE_TO_SIX" to "5-6 buổi", "SEVEN" to "7 buổi"
+                "ZERO" to "Chưa tập", "ONE_TO_TWO" to "1-2", "THREE_TO_FOUR" to "3-4",
+                "FIVE_TO_SIX" to "5-6", "SEVEN" to "7"
             ).forEach { (key, label) ->
                 SelectionPill(label, uiState.sessionsPerWeek == key, isDarkTheme, Modifier.weight(1f)) {
                     viewModel.selectSessionsPerWeek(key)

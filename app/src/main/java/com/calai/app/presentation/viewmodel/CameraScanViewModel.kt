@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.calai.app.data.remote.dto.AiPackageDto
 import com.calai.app.data.remote.dto.AiQuotaDto
 import com.calai.app.data.remote.dto.CreateMealItemDto
 import com.calai.app.data.remote.dto.CreateMealRequest
@@ -51,10 +50,7 @@ data class CameraScanUiState(
     val isSaveSuccess: Boolean = false,
     val errorMessage: String? = null,
     val aiQuota: AiQuotaDto? = null,
-    val aiPackages: List<AiPackageDto> = emptyList(),
     val isQuotaExhausted: Boolean = false,
-    val showPurchaseSheet: Boolean = false,
-    val isPurchasingCredits: Boolean = false,
     val selectedMenuItemIndices: Set<Int> = emptySet()
 )
 
@@ -81,40 +77,6 @@ class CameraScanViewModel @Inject constructor(
         }
     }
 
-    fun openPurchaseSheet() {
-        _uiState.value = _uiState.value.copy(showPurchaseSheet = true)
-        if (_uiState.value.aiPackages.isEmpty()) {
-            viewModelScope.launch {
-                repository.fetchAiPackages().onSuccess { packages ->
-                    _uiState.value = _uiState.value.copy(aiPackages = packages)
-                }
-            }
-        }
-    }
-
-    fun dismissPurchaseSheet() {
-        _uiState.value = _uiState.value.copy(showPurchaseSheet = false)
-    }
-
-    fun purchaseAiCredits(packageId: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isPurchasingCredits = true, errorMessage = null)
-            repository.purchaseAiCredits(packageId).onSuccess { quota ->
-                _uiState.value = _uiState.value.copy(
-                    isPurchasingCredits = false,
-                    showPurchaseSheet = false,
-                    aiQuota = quota,
-                    isQuotaExhausted = quota.totalRemaining <= 0
-                )
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isPurchasingCredits = false,
-                    errorMessage = error.message ?: "Không thể mua thêm lượt chụp, vui lòng thử lại"
-                )
-            }
-        }
-    }
-
     fun setScanMode(mode: ScanMode) {
         _uiState.value = _uiState.value.copy(
             scanMode = mode,
@@ -130,7 +92,9 @@ class CameraScanViewModel @Inject constructor(
 
     fun onImageCapturedOrSelected(uri: Uri, context: Context) {
         if (_uiState.value.scanMode == ScanMode.FOOD && _uiState.value.isQuotaExhausted) {
-            _uiState.value = _uiState.value.copy(showPurchaseSheet = true)
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Bạn đã dùng hết lượt nhận diện món hôm nay. Lượt sẽ được làm mới vào ngày mai, hoặc mở Premium để có nhiều lượt hơn."
+            )
             return
         }
 

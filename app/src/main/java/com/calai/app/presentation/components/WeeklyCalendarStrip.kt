@@ -16,7 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +47,7 @@ fun WeeklyCalendarStrip(
     selectedDateIso: String,
     onDateSelected: (String) -> Unit,
     isDarkTheme: Boolean = true,
+    incompleteDates: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     val days = remember(selectedDateIso) {
@@ -74,6 +78,7 @@ fun WeeklyCalendarStrip(
                 DayPill(
                     day = day,
                     isDarkTheme = isDarkTheme,
+                    showIncompleteDot = day.dateIso in incompleteDates,
                     onClick = { onDateSelected(day.dateIso) }
                 )
             }
@@ -85,87 +90,191 @@ fun WeeklyCalendarStrip(
 private fun DayPill(
     day: DayItem,
     isDarkTheme: Boolean = true,
+    showIncompleteDot: Boolean = false,
     onClick: () -> Unit
 ) {
     val isSelected = day.isSelected
 
-    // Scale animation: selected → 1f, unselected → 0.92f khi mới deselect
+    // Nảy nhẹ kiểu "cute" khi được chọn — spring bouncy thay vì tween phẳng, có cảm giác ngộ nghĩnh.
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1f else 1f,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
         label = "day_scale_${day.dateIso}"
+    )
+    val liftY by animateFloatAsState(
+        targetValue = if (isSelected) -4f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "day_lift_${day.dateIso}"
     )
 
     val pillShadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    val pillShape = RoundedCornerShape(20.dp)
+    val pillHeight = if (isSelected) 76.dp else 74.dp
 
     Box(
         modifier = Modifier
             .width(42.dp)
-            .height(64.dp)
-            .scale(scale)
-            .then(
-                if (isSelected) {
-                    Modifier
-                        .shadow(
-                            elevation = if (isDarkTheme) 6.dp else 10.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            ambientColor = pillShadowColor,
-                            spotColor = pillShadowColor
-                        )
-                } else Modifier
-            )
-            .clip(RoundedCornerShape(16.dp))
-            .then(
-                if (isSelected) Modifier.background(LavenderBrush) else Modifier
-            )
-            .then(
-                if (isSelected) {
-                    Modifier.border(
-                        0.75.dp,
-                        Color.White.copy(alpha = if (isDarkTheme) 0.45f else 0.70f),
-                        RoundedCornerShape(16.dp)
-                    )
-                } else Modifier
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .height(94.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = day.dayOfWeek,
-                fontSize = 11.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TextDeepInk
-                else if (day.isToday) VividOrange
-                else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = day.dayOfMonth,
-                fontSize = 15.sp,
-                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                color = if (isSelected) TextDeepInk
-                else if (day.isToday) VividOrange
-                else MaterialTheme.colorScheme.onBackground
-            )
-            // Today dot indicator
-            Spacer(modifier = Modifier.height(4.dp))
+        // Chấm cảnh báo: ngày đã có bữa ăn nhưng chưa được tính là đầy đủ (BR-07.6)
+        if (showIncompleteDot) {
             Box(
                 modifier = Modifier
-                    .size(4.dp)
+                    .align(Alignment.BottomCenter)
+                    .size(6.dp)
                     .clip(CircleShape)
-                    .background(
-                        when {
-                            isSelected -> TextDeepInk.copy(alpha = 0.5f)
-                            day.isToday -> VividOrange
-                            else -> Color.Transparent
-                        }
-                    )
+                    .background(CoralWarning)
             )
         }
+
+        // Tai gấu ôm sát 2 góc trên của ô (không phải đầu tròn nổi tách rời) — đúng yêu cầu "ôm vào ô".
+        if (isSelected) {
+            BearEars(
+                pillWidth = 42.dp,
+                modifier = Modifier.offset(y = (liftY + 10).dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(top = 18.dp)
+                .width(42.dp)
+                .height(pillHeight)
+                .scale(scale)
+                .offset(y = liftY.dp)
+                .then(
+                    if (isSelected) {
+                        Modifier
+                            .shadow(
+                                elevation = if (isDarkTheme) 8.dp else 12.dp,
+                                shape = pillShape,
+                                ambientColor = pillShadowColor,
+                                spotColor = pillShadowColor
+                            )
+                    } else Modifier
+                )
+                .clip(pillShape)
+                .background(
+                    // Đổi hẳn sang tông cam chủ đạo — ô đang chọn gradient cam đậm, ô thường nền cam nhạt
+                    // (trước đó hoàn toàn trong suốt/trắng trơn, không đồng bộ màu thương hiệu).
+                    if (isSelected) Brush.verticalGradient(listOf(VividOrangeLight, VividOrange))
+                    else Brush.verticalGradient(listOf(VividOrange.copy(alpha = 0.10f), VividOrange.copy(alpha = 0.10f)))
+                )
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            0.75.dp,
+                            Color.White.copy(alpha = if (isDarkTheme) 0.45f else 0.70f),
+                            pillShape
+                        )
+                    } else Modifier
+                )
+                .clickable { onClick() }
+        ) {
+            Column(
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = day.dayOfWeek,
+                    fontSize = 11.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White
+                    else if (day.isToday) VividOrange
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = day.dayOfMonth,
+                    fontSize = 15.sp,
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    color = if (isSelected) Color.White
+                    else if (day.isToday) VividOrange
+                    else MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            // Mõm gấu ở đáy mỗi ô — chỉ mắt + mũi, KHÔNG vẽ miệng cười. Ô đang chọn: "thân" trắng
+            // CHẠM SÁT đáy + 2 góc bo (bottomStart/End) TRÙNG KHỚP với pillShape — không còn padding
+            // dưới của Column cũ khiến mảng trắng bị thụt vào, hở góc bo tím phía dưới như trước.
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp, topStart = 10.dp, topEnd = 10.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BearSnoutFace(dotColor = TextDeepInk.copy(alpha = 0.75f))
+                }
+            } else {
+                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp)) {
+                    BearSnoutFace(
+                        dotColor = if (day.isToday) VividOrange.copy(alpha = 0.8f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 2 tai gấu ôm sát 2 góc trên của ô lịch (không phải đầu tròn nổi tách rời khỏi ô). */
+@Composable
+private fun BearEars(pillWidth: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    val earSize = 16.dp
+    Row(
+        modifier = modifier.width(pillWidth),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        BearEar(earSize)
+        BearEar(earSize)
+    }
+}
+
+@Composable
+private fun BearEar(size: androidx.compose.ui.unit.Dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .shadow(3.dp, CircleShape, ambientColor = DarkShadow, spotColor = DarkShadow)
+            .clip(CircleShape)
+            .background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(size * 0.5f)
+                .clip(CircleShape)
+                .background(VividOrangeLight.copy(alpha = 0.6f))
+        )
+    }
+}
+
+/** Mõm gấu tối giản: chỉ 2 mắt chấm tròn + 1 mũi — KHÔNG vẽ miệng cười theo yêu cầu thiết kế. */
+@Composable
+private fun BearSnoutFace(dotColor: Color, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxWidth().height(12.dp)) {
+        val w = this.size.width; val h = this.size.height
+        val eyeY = h * 0.32f
+        val eyeOffsetX = w * 0.24f
+        drawCircle(dotColor, radius = h * 0.17f, center = Offset(w / 2f - eyeOffsetX, eyeY))
+        drawCircle(dotColor, radius = h * 0.17f, center = Offset(w / 2f + eyeOffsetX, eyeY))
+        // Mũi — hình oval nhỏ ở giữa, thấp hơn mắt một chút
+        drawOval(
+            color = dotColor,
+            topLeft = Offset(w / 2f - h * 0.22f, h * 0.62f),
+            size = androidx.compose.ui.geometry.Size(h * 0.44f, h * 0.3f)
+        )
     }
 }
 

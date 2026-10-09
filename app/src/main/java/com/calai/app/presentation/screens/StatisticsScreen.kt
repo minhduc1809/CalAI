@@ -409,13 +409,23 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                     tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(20.dp)
                 )
-                Text(
-                    text = insight.message,
-                    fontSize = 12.8.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 17.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (insight.title.isNotBlank()) {
+                        Text(
+                            text = insight.title,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    Text(
+                        text = if (insight.locked) "Nâng cấp Premium để xem chi tiết và gợi ý hành động." else insight.message,
+                        fontSize = 12.8.sp,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }
@@ -453,7 +463,10 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Trung bình: ${uiState.averageCalories} kcal/ngày · Mục tiêu ${uiState.targetCalories} kcal",
+                text = if (uiState.errorMessage != null) uiState.errorMessage!!
+                else if (uiState.completeDays == 0) "Chưa có ngày ghi đủ để tính trung bình"
+                else "Trung bình: ${uiState.averageCalories} kcal/ngày (${uiState.completeDays}/${uiState.loggedDays} ngày ghi đủ)" +
+                    if (uiState.targetCalories > 0) " · Mục tiêu ${uiState.targetCalories} kcal" else "",
                 fontSize = 13.sp,
                 color = TextDeepInk.copy(alpha = 0.65f)
             )
@@ -477,8 +490,9 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         val width = size.width
                         val height = size.height
                         val calories = uiState.weeklyStats.map { it.calories }
-                        val minCal = minOf(calories.min(), uiState.targetCalories)
-                        val maxCal = maxOf(calories.max(), uiState.targetCalories)
+                        val hasTarget = uiState.targetCalories > 0
+                        val minCal = if (hasTarget) minOf(calories.min(), uiState.targetCalories) else calories.min()
+                        val maxCal = if (hasTarget) maxOf(calories.max(), uiState.targetCalories) else calories.max()
                         val range = (maxCal - minCal).takeIf { it > 0 } ?: 1
 
                         // Trục dọc đảo chiều (calo cao -> gần đỉnh), chừa lề trên/dưới 15%
@@ -488,13 +502,15 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         }
 
                         // Đường mục tiêu đứt nét — đúng vị trí Target Calories thật của người dùng
-                        val targetY = yFor(uiState.targetCalories)
-                        drawLine(
-                            color = TextDeepInk.copy(alpha = 0.25f),
-                            start = Offset(0f, targetY),
-                            end = Offset(width, targetY),
-                            strokeWidth = 2.dp.toPx()
-                        )
+                        if (hasTarget) {
+                            val targetY = yFor(uiState.targetCalories)
+                            drawLine(
+                                color = TextDeepInk.copy(alpha = 0.25f),
+                                start = Offset(0f, targetY),
+                                end = Offset(width, targetY),
+                                strokeWidth = 2.dp.toPx()
+                            )
+                        }
 
                         // Vẽ đường cong calo các ngày từ dữ liệu thật
                         val n = uiState.weeklyStats.size
