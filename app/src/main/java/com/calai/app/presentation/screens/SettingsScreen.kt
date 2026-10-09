@@ -1,9 +1,12 @@
 package com.calai.app.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.AppFormDialog
+import com.calai.app.presentation.components.AppTextField
+import com.calai.app.presentation.components.AppToggle
 import com.calai.app.presentation.components.DuotoneMoonIcon
 import com.calai.app.presentation.components.DuotoneSunIcon
 import com.calai.app.presentation.components.TactileThemeSwitch
@@ -43,6 +51,19 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    // Chọn nơi lưu tệp ZIP trước (không cần quyền lưu trữ), rồi mới gọi máy chủ để không tốn lượt xuất khi người dùng huỷ
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) viewModel.exportData(context.contentResolver, uri)
+    }
+    LaunchedEffect(uiState.exportMessage) {
+        uiState.exportMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.consumeExportMessage()
+        }
+    }
 
     var showChangePasswordSheet by remember { mutableStateOf(false) }
     var showReminderSheet by remember { mutableStateOf(false) }
@@ -133,14 +154,8 @@ fun SettingsScreen(
     }
 
     if (showReminderSheet) {
-        RemindersModalSheet(
+        HabitReminderCenterSheet(
             isDarkTheme = isDarkTheme,
-            settings = uiState.reminderSettings,
-            onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
-            onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
-            onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
-            onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
-            onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
             onDismiss = { showReminderSheet = false }
         )
     }
@@ -375,11 +390,14 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.CloudDownload,
                     title = "Xuất dữ liệu cá nhân (Export)",
-                    subtitle = "Tải toàn bộ lịch sử calo, cân nặng dạng file",
+                    subtitle = if (uiState.isExporting) "Đang chuẩn bị dữ liệu..." else "Tải toàn bộ dữ liệu của bạn (ZIP gồm JSON và CSV), tối đa 1 lần mỗi ngày",
                     isDark = isDarkTheme,
                     isLast = false,
                     onClick = {
-                        Toast.makeText(context, "Đang chuẩn bị gói dữ liệu xuất...", Toast.LENGTH_SHORT).show()
+                        if (!uiState.isExporting) {
+                            val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                            exportLauncher.launch("nutriwise-export-$day.zip")
+                        }
                     }
                 )
                 SettingsActionRow(
@@ -389,7 +407,17 @@ fun SettingsScreen(
                     isDark = isDarkTheme,
                     isLast = true,
                     onClick = {
-                        Toast.makeText(context, "Đã làm sạch bộ đệm tạm thời thành công!", Toast.LENGTH_SHORT).show()
+                        // Xoá thật thư mục cache (ảnh tạm khi quét AI lưu vào context.cacheDir,
+                        // xem CameraScanViewModel) — trước đây Toast báo "đã xóa" nhưng
+                        // không hề gọi bất kỳ lệnh xóa nào, đánh lừa người dùng.
+                        val freedBytes = clearAppCache(context)
+                        val freedMb = freedBytes / (1024f * 1024f)
+                        val message = if (freedBytes > 0) {
+                            "Đã giải phóng %.1f MB bộ nhớ đệm.".format(freedMb)
+                        } else {
+                            "Bộ nhớ đệm hiện đang trống, không có gì để xóa."
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -413,7 +441,10 @@ fun SettingsScreen(
                     isDark = isDarkTheme,
                     isLast = true,
                     onClick = {
-                        Toast.makeText(context, "Dữ liệu được bảo vệ theo tiêu chuẩn RFC5322 & JWT", Toast.LENGTH_SHORT).show()
+                        // Chưa có trang/điều khoản thật để mở — trước đây hiện 1 câu thông tin
+                        // kỹ thuật không liên quan (RFC5322/JWT) thay vì nội dung chính sách
+                        // thật, dễ gây hiểu lầm đây là toàn bộ nội dung điều khoản.
+                        Toast.makeText(context, "Trang Chính sách bảo mật & Điều khoản đang được soạn thảo, sẽ cập nhật sớm.", Toast.LENGTH_LONG).show()
                     }
                 )
             }
@@ -626,27 +657,20 @@ fun ChangePasswordModalSheet(
                 Text(text = it, color = CoralWarning, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            Button(
+            AppButton(
+                text = "Cập Nhật Mật Khẩu",
                 onClick = {
                     if (newPassword != confirmPassword) {
                         localError = "Mật khẩu xác nhận không khớp"
-                        return@Button
+                        return@AppButton
                     }
                     onConfirm(oldPassword, newPassword)
                 },
-                enabled = !isLoading && oldPassword.isNotBlank() && newPassword.isNotBlank(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
-                } else {
-                    Text("Cập Nhật Mật Khẩu", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-            }
+                enabled = oldPassword.isNotBlank() && newPassword.isNotBlank(),
+                isLoading = isLoading,
+                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
@@ -721,157 +745,63 @@ fun EmailVerificationModalSheet(
                 )
             )
 
-            Button(
+            AppButton(
+                text = "Xác Nhận Mã",
                 onClick = { onConfirmCode(code) },
-                enabled = !isVerifying && code.length == 6,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (isVerifying) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onBackground)
-                } else {
-                    Text("Xác Nhận Mã", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-            }
+                enabled = code.length == 6,
+                isLoading = isVerifying,
+                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Dialog "Thêm mới nhắc nhở" cho nhắc nhở tuỳ chỉnh — dùng chung AppFormDialog/AppTextField
+ * (Part 7/8), chọn giờ bằng WheelTimePicker (kéo cuộn) thay cho TimePickerDialog hệ thống.
+ */
 @Composable
-fun RemindersModalSheet(
-    isDarkTheme: Boolean,
-    settings: com.calai.app.presentation.viewmodel.ReminderSettingsState,
-    onUpdateBreakfast: (Boolean, String) -> Unit,
-    onUpdateLunch: (Boolean, String) -> Unit,
-    onUpdateDinner: (Boolean, String) -> Unit,
-    onUpdateSnack: (Boolean, String) -> Unit,
-    onUpdateWater: (Boolean, Int) -> Unit,
-    onDismiss: () -> Unit
+internal fun AddCustomReminderDialog(
+    onDismiss: () -> Unit,
+    onSave: (label: String, time: String) -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Nhắc Nhở Bữa Ăn & Uống Nước",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+    var label by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("08:00") }
 
-            ReminderToggleRow(
-                title = "Bữa Sáng",
-                time = settings.breakfastTime,
-                enabled = settings.breakfastEnabled,
-                isDark = isDarkTheme,
-                onToggle = { onUpdateBreakfast(it, settings.breakfastTime) }
-            )
-
-            ReminderToggleRow(
-                title = "Bữa Trưa",
-                time = settings.lunchTime,
-                enabled = settings.lunchEnabled,
-                isDark = isDarkTheme,
-                onToggle = { onUpdateLunch(it, settings.lunchTime) }
-            )
-
-            ReminderToggleRow(
-                title = "Bữa Tối",
-                time = settings.dinnerTime,
-                enabled = settings.dinnerEnabled,
-                isDark = isDarkTheme,
-                onToggle = { onUpdateDinner(it, settings.dinnerTime) }
-            )
-
-            ReminderToggleRow(
-                title = "Bữa Phụ",
-                time = settings.snackTime,
-                enabled = settings.snackEnabled,
-                isDark = isDarkTheme,
-                onToggle = { onUpdateSnack(it, settings.snackTime) }
-            )
-
-            ReminderToggleRow(
-                title = "Nhắc Uống Nước",
-                time = "Mỗi ${settings.waterInterval} giờ",
-                enabled = settings.waterEnabled,
-                isDark = isDarkTheme,
-                onToggle = { onUpdateWater(it, settings.waterInterval) }
-            )
-
-            Button(
+    AppFormDialog(
+        title = "Thêm mới nhắc nhở",
+        onDismiss = onDismiss,
+        actions = {
+            OutlinedButton(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Hủy")
             }
+            AppButton(
+                text = "Lưu",
+                onClick = { if (label.isNotBlank()) onSave(label.trim(), time) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                enabled = label.isNotBlank(),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
-    }
-}
-
-@Composable
-private fun ReminderToggleRow(
-    title: String,
-    time: String,
-    enabled: Boolean,
-    isDark: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = time,
-                fontSize = 12.sp,
-                color = VividOrange,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        AppTextField(
+            label = "Tên nhắc nhở",
+            value = label,
+            onValueChange = { label = it },
+            placeholder = "VD: Uống thuốc, Tập thể dục..."
+        )
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Switch(
-            checked = enabled,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onBackground,
-                checkedTrackColor = VividOrange,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            )
+        WheelTimePicker(
+            timeString = time,
+            onTimeChange = { time = it },
+            isDarkTheme = false
         )
     }
 }
@@ -935,16 +865,12 @@ fun UnitSelectionModalSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Button(
+            AppButton(
+                text = "Xong",
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }
@@ -1006,16 +932,12 @@ fun MealStructureModalSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Button(
+            AppButton(
+                text = "Xong",
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                Text("Xong", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }
@@ -1070,5 +992,29 @@ private fun UnitOptionCard(
             )
         }
     }
+}
+
+/**
+ * Xóa thật toàn bộ file trong `context.cacheDir` (ảnh tạm khi quét AI được lưu ở đây,
+ * xem `CameraScanViewModel.downscaleAndCompressToJpeg` — `File(context.cacheDir, "scan_*.jpg")`)
+ * và `context.externalCacheDir` nếu có. Trả về tổng số byte đã giải phóng thật sự.
+ */
+private fun clearAppCache(context: android.content.Context): Long {
+    fun deleteRecursively(dir: java.io.File?): Long {
+        if (dir == null || !dir.exists()) return 0L
+        var freed = 0L
+        dir.listFiles()?.forEach { file ->
+            freed += if (file.isDirectory) {
+                val sub = deleteRecursively(file)
+                file.delete()
+                sub
+            } else {
+                val size = file.length()
+                if (file.delete()) size else 0L
+            }
+        }
+        return freed
+    }
+    return deleteRecursively(context.cacheDir) + deleteRecursively(context.externalCacheDir)
 }
 

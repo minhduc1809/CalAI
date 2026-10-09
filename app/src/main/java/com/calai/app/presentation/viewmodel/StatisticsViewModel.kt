@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.InsightDto
+import com.calai.app.data.remote.dto.WeeklySummaryDto
 import com.calai.app.data.remote.dto.WeightTrendPointDto
 import com.calai.app.domain.repository.CalAIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,9 +33,13 @@ data class DayCalorieStat(
 data class StatisticsUiState(
     val period: StatsPeriod = StatsPeriod.WEEK,
     val isLoading: Boolean = false,
+    val errorMessage: String? = null,
     val weeklyStats: List<DayCalorieStat> = emptyList(),
     val averageCalories: Int = 0,
-    val targetCalories: Int = 2200,
+    val loggedDays: Int = 0,
+    val completeDays: Int = 0,
+    // 0 = chưa có mục tiêu thật (hồ sơ chưa hoàn tất hoặc chưa tải được): màn hình ẩn đường/ghi chú mục tiêu
+    val targetCalories: Int = 0,
     val daysUnderGoal: Int = 0,
     val proteinPercent: Int = 33,
     val carbPercent: Int = 34,
@@ -46,7 +51,10 @@ data class StatisticsUiState(
     val weightChangedKg: Float = 0f,
     val weightProgressPercent: Int = 0,
     val weightUnit: String = "kg",
-    val insights: List<InsightDto> = emptyList()
+    val insights: List<InsightDto> = emptyList(),
+    val weeklySummary: WeeklySummaryDto? = null,
+    val isWeeklySummaryLoading: Boolean = false,
+    val isWeeklySummaryRegenerating: Boolean = false
 )
 
 /** Thứ trong tuần theo Calendar.DAY_OF_WEEK (SUNDAY = 1 ... SATURDAY = 7), quy ước Việt Nam T2..CN. */
@@ -120,6 +128,7 @@ class StatisticsViewModel @Inject constructor(
         }
         loadStatistics()
         loadInsights()
+        loadWeeklySummary()
     }
 
     fun setPeriod(period: StatsPeriod) {
@@ -136,6 +145,32 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
+    private fun loadWeeklySummary() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isWeeklySummaryLoading = true)
+            repository.fetchWeeklySummary()
+                .onSuccess { summary ->
+                    _uiState.value = _uiState.value.copy(weeklySummary = summary, isWeeklySummaryLoading = false)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isWeeklySummaryLoading = false)
+                }
+        }
+    }
+
+    fun regenerateWeeklySummary() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isWeeklySummaryRegenerating = true)
+            repository.regenerateWeeklySummary()
+                .onSuccess { summary ->
+                    _uiState.value = _uiState.value.copy(weeklySummary = summary, isWeeklySummaryRegenerating = false)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isWeeklySummaryRegenerating = false)
+                }
+        }
+    }
+
     private fun loadStatistics() {
         val period = _uiState.value.period
         _uiState.value = _uiState.value.copy(isLoading = true)
@@ -143,7 +178,7 @@ class StatisticsViewModel @Inject constructor(
         viewModelScope.launch {
             // Mục tiêu calo hàng ngày lấy từ hồ sơ dinh dưỡng đã tính (Target Calculation Pipeline)
             val targetCalories = repository.fetchRemoteProfile()
-                .getOrNull()?.targetCalories?.toInt() ?: 2200
+                .getOrNull()?.targetCalories?.toInt() ?: 0
 
             // Xu hướng cân nặng thật (EWMA, alpha = 0.1) + tiến độ mục tiêu — thay cho việc tự suy ra từ log thô
             repository.fetchWeightTrend(limit = 60).onSuccess { points ->
@@ -172,11 +207,20 @@ class StatisticsViewModel @Inject constructor(
                     isLoading = false,
                     weeklyStats = bucketed,
                     averageCalories = stats.averages.dailyCalories.toInt(),
+                    loggedDays = stats.loggedDays,
+                    completeDays = stats.completeDays,
                     targetCalories = targetCalories,
                     daysUnderGoal = stats.dailyStats.count { it.calories <= targetCalories },
                     proteinPercent = ((proteinKcal / totalKcal) * 100).toInt(),
                     carbPercent = ((carbKcal / totalKcal) * 100).toInt(),
-                    fatPercent = ((fatKcal / totalKcal) * 100).toInt()
+                    fatPercent = ((fatKcal / totalKcal) * 100).toInt(),
+                    errorMessage = null
+                )
+            }.onFailure { e ->
+                // Không dùng số giả: tắt vòng chờ và báo lỗi thật để người dùng thử lại
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Không tải được thống kê, vui lòng thử lại"
                 )
             }
         }

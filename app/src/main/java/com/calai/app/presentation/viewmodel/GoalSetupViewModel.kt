@@ -103,7 +103,9 @@ class GoalSetupViewModel @Inject constructor(
                 goal = state.goal,
                 targetWeightKg = state.targetWeightKg.toFloatOrNull(),
                 weightRateKgPerWeek = state.weightRateKgPerWeek,
-                macroStyle = state.macroStyle
+                macroStyle = state.macroStyle,
+                // Người dùng đã bấm xác nhận "Bạn có chắc muốn thay đổi mục tiêu?" → áp dụng mục tiêu mới (BR-04, E2)
+                applyTarget = true
             )
             repository.updateProfile(request).onSuccess { updated ->
                 _uiState.update { it.copy(isSaving = false, isSaveSuccess = true, original = updated) }

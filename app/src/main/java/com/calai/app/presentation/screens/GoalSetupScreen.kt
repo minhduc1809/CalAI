@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.MacroStyleOptionRow
 import com.calai.app.presentation.components.RateSelectionPill
 import com.calai.app.presentation.components.SelectionPill
@@ -68,15 +69,16 @@ fun GoalSetupScreen(
                 )
             },
             confirmButton = {
-                Button(
+                AppButton(
+                    text = "Đồng ý",
                     onClick = {
                         showConfirmDialog = false
                         viewModel.save()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-                ) {
-                    Text("Đồng ý", fontWeight = FontWeight.Bold)
-                }
+                    modifier = Modifier.width(120.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
@@ -132,6 +134,20 @@ fun GoalSetupScreen(
                         fontSize = 12.5.sp,
                         color = textSecondary
                     )
+                    profile.targetLimitedBy?.let { limit ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            when (limit) {
+                                "FLOOR" -> "Mục tiêu đã được nâng lên mức calo tối thiểu an toàn cho bạn, nên tốc độ giảm cân thực tế sẽ chậm hơn mong muốn."
+                                "DEFICIT_CAP" -> "Mức thâm hụt đã được giới hạn để đảm bảo an toàn, nên tốc độ giảm cân thực tế sẽ chậm hơn mong muốn."
+                                "SURPLUS_CAP" -> "Mức thặng dư đã được giới hạn để đảm bảo an toàn, nên tốc độ tăng cân thực tế sẽ chậm hơn mong muốn."
+                                else -> "Mục tiêu đã được giới hạn để đảm bảo an toàn."
+                            },
+                            fontSize = 11.5.sp,
+                            lineHeight = 15.sp,
+                            color = CoralWarning
+                        )
+                    }
                     uiState.expenditure?.let { expenditure ->
                         Spacer(modifier = Modifier.height(10.dp))
                         val isHolding = expenditure.status == "HOLDING"
@@ -218,23 +234,15 @@ fun GoalSetupScreen(
                 Text(it, color = CoralWarning, fontSize = 12.5.sp)
             }
 
-            Button(
+            com.calai.app.presentation.components.AppButton(
+                text = "Lưu Mục Tiêu",
                 onClick = {
                     if (viewModel.hasChanges()) showConfirmDialog = true else viewModel.save()
                 },
-                enabled = !uiState.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = TextWhite)
-                } else {
-                    Text("Lưu Mục Tiêu", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            }
+                isLoading = uiState.isSaving,
+                height = 52.dp,
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }

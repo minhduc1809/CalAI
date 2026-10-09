@@ -13,16 +13,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.calai.app.data.local.TokenManager
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.domain.repository.CalAIRepository
 import com.calai.app.notification.ReminderScheduler
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.navigation.Screen
 import com.calai.app.presentation.screens.*
 import com.calai.app.presentation.theme.CalAITheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -30,6 +34,15 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var preferencesManager: UserPreferencesManager
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
+    @Inject
+    lateinit var repository: CalAIRepository
+
+    @Inject
+    lateinit var billingManager: com.calai.app.data.billing.BillingManager
 
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -44,7 +57,21 @@ class MainActivity : ComponentActivity() {
         ) {
             requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        ReminderScheduler.scheduleAll(applicationContext, preferencesManager)
+
+        // Đồng bộ lịch nhắc nhở từ server (habit-reminders) ngay khi mở app, nếu đã đăng nhập —
+        // đảm bảo WorkManager luôn khớp dữ liệu mới nhất kể cả khi user chưa mở màn Nhắc nhở lần nào.
+        // BR-16.7: khôi phục giao dịch mỗi lần mở app (idempotent ở server), kể cả khi lần trước mất mạng trước khi xác minh
+        if (tokenManager.isLoggedIn()) {
+            billingManager.restorePurchases()
+        }
+
+        if (tokenManager.isLoggedIn()) {
+            lifecycleScope.launch {
+                repository.getHabitReminders().onSuccess { reminders ->
+                    ReminderScheduler.syncFromServer(applicationContext, reminders)
+                }
+            }
+        }
 
         setContent {
             val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
@@ -61,6 +88,21 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+
+                    // Tự động điều hướng về Login khi TokenAuthenticator phát hiện session
+                    // hết hạn/không thể refresh (401 mà refresh cũng fail hoặc hết lượt retry) —
+                    // trước đây token bị clear() âm thầm nhưng không ai điều hướng, khiến app
+                    // "tưởng" vẫn đăng nhập trong khi mọi API tiếp theo đều lỗi lặp lại.
+                    val sessionExpiredCount by tokenManager.sessionExpiredEvent.collectAsState()
+                    LaunchedEffect(sessionExpiredCount) {
+                        if (sessionExpiredCount > 0 &&
+                            navController.currentDestination?.route != Screen.Login.route
+                        ) {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
 
                     fun navigateToTab(tab: DockTab) {
                         val targetRoute = when (tab) {
@@ -81,16 +123,37 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Login.route
+                        startDestination = Screen.Welcome.route
                     ) {
+                        // 0. Màn Welcome — luôn hiện đầu tiên khi mở app, trước cả Đăng nhập/Đăng ký
+                        composable(Screen.Welcome.route) {
+                            WelcomeScreen(
+                                onGetStarted = {
+                                    navController.navigate(Screen.Login.route)
+                                }
+                            )
+                        }
+
                         // 1. Màn hình Đăng nhập / Đăng ký
                         composable(Screen.Login.route) {
-                            LoginScreen(onLoginSuccess = { isNewRegistration ->
-                                val destination = if (isNewRegistration) Screen.Onboarding.route else Screen.Home.route
-                                navController.navigate(destination) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
+                            LoginScreen(
+                                onLoginSuccess = { isNewRegistration ->
+                                    val destination = if (isNewRegistration) Screen.Onboarding.route else Screen.Home.route
+                                    navController.navigate(destination) {
+                                        popUpTo(Screen.Login.route) { inclusive = true }
+                                    }
+                                },
+                                onForgotPassword = {
+                                    navController.navigate(Screen.ForgotPassword.route)
                                 }
-                            })
+                            )
+                        }
+
+                        // 1c. Quên mật khẩu — luồng thật qua mã OTP email (auth/forgot-password + auth/reset-password)
+                        composable(Screen.ForgotPassword.route) {
+                            ForgotPasswordScreen(
+                                onBack = { navController.popBackStack() }
+                            )
                         }
 
                         // 1b. Onboarding Wizard (chỉ hiện sau khi Đăng ký tài khoản mới)
@@ -125,8 +188,19 @@ class MainActivity : ComponentActivity() {
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
                                 },
+                                onOpenNotifications = {
+                                    navController.navigate(Screen.Notifications.route)
+                                },
                                 isDarkTheme = isDarkTheme,
                                 onThemeChanged = { onThemeChanged(it) }
+                            )
+                        }
+
+                        // 2a. Màn hình Thông báo
+                        composable(Screen.Notifications.route) {
+                            NotificationScreen(
+                                onBack = { navController.popBackStack() },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -141,6 +215,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToWorkoutHub = {
                                     navController.navigate(Screen.WorkoutHub.route)
+                                },
+                                onOpenPremium = {
+                                    navController.navigate(Screen.Premium.route)
+                                },
+                                onOpenProfile = {
+                                    navController.navigate(Screen.GoalSetup.route)
                                 },
                                 isDarkTheme = isDarkTheme
                             )
@@ -190,9 +270,10 @@ class MainActivity : ComponentActivity() {
 
                         // 4. Màn hình Quét Camera AI (AI Camera Scan)
                         composable(Screen.CameraScan.route) {
-                            CameraScanScreen(onBack = {
-                                navController.popBackStack()
-                            })
+                            CameraScanScreen(
+                                onBack = { navController.popBackStack() },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) }
+                            )
                         }
 
                         // 4b. Màn hình Quét Mã Vạch (Barcode Scanner)
@@ -231,6 +312,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
                                 },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -253,8 +335,15 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSettings = {
                                     navController.navigate(Screen.Settings.route)
+                                },
+                                onOpenPremium = {
+                                    navController.navigate(Screen.Premium.route)
                                 }
                             )
+                        }
+
+                        composable(Screen.Premium.route) {
+                            PremiumScreen(onBack = { navController.popBackStack() })
                         }
 
                         // 8. Màn hình Mục tiêu & Chương trình (Goal Setup)

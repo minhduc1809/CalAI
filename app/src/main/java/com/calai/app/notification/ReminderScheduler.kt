@@ -5,61 +5,107 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.data.remote.dto.HabitReminderDto
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 /**
- * Biến tuỳ chọn nhắc nhở đã lưu trong UserPreferencesManager thành lịch WorkManager thật.
- * Mỗi loại nhắc là 1 unique periodic work 24h (hoặc theo interval riêng cho nước), initial delay
- * được tính để lần bắn đầu tiên đúng vào giờ đã đặt — gọi lại scheduleAll() bất cứ khi nào người
- * dùng đổi tuỳ chọn để initial delay được tính lại từ thời điểm hiện tại.
+ * Biến danh sách HabitReminder lấy từ server (habit-reminders API) thành lịch WorkManager thật.
+ * Mỗi nhắc nhở là 1 unique periodic work theo id — 24h cho bữa ăn (initial delay tính đúng giờ báo,
+ * đã trừ "thời gian báo trước" nếu có), hoặc theo interval phút riêng cho Nước. Gọi syncFromServer()
+ * mỗi khi tải lại danh sách; scheduleFromServer() cho 1 bản ghi vừa sửa/tạo.
  */
 object ReminderScheduler {
 
-    private fun uniqueName(type: ReminderType) = "reminder_${type.name.lowercase()}"
+    private fun uniqueHabitName(id: String) = "habit_reminder_$id"
 
-    fun scheduleAll(context: Context, prefs: UserPreferencesManager) {
+    fun syncFromServer(context: Context, reminders: List<HabitReminderDto>) {
         ReminderNotificationHelper.ensureChannels(context)
-
-        scheduleMeal(context, ReminderType.BREAKFAST, prefs.isBreakfastReminderEnabled(), prefs.getBreakfastReminderTime())
-        scheduleMeal(context, ReminderType.LUNCH, prefs.isLunchReminderEnabled(), prefs.getLunchReminderTime())
-        scheduleMeal(context, ReminderType.DINNER, prefs.isDinnerReminderEnabled(), prefs.getDinnerReminderTime())
-        scheduleMeal(context, ReminderType.SNACK, prefs.isSnackReminderEnabled(), prefs.getSnackReminderTime())
-        scheduleWater(context, prefs.isWaterReminderEnabled(), prefs.getWaterReminderInterval())
+        reminders.forEach { scheduleFromServer(context, it) }
     }
 
-    private fun scheduleMeal(context: Context, type: ReminderType, enabled: Boolean, time: String) {
+    fun scheduleFromServer(context: Context, reminder: HabitReminderDto) {
         val workManager = WorkManager.getInstance(context)
-        val name = uniqueName(type)
-        if (!enabled) {
+        val name = uniqueHabitName(reminder.id)
+
+        if (!reminder.enabled) {
             workManager.cancelUniqueWork(name)
             return
         }
 
-        val initialDelayMs = delayUntilNextOccurrence(time)
-        val request = PeriodicWorkRequestBuilder<ReminderWorker>(24, TimeUnit.HOURS)
-            .setInitialDelay(initialDelayMs, TimeUnit.MILLISECONDS)
-            .setInputData(Data.Builder().putString(ReminderWorker.KEY_TYPE, type.name).build())
+        val channelId = when (reminder.type) {
+            "WATER" -> "water_reminders"
+            "CUSTOM" -> ReminderNotificationHelper.CUSTOM_REMINDER_CHANNEL_ID
+            else -> "meal_reminders"
+        }
+        val (title, message) = buildContent(reminder)
+        val repeatDaysCsv = reminder.repeatDays.joinToString(",")
+
+        val inputData = Data.Builder()
+            .putString(ReminderWorker.KEY_HABIT_ID, reminder.id)
+            .putString(ReminderWorker.KEY_HABIT_CHANNEL, channelId)
+            .putString(ReminderWorker.KEY_HABIT_TITLE, title)
+            .putString(ReminderWorker.KEY_HABIT_MESSAGE, message)
+            .putString(ReminderWorker.KEY_REPEAT_DAYS, repeatDaysCsv)
+            .putBoolean(ReminderWorker.KEY_IS_WATER, reminder.type == "WATER")
             .build()
+
+        val request = if (reminder.type == "WATER") {
+            val intervalMinutes = (reminder.waterIntervalMinutes ?: 120).coerceAtLeast(15)
+            PeriodicWorkRequestBuilder<ReminderWorker>(intervalMinutes.toLong(), TimeUnit.MINUTES)
+                .setInputData(inputData)
+                .build()
+        } else {
+            val alarmTime = shiftTimeEarlier(reminder.timeOfDay, reminder.advanceNoticeMinutes)
+            val initialDelayMs = delayUntilNextOccurrence(alarmTime)
+            PeriodicWorkRequestBuilder<ReminderWorker>(24, TimeUnit.HOURS)
+                .setInitialDelay(initialDelayMs, TimeUnit.MILLISECONDS)
+                .setInputData(inputData)
+                .build()
+        }
 
         workManager.enqueueUniquePeriodicWork(name, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    private fun scheduleWater(context: Context, enabled: Boolean, intervalHours: Int) {
-        val workManager = WorkManager.getInstance(context)
-        val name = uniqueName(ReminderType.WATER)
-        if (!enabled) {
-            workManager.cancelUniqueWork(name)
-            return
+    fun cancelHabitReminder(context: Context, id: String) {
+        WorkManager.getInstance(context).cancelUniqueWork(uniqueHabitName(id))
+    }
+
+    private fun buildContent(reminder: HabitReminderDto): Pair<String, String> {
+        if (reminder.type == "WATER") {
+            return "Uống nước thôi!" to "Đã đến chu kỳ nhắc uống nước bạn đặt."
         }
 
-        val safeIntervalHours = intervalHours.coerceAtLeast(1)
-        val request = PeriodicWorkRequestBuilder<ReminderWorker>(safeIntervalHours.toLong(), TimeUnit.HOURS)
-            .setInputData(Data.Builder().putString(ReminderWorker.KEY_TYPE, ReminderType.WATER.name).build())
-            .build()
+        val title = when (reminder.type) {
+            "BREAKFAST" -> "Đến giờ ăn sáng rồi!"
+            "LUNCH" -> "Đến giờ ăn trưa rồi!"
+            "DINNER" -> "Đến giờ ăn tối rồi!"
+            "SNACK" -> "${reminder.label} của bạn đây"
+            else -> reminder.label
+        }
 
-        workManager.enqueueUniquePeriodicWork(name, ExistingPeriodicWorkPolicy.UPDATE, request)
+        val foodNote = reminder.foods.firstOrNull()?.let { " Gợi ý: ${it.name}." } ?: ""
+        val advanceNote = if (reminder.advanceNoticeMinutes > 0) {
+            " Còn ${reminder.advanceNoticeMinutes} phút nữa tới giờ ăn (${reminder.timeOfDay})."
+        } else ""
+        val message = "Đừng quên ghi lại ${reminder.label.lowercase()} để CalAI tính đúng calo còn lại trong ngày.$advanceNote$foodNote"
+
+        return title to message
+    }
+
+    /** Lùi 1 mốc "HH:mm" về sớm hơn N phút (dùng cho "Thời gian báo trước"). */
+    private fun shiftTimeEarlier(time: String, minutesEarlier: Int): String {
+        if (minutesEarlier <= 0) return time
+        val parts = time.split(":").mapNotNull { it.toIntOrNull() }
+        val hour = parts.getOrElse(0) { 12 }
+        val minute = parts.getOrElse(1) { 0 }
+
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            add(Calendar.MINUTE, -minutesEarlier)
+        }
+        return String.format("%02d:%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE))
     }
 
     /** Tính số ms từ hiện tại tới lần "HH:mm" gần nhất trong tương lai (hôm nay hoặc mai). */

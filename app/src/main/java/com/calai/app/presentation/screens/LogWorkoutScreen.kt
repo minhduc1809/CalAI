@@ -197,13 +197,7 @@ fun LogWorkoutScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(20.dp))
-                                        .background(
-                                            if (isSelected) {
-                                                Brush.horizontalGradient(listOf(VividOrange, VividOrangeLight))
-                                            } else {
-                                                Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface))
-                                            }
-                                        )
+                                        .background(if (isSelected) CtaSolidOrange else MaterialTheme.colorScheme.surfaceVariant)
                                         .border(
                                             1.dp,
                                             if (isSelected) VividOrange.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline,
@@ -581,42 +575,21 @@ fun LogWorkoutScreen(
                 )
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            Button(
+            AppButton(
+                text = "Hoàn Thành & Lưu Buổi Tập",
                 onClick = {
                     viewModel.saveWorkout(onSuccess = onSaveSuccess)
                 },
                 enabled = !uiState.isSubmitting,
+                isLoading = uiState.isSubmitting,
+                leadingIcon = {
+                    DuotoneCheckmarkIcon(size = 18.dp, outlineColor = TextWhite, accentColor = TextWhite)
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .height(54.dp)
                     .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = VividOrange.copy(alpha = 0.4f)),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VividOrange,
-                    disabledContainerColor = VividOrange.copy(alpha = 0.5f)
-                ),
                 shape = RoundedCornerShape(16.dp)
-            ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        DuotoneCheckmarkIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = MaterialTheme.colorScheme.onBackground)
-                        Text(
-                            text = "Hoàn Thành & Lưu Buổi Tập",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-            }
+            )
         }
 
         // 5. DIALOG THÊM BÀI TẬP MỚI
@@ -679,7 +652,8 @@ fun LogWorkoutScreen(
                     }
                 },
                 confirmButton = {
-                    Button(
+                    AppButton(
+                        text = "Thêm",
                         onClick = {
                             if (newExerciseName.isNotBlank()) {
                                 viewModel.addExercise(newExerciseName)
@@ -687,11 +661,10 @@ fun LogWorkoutScreen(
                                 showAddExerciseDialog = false
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                        modifier = Modifier.width(100.dp),
+                        height = 40.dp,
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Thêm", fontWeight = FontWeight.Bold)
-                    }
+                    )
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddExerciseDialog = false }) {
@@ -773,11 +746,11 @@ fun ExerciseCardItem(
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "SET", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
+                Text(text = "HIỆP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "MỨC TẠ (KG)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "REPS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(text = "SỐ LẦN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "XONG", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(42.dp), textAlign = TextAlign.Center)
             }
@@ -809,7 +782,7 @@ fun ExerciseCardItem(
                             text = "${s.setNumber}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (s.isCompleted) TextDeepInk else TextWhite
+                            color = if (s.isCompleted) TextDeepInk else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 

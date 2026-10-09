@@ -15,6 +15,7 @@ data class AuthUiState(
     val username: String = "",
     val email: String = "",
     val password: String = "",
+    val confirmPassword: String = "",
     val name: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -75,6 +76,10 @@ class AuthViewModel @Inject constructor(
 
     fun onPasswordChange(value: String) {
         _uiState.value = _uiState.value.copy(password = value, errorMessage = null)
+    }
+
+    fun onConfirmPasswordChange(value: String) {
+        _uiState.value = _uiState.value.copy(confirmPassword = value, errorMessage = null)
     }
 
     fun onNameChange(value: String) {
@@ -143,8 +148,16 @@ class AuthViewModel @Inject constructor(
                 _uiState.value = state.copy(errorMessage = "Mật khẩu phải chứa ít nhất 1 chữ thường, 1 chữ HOA và 1 chữ số (VD: Admin@123)")
                 return
             }
-            if (state.email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(state.email.trim()).matches()) {
+            if (state.email.isBlank()) {
+                _uiState.value = state.copy(errorMessage = "Vui lòng nhập email")
+                return
+            }
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(state.email.trim()).matches()) {
                 _uiState.value = state.copy(errorMessage = "Địa chỉ email không đúng định dạng")
+                return
+            }
+            if (state.password != state.confirmPassword) {
+                _uiState.value = state.copy(errorMessage = "Xác nhận mật khẩu không khớp")
                 return
             }
         }

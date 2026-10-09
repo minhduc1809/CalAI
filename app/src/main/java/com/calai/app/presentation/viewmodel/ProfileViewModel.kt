@@ -1,34 +1,18 @@
 package com.calai.app.presentation.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.domain.repository.CalAIRepository
-import com.calai.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class ReminderSettingsState(
-    val breakfastEnabled: Boolean = true,
-    val breakfastTime: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME,
-    val lunchEnabled: Boolean = true,
-    val lunchTime: String = UserPreferencesManager.DEFAULT_LUNCH_TIME,
-    val dinnerEnabled: Boolean = true,
-    val dinnerTime: String = UserPreferencesManager.DEFAULT_DINNER_TIME,
-    val snackEnabled: Boolean = false,
-    val snackTime: String = UserPreferencesManager.DEFAULT_SNACK_TIME,
-    val waterEnabled: Boolean = true,
-    val waterInterval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS
-)
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -37,19 +21,23 @@ data class ProfileUiState(
     val isSendingVerificationEmail: Boolean = false,
     val isVerifyingEmail: Boolean = false,
     val profile: UserProfileDto? = null,
+    /** Mục tiêu đề xuất sau khi đổi chiều cao/cân nặng; hiện hộp thoại "Áp dụng?" khi khác null (BR-04). */
+    val proposedTarget: com.calai.app.data.remote.dto.ProposedTargetDto? = null,
+    val isApplyingTarget: Boolean = false,
+    val isExporting: Boolean = false,
+    /** Kết quả xuất dữ liệu (thành công hoặc lỗi của máy chủ) để màn Cài đặt hiện một lần rồi xoá. */
+    val exportMessage: String? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isLoggedOut: Boolean = false,
     val weightUnit: String = "kg",
-    val mealStructureMode: String = "TIMELINE",
-    val reminderSettings: ReminderSettingsState = ReminderSettingsState()
+    val mealStructureMode: String = "TIMELINE"
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val repository: CalAIRepository,
-    private val preferencesManager: UserPreferencesManager,
-    @param:ApplicationContext private val appContext: Context
+    private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -62,9 +50,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
-        loadReminderSettings()
         observePreferences()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     private fun observePreferences() {
@@ -86,56 +72,6 @@ class ProfileViewModel @Inject constructor(
 
     fun setMealStructureMode(mode: String) {
         preferencesManager.setMealStructureMode(mode)
-    }
-
-
-    fun loadReminderSettings() {
-        _uiState.update {
-            it.copy(
-                reminderSettings = ReminderSettingsState(
-                    breakfastEnabled = preferencesManager.isBreakfastReminderEnabled(),
-                    breakfastTime = preferencesManager.getBreakfastReminderTime(),
-                    lunchEnabled = preferencesManager.isLunchReminderEnabled(),
-                    lunchTime = preferencesManager.getLunchReminderTime(),
-                    dinnerEnabled = preferencesManager.isDinnerReminderEnabled(),
-                    dinnerTime = preferencesManager.getDinnerReminderTime(),
-                    snackEnabled = preferencesManager.isSnackReminderEnabled(),
-                    snackTime = preferencesManager.getSnackReminderTime(),
-                    waterEnabled = preferencesManager.isWaterReminderEnabled(),
-                    waterInterval = preferencesManager.getWaterReminderInterval()
-                )
-            )
-        }
-    }
-
-    fun updateBreakfastReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_BREAKFAST_TIME) {
-        preferencesManager.setBreakfastReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateLunchReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_LUNCH_TIME) {
-        preferencesManager.setLunchReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateDinnerReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_DINNER_TIME) {
-        preferencesManager.setDinnerReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateSnackReminder(enabled: Boolean, time: String = UserPreferencesManager.DEFAULT_SNACK_TIME) {
-        preferencesManager.setSnackReminder(enabled, time)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
-    }
-
-    fun updateWaterReminder(enabled: Boolean, interval: Int = UserPreferencesManager.DEFAULT_WATER_INTERVAL_HOURS) {
-        preferencesManager.setWaterReminder(enabled, interval)
-        loadReminderSettings()
-        ReminderScheduler.scheduleAll(appContext, preferencesManager)
     }
 
     fun loadProfile() {
@@ -199,7 +135,7 @@ class ProfileViewModel @Inject constructor(
             val result = repository.updateProfile(UpdateProfileRequest(heightCm = heightCm))
             _uiState.update { it.copy(isUpdatingBiometrics = false) }
             result.onSuccess { updated ->
-                _uiState.update { it.copy(profile = updated) }
+                _uiState.update { it.copy(profile = updated, proposedTarget = updated.proposedTarget) }
                 onSuccess()
             }.onFailure { err ->
                 onError(err.message ?: "Cập nhật chiều cao thất bại")
@@ -217,12 +153,60 @@ class ProfileViewModel @Inject constructor(
             val result = repository.updateProfile(UpdateProfileRequest(weightKg = weightKg))
             _uiState.update { it.copy(isUpdatingBiometrics = false) }
             result.onSuccess { updated ->
-                _uiState.update { it.copy(profile = updated) }
+                _uiState.update { it.copy(profile = updated, proposedTarget = updated.proposedTarget) }
                 onSuccess()
             }.onFailure { err ->
                 onError(err.message ?: "Cập nhật cân nặng thất bại")
             }
         }
+    }
+
+    /** Người dùng bấm "Áp dụng" trên hộp thoại mục tiêu đề xuất (BR-04, E5). */
+    fun applyProposedTarget(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        _uiState.update { it.copy(isApplyingTarget = true) }
+        viewModelScope.launch {
+            repository.applyProposedTarget().onSuccess {
+                _uiState.update { it.copy(isApplyingTarget = false, proposedTarget = null) }
+                loadProfile()
+                onSuccess()
+            }.onFailure { err ->
+                _uiState.update { it.copy(isApplyingTarget = false) }
+                onError(err.message ?: "Không thể áp dụng mục tiêu mới")
+            }
+        }
+    }
+
+    /** Người dùng chọn "Để sau": giữ nguyên mục tiêu hiện tại. */
+    /**
+     * Xuất dữ liệu cá nhân (BR-18) vào tệp người dùng đã chọn. Người dùng chọn nơi lưu TRƯỚC, nên lượt xuất trong ngày
+     * chỉ bị dùng khi họ thật sự muốn lưu. Nếu xuất lỗi thì xoá tệp rỗng vừa tạo để không để lại file hỏng.
+     */
+    fun exportData(resolver: android.content.ContentResolver, uri: android.net.Uri) {
+        if (_uiState.value.isExporting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportMessage = null) }
+            val result = runCatching {
+                val stream = resolver.openOutputStream(uri) ?: error("Không mở được nơi lưu tệp")
+                stream.use { repository.exportData(it).getOrThrow() }
+            }
+            result.onSuccess { bytes ->
+                val kb = (bytes / 1024).coerceAtLeast(1)
+                _uiState.update { it.copy(isExporting = false, exportMessage = "Đã lưu dữ liệu của bạn ($kb KB)") }
+            }.onFailure { e ->
+                runCatching { android.provider.DocumentsContract.deleteDocument(resolver, uri) }
+                _uiState.update {
+                    it.copy(isExporting = false, exportMessage = e.message ?: "Không xuất được dữ liệu, vui lòng thử lại")
+                }
+            }
+        }
+    }
+
+    fun consumeExportMessage() {
+        _uiState.update { it.copy(exportMessage = null) }
+    }
+
+    fun dismissProposedTarget() {
+        _uiState.update { it.copy(proposedTarget = null) }
     }
 
     fun sendVerificationEmail(onSuccess: () -> Unit, onError: (String) -> Unit) {

@@ -72,3 +72,17 @@ data class ChangePasswordRequest(
     @SerializedName("newPassword")
     val newPassword: String
 )
+
+data class ForgotPasswordRequest(
+    @SerializedName("email")
+    val email: String
+)
+
+data class ResetPasswordRequest(
+    @SerializedName("email")
+    val email: String,
+    @SerializedName("code")
+    val code: String,
+    @SerializedName("newPassword")
+    val newPassword: String
+)

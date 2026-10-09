@@ -14,7 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.data.remote.dto.InsightDto
+import com.calai.app.data.remote.dto.WeeklySummaryDto
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.components.FloatingBottomDock
 import com.calai.app.presentation.components.MacroDonutChart
@@ -42,6 +46,13 @@ import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.StatisticsUiState
 import com.calai.app.presentation.viewmodel.StatisticsViewModel
 import com.calai.app.presentation.viewmodel.StatsPeriod
+import java.util.Locale
+
+/** Ngưỡng bề rộng màn hình được coi là tablet/landscape (Punch-list #1: responsive layout) */
+private val STATS_TABLET_BREAKPOINT_DP = 600.dp
+
+/** Thời lượng animation "tự vẽ" biểu đồ xu hướng calo (Punch-list #2: tách hằng số ma thuật) */
+private const val CHART_DRAW_ANIMATION_MS = 700
 
 @Composable
 fun StatisticsScreen(
@@ -52,14 +63,20 @@ fun StatisticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(
+    // Responsive: BoxWithConstraints để giới hạn bề rộng nội dung trên tablet/landscape (>= 600dp)
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        val isTablet = maxWidth >= STATS_TABLET_BREAKPOINT_DP
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
+                .then(
+                    if (isTablet) Modifier.widthIn(max = 640.dp) else Modifier.fillMaxWidth()
+                )
+                .align(Alignment.TopCenter)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(top = 32.dp, bottom = 100.dp),
@@ -151,6 +168,16 @@ fun StatisticsScreen(
                 }
             }
 
+            // Thẻ Tổng Kết Tuần (AI Weekly Summary) — nạp khi vào màn, có nút làm mới
+            if (uiState.weeklySummary != null || uiState.isWeeklySummaryLoading) {
+                WeeklySummaryCard(
+                    summary = uiState.weeklySummary,
+                    isRegenerating = uiState.isWeeklySummaryRegenerating,
+                    isDarkTheme = isDarkTheme,
+                    onRegenerate = { viewModel.regenerateWeeklySummary() }
+                )
+            }
+
             // Thẻ Insight tự động (Plateau Detection / Goal Deviation) — chỉ hiện khi có insight
             if (uiState.insights.isNotEmpty()) {
                 InsightCard(insights = uiState.insights, isDarkTheme = isDarkTheme)
@@ -172,6 +199,186 @@ fun StatisticsScreen(
             onTabSelected = onNavigateTab,
             isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun WeeklySummaryCard(
+    summary: WeeklySummaryDto?,
+    isRegenerating: Boolean,
+    isDarkTheme: Boolean = true,
+    onRegenerate: () -> Unit = {}
+) {
+    val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (isDarkTheme) 6.dp else 10.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
+            .padding(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Tổng Kết Tuần (AI)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (summary != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${summary.weekStartDate} → ${summary.weekEndDate}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onRegenerate, enabled = !isRegenerating) {
+                if (isRegenerating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Làm mới tổng kết tuần",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        if (summary == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Đang tải tổng kết tuần...",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@Column
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Câu nhận định nổi bật do AI tạo ra — hiển thị dạng trích dẫn
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = summary.highlightText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Lưới 4 chỉ số dinh dưỡng trung bình
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WeeklyStatChip(label = "Calo", value = summary.avgCalories?.let { "${it.toInt()}" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Đạm", value = summary.avgProtein?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Béo", value = summary.avgFat?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+            WeeklyStatChip(label = "Tinh bột", value = summary.avgCarb?.let { "${it.toInt()}g" } ?: "—", modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Thay đổi cân nặng trong tuần — xanh khi giảm cân, đỏ khi tăng, trung tính khi không đổi
+            val weightChange = summary.weightChangeKg
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (weightChange != null && weightChange != 0f) {
+                    val isLoss = weightChange < 0
+                    Icon(
+                        imageVector = if (isLoss) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = null,
+                        tint = if (isLoss) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = String.format(Locale.getDefault(), "%+.1f kg", weightChange),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLoss) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        text = "Cân nặng: không đổi",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Text(
+                text = "${summary.workoutsCompleted ?: 0} buổi tập",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (summary.isFallback) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Ước tính đơn giản do AI tạm thời không khả dụng.",
+                fontSize = 11.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyStatChip(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(vertical = 10.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -202,13 +409,23 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                     tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(20.dp)
                 )
-                Text(
-                    text = insight.message,
-                    fontSize = 12.8.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 17.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (insight.title.isNotBlank()) {
+                        Text(
+                            text = insight.title,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    Text(
+                        text = if (insight.locked) "Nâng cấp Premium để xem chi tiết và gợi ý hành động." else insight.message,
+                        fontSize = 12.8.sp,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }
@@ -246,7 +463,10 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Trung bình: ${uiState.averageCalories} kcal/ngày · Mục tiêu ${uiState.targetCalories} kcal",
+                text = if (uiState.errorMessage != null) uiState.errorMessage!!
+                else if (uiState.completeDays == 0) "Chưa có ngày ghi đủ để tính trung bình"
+                else "Trung bình: ${uiState.averageCalories} kcal/ngày (${uiState.completeDays}/${uiState.loggedDays} ngày ghi đủ)" +
+                    if (uiState.targetCalories > 0) " · Mục tiêu ${uiState.targetCalories} kcal" else "",
                 fontSize = 13.sp,
                 color = TextDeepInk.copy(alpha = 0.65f)
             )
@@ -263,15 +483,16 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                     val drawProgress = remember { Animatable(0f) }
                     LaunchedEffect(uiState.weeklyStats) {
                         drawProgress.snapTo(0f)
-                        drawProgress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = LinearEasing))
+                        drawProgress.animateTo(1f, animationSpec = tween(durationMillis = CHART_DRAW_ANIMATION_MS, easing = LinearEasing))
                     }
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val width = size.width
                         val height = size.height
                         val calories = uiState.weeklyStats.map { it.calories }
-                        val minCal = minOf(calories.min(), uiState.targetCalories)
-                        val maxCal = maxOf(calories.max(), uiState.targetCalories)
+                        val hasTarget = uiState.targetCalories > 0
+                        val minCal = if (hasTarget) minOf(calories.min(), uiState.targetCalories) else calories.min()
+                        val maxCal = if (hasTarget) maxOf(calories.max(), uiState.targetCalories) else calories.max()
                         val range = (maxCal - minCal).takeIf { it > 0 } ?: 1
 
                         // Trục dọc đảo chiều (calo cao -> gần đỉnh), chừa lề trên/dưới 15%
@@ -281,13 +502,15 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         }
 
                         // Đường mục tiêu đứt nét — đúng vị trí Target Calories thật của người dùng
-                        val targetY = yFor(uiState.targetCalories)
-                        drawLine(
-                            color = TextDeepInk.copy(alpha = 0.25f),
-                            start = Offset(0f, targetY),
-                            end = Offset(width, targetY),
-                            strokeWidth = 2.dp.toPx()
-                        )
+                        if (hasTarget) {
+                            val targetY = yFor(uiState.targetCalories)
+                            drawLine(
+                                color = TextDeepInk.copy(alpha = 0.25f),
+                                start = Offset(0f, targetY),
+                                end = Offset(width, targetY),
+                                strokeWidth = 2.dp.toPx()
+                            )
+                        }
 
                         // Vẽ đường cong calo các ngày từ dữ liệu thật
                         val n = uiState.weeklyStats.size
@@ -434,9 +657,10 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MacroLegendRow("Đạm (Protein)", "${uiState.proteinPercent}%", if (isDarkTheme) PastelMint else ProteinGradientStartLight, isDarkTheme)
-                    MacroLegendRow("Carb", "${uiState.carbPercent}%", if (isDarkTheme) PastelButtercup else CarbGradientStartLight, isDarkTheme)
-                    MacroLegendRow("Chất béo", "${uiState.fatPercent}%", if (isDarkTheme) PastelRose else FatGradientStartLight, isDarkTheme)
+                    // Final v3 Part 4.7: chart/legend series color follows semantic mapping (Protein→Mint, Carbs→Amber, Fat→Coral)
+                    MacroLegendRow("Đạm (Protein)", "${uiState.proteinPercent}%", VividMint, isDarkTheme)
+                    MacroLegendRow("Carb", "${uiState.carbPercent}%", VividAmber, isDarkTheme)
+                    MacroLegendRow("Chất béo", "${uiState.fatPercent}%", VividCoral, isDarkTheme)
                 }
             }
         }

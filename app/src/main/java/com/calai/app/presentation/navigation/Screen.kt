@@ -1,7 +1,9 @@
 package com.calai.app.presentation.navigation
 
 sealed class Screen(val route: String) {
+    object Welcome : Screen("welcome")
     object Login : Screen("login")
+    object ForgotPassword : Screen("forgot_password")
     object Home : Screen("home")
     object AddMeal : Screen("add_meal")
     object CameraScan : Screen("camera_scan")
@@ -17,5 +19,7 @@ sealed class Screen(val route: String) {
     object WeightHistory : Screen("weight_history")
     object ExpenditureDetail : Screen("expenditure_detail")
     object BarcodeScan : Screen("barcode_scan")
+    object Notifications : Screen("notifications")
+    object Premium : Screen("premium")
 }
 

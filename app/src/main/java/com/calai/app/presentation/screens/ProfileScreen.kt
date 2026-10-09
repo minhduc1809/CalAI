@@ -34,6 +34,7 @@ import com.calai.app.presentation.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     onNavigateTab: (DockTab) -> Unit,
+    onOpenPremium: () -> Unit = {},
     onLogout: () -> Unit,
     isDarkTheme: Boolean = true,
     onToggleTheme: (Boolean) -> Unit = {},
@@ -50,11 +51,62 @@ fun ProfileScreen(
     var showEditHeightSheet by remember { mutableStateOf(false) }
     var showEditWeightSheet by remember { mutableStateOf(false) }
 
+    // BR-04: đổi hồ sơ không tự đổi mục tiêu; hỏi người dùng có muốn áp dụng mục tiêu đề xuất không
+    uiState.proposedTarget?.let { proposed ->
+        val diff = proposed.diff.calories.toInt()
+        val diffText = when {
+            diff > 0 -> "tăng $diff kcal so với hiện tại"
+            diff < 0 -> "giảm ${-diff} kcal so với hiện tại"
+            else -> "giữ nguyên calo, chỉ đổi macro"
+        }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissProposedTarget() },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text("Cập nhật mục tiêu?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+            },
+            text = {
+                Text(
+                    "Hồ sơ của bạn đã thay đổi. Mục tiêu đề xuất mới là ${proposed.calories.toInt()} kcal/ngày " +
+                        "(P ${proposed.protein?.toInt() ?: 0}g · C ${proposed.carb?.toInt() ?: 0}g · F ${proposed.fat?.toInt() ?: 0}g), $diffText. " +
+                        "Bạn có muốn áp dụng không? Nếu để sau, mục tiêu hiện tại được giữ nguyên.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.5.sp,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                AppButton(
+                    text = "Áp dụng",
+                    onClick = {
+                        viewModel.applyProposedTarget(
+                            onSuccess = {
+                                Toast.makeText(context, "Đã cập nhật mục tiêu mới!", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { error ->
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    },
+                    modifier = Modifier.width(120.dp),
+                    isLoading = uiState.isApplyingTarget,
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissProposedTarget() }) {
+                    Text("Để sau", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
+    }
+
     if (showEditHeightSheet) {
         val currentHeight = (profile?.heightCm?.toInt() ?: 170).coerceIn(100, 230)
         EditBiometricModalSheet(
             title = "Chỉnh sửa Chiều cao",
-            subtitle = "Hệ thống sẽ tự động tính toán lại BMI, BMR và TDEE của bạn",
+            subtitle = "Hệ thống sẽ tính lại BMI, BMR và TDEE. Nếu mục tiêu calo cần đổi, bạn sẽ được hỏi trước khi áp dụng",
             initialValue = currentHeight,
             range = 100..230,
             unit = "cm",
@@ -89,7 +141,7 @@ fun ProfileScreen(
 
         EditBiometricModalSheet(
             title = "Chỉnh sửa Cân nặng",
-            subtitle = "Hệ thống sẽ cập nhật nhật ký cân nặng và tự động điều chỉnh calo mục tiêu",
+            subtitle = "Hệ thống sẽ cập nhật nhật ký cân nặng. Nếu mục tiêu calo cần đổi, bạn sẽ được hỏi trước khi áp dụng",
             initialValue = currentWeight,
             range = range,
             unit = unitLabel,
@@ -138,14 +190,8 @@ fun ProfileScreen(
     }
 
     if (showReminderSheet) {
-        RemindersModalSheet(
+        HabitReminderCenterSheet(
             isDarkTheme = isDarkTheme,
-            settings = uiState.reminderSettings,
-            onUpdateBreakfast = { enabled, time -> viewModel.updateBreakfastReminder(enabled, time) },
-            onUpdateLunch = { enabled, time -> viewModel.updateLunchReminder(enabled, time) },
-            onUpdateDinner = { enabled, time -> viewModel.updateDinnerReminder(enabled, time) },
-            onUpdateSnack = { enabled, time -> viewModel.updateSnackReminder(enabled, time) },
-            onUpdateWater = { enabled, interval -> viewModel.updateWaterReminder(enabled, interval) },
             onDismiss = { showReminderSheet = false }
         )
     }
@@ -477,6 +523,7 @@ fun ProfileScreen(
                     .background(MaterialTheme.colorScheme.surface)
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             ) {
+                ActionRowItem(icon = Icons.Default.Star, label = "Gói Premium", isLast = false, isDark = isDarkTheme, onClick = onOpenPremium)
                 ActionRowItem(icon = Icons.Default.Edit, label = "Chỉnh sửa chỉ số & mục tiêu", isLast = false, isDark = isDarkTheme, onClick = onOpenGoalSetup)
                 ActionRowItem(icon = Icons.Default.Notifications, label = "Nhắc nhở bữa ăn & uống nước", isLast = false, isDark = isDarkTheme, onClick = { showReminderSheet = true })
                 ActionRowItem(icon = Icons.Default.Lock, label = "Đổi mật khẩu tài khoản", isLast = false, isDark = isDarkTheme, onClick = { showChangePasswordSheet = true })

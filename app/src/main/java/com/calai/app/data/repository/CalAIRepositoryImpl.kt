@@ -2,8 +2,11 @@ package com.calai.app.data.repository
 
 import com.calai.app.data.local.CalAIDao
 import com.calai.app.data.local.TokenManager
+import com.calai.app.data.local.entity.PendingCustomFoodEntity
+import com.calai.app.data.local.entity.PendingFavoriteEntity
 import com.calai.app.data.local.entity.toDomain
 import com.calai.app.data.local.entity.toEntity
+import com.calai.app.data.local.entity.toRequest
 import com.calai.app.data.remote.CalAIApi
 import com.calai.app.data.remote.dto.*
 import com.calai.app.domain.model.Meal
@@ -26,19 +29,13 @@ import javax.inject.Inject
 
 /**
  * Implementation của CalAIRepository
- * Hỗ trợ Chế độ Hybrid: Tự động dùng Mock Offline khi không kết nối được Backend
+ * Khi không kết nối được Backend, trả lỗi thật để màn hình báo cho người dùng; không bao giờ dùng dữ liệu giả.
  */
 class CalAIRepositoryImpl @Inject constructor(
     private val dao: CalAIDao,
     private val api: CalAIApi,
     private val tokenManager: TokenManager
 ) : CalAIRepository {
-
-    // Bộ nhớ tạm cho Favorite Foods khi offline (không có bảng Room riêng cho favorites)
-    private val mockFavoriteFoods = mutableSetOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
-
-    // Bộ nhớ tạm cho Custom Foods khi offline (không có bảng Room riêng cho custom foods)
-    private val mockCustomFoods = mutableListOf<CustomFoodDto>()
 
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
@@ -54,7 +51,8 @@ class CalAIRepositoryImpl @Inject constructor(
                             return msgElem.asString
                         }
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e}
             }
         }
         return e.localizedMessage ?: "Có lỗi xảy ra"
@@ -109,6 +107,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng nhập thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -140,6 +139,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng ký thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -159,6 +159,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đăng nhập Google thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -172,6 +173,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Gửi mã xác thực thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -185,6 +187,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Xác thực email thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -192,7 +195,8 @@ class CalAIRepositoryImpl @Inject constructor(
     override suspend fun logout(): Result<Unit> {
         try {
             api.logout()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e}
         tokenManager.clear()
         return Result.success(Unit)
     }
@@ -206,6 +210,168 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Đổi mật khẩu thất bại"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun forgotPassword(email: String): Result<Unit> {
+        return try {
+            val response = api.forgotPassword(ForgotPasswordRequest(email = email))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Gửi yêu cầu đặt lại mật khẩu thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit> {
+        return try {
+            val response = api.resetPassword(
+                ResetPasswordRequest(email = email, code = code, newPassword = newPassword)
+            )
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Đặt lại mật khẩu thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getWaterToday(): Result<WaterTodayDto> {
+        return try {
+            val response = api.getWaterToday()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun addWaterGlass(): Result<WaterTodayDto> {
+        return try {
+            val response = api.addWaterGlass()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun undoWaterGlass(): Result<WaterTodayDto> {
+        return try {
+            val response = api.undoWaterGlass()
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không xử lý được dữ liệu nước uống"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getHabitReminders(): Result<List<HabitReminderDto>> {
+        return try {
+            val response = api.getHabitReminders()
+            if (response.success) {
+                Result.success(response.data ?: emptyList())
+            } else {
+                Result.failure(Exception(response.message ?: "Không tải được danh sách nhắc nhở"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun createHabitReminder(request: CreateHabitReminderRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.createHabitReminder(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Tạo nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun updateHabitReminder(id: String, request: UpdateHabitReminderRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.updateHabitReminder(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Cập nhật nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun deleteHabitReminder(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteHabitReminder(id)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Xoá nhắc nhở thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun addHabitReminderFood(id: String, request: AttachHabitReminderFoodRequest): Result<HabitReminderDto> {
+        return try {
+            val response = api.addHabitReminderFood(id, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Gắn món ăn thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun removeHabitReminderFood(id: String, foodId: String): Result<HabitReminderDto> {
+        return try {
+            val response = api.removeHabitReminderFood(id, foodId)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Gỡ món ăn thất bại"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getHabitReminderSuggestions(id: String): Result<SuggestMealResponseDto> {
+        return try {
+            val response = api.getHabitReminderSuggestions(id)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không lấy được gợi ý món ăn"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -226,6 +392,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải thông tin hồ sơ"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -239,6 +406,18 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể cập nhật hồ sơ"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun applyProposedTarget(): Result<Unit> {
+        return try {
+            val response = api.applyProposedTarget()
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể áp dụng mục tiêu mới"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -249,29 +428,80 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockExpenditureStatus()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockExpenditureStatus()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockExpenditureStatus(): Result<ExpenditureStatusDto> {
-        return Result.success(
-            ExpenditureStatusDto(
-                method = "STATIC_FALLBACK",
-                status = "UPDATING",
-                estimatedExpenditure = 2310f,
-                staticTdee = 2310f,
-                windowDays = 0,
-                weightLogsCount = 0,
-                loggedDaysCount = 0,
-                message = "Cần thêm dữ liệu cân nặng & bữa ăn để bắt đầu tính Expenditure thích ứng."
-            )
-        )
+    override suspend fun getOnboardingDraft(): Result<OnboardingDraftData?> {
+        return try {
+            val response = api.getOnboardingDraft()
+            if (response.success) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tải bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
     }
 
+    override suspend fun saveOnboardingDraft(step: Int, data: Map<String, Any?>): Result<OnboardingDraftData> {
+        return try {
+            val response = api.saveOnboardingDraft(SaveOnboardingDraftRequest(step = step, data = data))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể lưu bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun clearOnboardingDraft(): Result<Unit> {
+        return try {
+            val response = api.clearOnboardingDraft()
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể xóa bản nháp onboarding"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+
     // --- Meals Remote & Sync ---
+    override suspend fun fetchWeekSummary(startDate: String): Result<List<WeekDaySummaryDto>> {
+        return try {
+            val response = api.getWeekSummary(startDate)
+            if (response.success && response.data != null) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không thể tải tóm tắt tuần"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun setDayStatus(date: String, completeness: String): Result<Unit> {
+        return try {
+            val response = api.setDayStatus(date, SetDayStatusRequest(completeness))
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể cập nhật trạng thái ngày"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override suspend fun fetchDailySummary(date: String?): Result<DailyNutritionSummaryData> {
         return try {
             val response = api.getDailySummary(date)
@@ -281,6 +511,54 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải tổng hợp dinh dưỡng"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun getNotifications(): Result<NotificationListDto> {
+        return try {
+            val response = api.getNotifications()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tải thông báo"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun markNotificationRead(id: String): Result<Unit> {
+        return try {
+            val response = api.markNotificationRead(id)
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể đánh dấu đã đọc"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun markAllNotificationsRead(): Result<Unit> {
+        return try {
+            val response = api.markAllNotificationsRead()
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể đánh dấu tất cả đã đọc"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun deleteNotification(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteNotification(id)
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể xoá thông báo"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -294,6 +572,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tải danh sách bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -307,20 +586,28 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể tạo bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
-    override suspend fun updateRemoteMeal(mealId: String, mealType: String?, date: String?): Result<MealResponseDto> {
-        val request = UpdateMealRequest(mealType = mealType, date = date)
+    override suspend fun updateRemoteMeal(
+        mealId: String,
+        mealType: String?,
+        date: String?,
+        items: List<CreateMealItemDto>?
+    ): Result<MealResponseDto?> {
+        val request = UpdateMealRequest(mealType = mealType, date = date, items = items)
         return try {
             val response = api.updateMeal(mealId, request)
-            if (response.success && response.data != null) {
+            // items=[] (xoá món cuối cùng) -> backend xoá luôn bữa ăn, trả success với data=null — hợp lệ, không phải lỗi.
+            if (response.success) {
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.message ?: "Không thể cập nhật bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -334,6 +621,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể sao chép bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -347,6 +635,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể xóa bữa ăn"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
     }
@@ -357,10 +646,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockNutritionStatistics()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockNutritionStatistics()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
@@ -372,41 +662,40 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(emptyList())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(emptyList())
         }
     }
 
-    private fun getMockNutritionStatistics(): Result<NutritionStatisticsData> {
-        val calendar = java.util.Calendar.getInstance()
-        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val caloriesByDay = listOf(1750f, 1920f, 1680f, 1850f, 2100f, 1790f, 1650f)
-        val dailyStats = caloriesByDay.mapIndexed { index, calories ->
-            calendar.time = Date()
-            calendar.add(java.util.Calendar.DAY_OF_YEAR, -(caloriesByDay.size - 1 - index))
-            DailyStatDto(
-                date = fmt.format(calendar.time),
-                calories = calories,
-                protein = calories * 0.30f / 4f,
-                carb = calories * 0.45f / 4f,
-                fat = calories * 0.25f / 9f,
-                mealsCount = 3
-            )
+    override suspend fun fetchWeeklySummary(): Result<WeeklySummaryDto> {
+        return try {
+            val response = api.getWeeklySummary()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tải tổng kết tuần"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
-        val avgCalories = dailyStats.map { it.calories }.average().toFloat()
-        return Result.success(
-            NutritionStatisticsData(
-                period = StatisticsPeriodDto(start = dailyStats.first().date, end = dailyStats.last().date),
-                averages = StatisticsAveragesDto(
-                    dailyCalories = avgCalories,
-                    dailyProtein = dailyStats.map { it.protein }.average().toFloat(),
-                    dailyCarb = dailyStats.map { it.carb }.average().toFloat(),
-                    dailyFat = dailyStats.map { it.fat }.average().toFloat()
-                ),
-                dailyStats = dailyStats
-            )
-        )
     }
+
+    override suspend fun regenerateWeeklySummary(): Result<WeeklySummaryDto> {
+        return try {
+            val response = api.regenerateWeeklySummary()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Không thể tạo lại tổng kết tuần"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
 
     override suspend fun quickAddMeal(
         name: String,
@@ -431,80 +720,30 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockQuickAddMeal(request)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockQuickAddMeal(request)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockQuickAddMeal(request: QuickAddMealRequest): Result<MealResponseDto> {
-        val mealId = UUID.randomUUID().toString()
-        return Result.success(
-            MealResponseDto(
-                id = mealId,
-                userId = "mock_user_01",
-                mealType = request.mealType,
-                date = request.date,
-                totalCalories = request.calories,
-                totalProtein = request.protein,
-                totalCarb = request.carb,
-                totalFat = request.fat,
-                items = listOf(
-                    MealItemResponseDto(
-                        id = "item_${UUID.randomUUID()}",
-                        mealId = mealId,
-                        name = request.name,
-                        servingSize = "1 phần",
-                        quantity = 1f,
-                        calories = request.calories,
-                        protein = request.protein,
-                        carb = request.carb,
-                        fat = request.fat,
-                        source = "quick_add"
-                    )
-                )
-            )
-        )
-    }
 
-    // --- Recommendations & Foods (với Mock Offline Fallback) ---
+    // --- Recommendations & Foods  ---
     override suspend fun searchFoods(query: String?, category: String?): Result<List<FoodItemDto>> {
         return try {
             val response = api.searchFoods(query, category)
             if (response.success && response.data != null) {
                 Result.success(response.data.items)
             } else {
-                getMockFoods(query, category)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockFoods(query, category)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockFoods(query: String?, category: String?): Result<List<FoodItemDto>> {
-        val allFoods = listOf(
-            FoodItemDto("Phở Bò Tái Chín", "Cơm / Bún / Phở", "1 tô lớn (450g)", 550f, 28f, 65f, 18f),
-            FoodItemDto("Cơm Tấm Sườn Bì Chả", "Cơm / Bún / Phở", "1 đĩa (400g)", 620f, 32f, 75f, 22f),
-            FoodItemDto("Bún Bò Huế", "Cơm / Bún / Phở", "1 tô lớn (500g)", 580f, 30f, 68f, 20f),
-            FoodItemDto("Ức Gà Áp Chảo", "Thịt / Trứng", "1 phần (200g)", 330f, 46f, 0f, 7f),
-            FoodItemDto("Trứng Luộc (2 quả)", "Thịt / Trứng", "2 quả (100g)", 155f, 13f, 1f, 11f),
-            FoodItemDto("Bún Chả Hà Nội", "Cơm / Bún / Phở", "1 phần (380g)", 520f, 26f, 60f, 18f),
-            FoodItemDto("Salad Ức Gà Sốt Mè", "Rau / Củ", "1 tô (300g)", 280f, 25f, 12f, 14f),
-            FoodItemDto("Gỏi Cuốn Tôm Thịt", "Rau / Củ", "2 cuốn (180g)", 220f, 14f, 28f, 5f),
-            FoodItemDto("Sữa Tươi Không Đường", "Đồ uống", "1 hộp (250ml)", 120f, 8f, 11f, 5f),
-            FoodItemDto("Sinh Tố Bơ Ít Đường", "Đồ uống", "1 ly (300ml)", 240f, 4f, 22f, 16f)
-        )
-
-        var filtered = allFoods
-        if (!category.isNullOrBlank() && category != "Tất cả") {
-            filtered = filtered.filter { it.category.contains(category, ignoreCase = true) }
-        }
-        if (!query.isNullOrBlank()) {
-            filtered = filtered.filter { it.name.contains(query, ignoreCase = true) }
-        }
-        return Result.success(filtered)
-    }
 
     override suspend fun getFoodCategories(): Result<List<String>> {
         return try {
@@ -512,104 +751,161 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockCategories()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockCategories()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockCategories(): Result<List<String>> {
-        return Result.success(listOf("Tất cả", "Cơm / Bún / Phở", "Thịt / Trứng", "Rau / Củ", "Đồ uống"))
+
+    /**
+     * Đẩy lại lên server các thay đổi món yêu thích/món tự tạo từng thất bại lúc mất mạng
+     * (lưu ở Room, xem PendingSyncEntity.kt) — gọi mỗi lần vừa xác nhận có kết nối tới server
+     * (một request khác vừa thành công), để không phải chờ người dùng tự thử lại thủ công.
+     */
+    private suspend fun flushPendingOfflineSync() {
+        dao.getPendingFavorites().forEach { pending ->
+            try {
+                val response = if (pending.isAdd) {
+                    api.addFavoriteFood(AddFavoriteFoodRequest(pending.foodName))
+                } else {
+                    api.removeFavoriteFood(pending.foodName)
+                }
+                if (response.success) dao.deletePendingFavorite(pending.foodName)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // Vẫn lỗi mạng — để nguyên trong hàng đợi, thử lại ở lần flush kế tiếp
+            }
+        }
+        dao.getPendingCustomFoods().forEach { pending ->
+            try {
+                val response = api.createCustomFood(pending.toRequest())
+                if (response.success) dao.deletePendingCustomFood(pending.localId)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
+        }
     }
 
     override suspend fun fetchFavoriteFoods(): Result<List<String>> {
         return try {
             val response = api.getFavoriteFoods()
             if (response.success && response.data != null) {
-                Result.success(response.data)
+                flushPendingOfflineSync()
+                // Món vừa thêm offline mà flush ở trên chưa kịp lên server (network rớt giữa chừng)
+                // vẫn cần hiện luôn, không đợi lần tải sau.
+                val stillPendingAdds = dao.getPendingFavorites().filter { it.isAdd }.map { it.foodName }
+                Result.success((response.data + stillPendingAdds).distinct())
             } else {
-                Result.success(mockFavoriteFoods.toList())
+                Result.success(offlineFavoriteFoodsSnapshot())
             }
-        } catch (_: Exception) {
-            Result.success(mockFavoriteFoods.toList())
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.success(offlineFavoriteFoodsSnapshot())
         }
     }
 
+    /** Không có kết nối tới server — hiện danh sách mặc định gợi ý cộng với các món đã bấm thêm offline. */
+    private suspend fun offlineFavoriteFoodsSnapshot(): List<String> {
+        val defaults = setOf("Ức Gà Áp Chảo", "Trứng Luộc (2 quả)")
+        val pending = dao.getPendingFavorites()
+        val added = pending.filter { it.isAdd }.map { it.foodName }
+        val removed = pending.filter { !it.isAdd }.map { it.foodName }.toSet()
+        return ((defaults + added) - removed).toList()
+    }
+
     override suspend fun addFavoriteFood(foodName: String): Result<Unit> {
-        mockFavoriteFoods.add(foodName)
         return try {
-            api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
-            Result.success(Unit)
-        } catch (_: Exception) {
-            Result.success(Unit)
+            val response = api.addFavoriteFood(AddFavoriteFoodRequest(foodName))
+            if (response.success) {
+                dao.deletePendingFavorite(foodName)
+                Result.success(Unit)
+            } else {
+                // Server từ chối (không phải lỗi mạng) — vẫn xếp hàng đợi Room để lần tới thử lại
+                // và không mất trạng thái người dùng đã chọn, nhưng KHÔNG báo thành công giả.
+                dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = true))
+                Result.failure(Exception(response.message ?: "Không lưu được món yêu thích"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = true))
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
     override suspend fun removeFavoriteFood(foodName: String): Result<Unit> {
-        mockFavoriteFoods.remove(foodName)
         return try {
-            api.removeFavoriteFood(foodName)
-            Result.success(Unit)
-        } catch (_: Exception) {
-            Result.success(Unit)
+            val response = api.removeFavoriteFood(foodName)
+            dao.deletePendingFavorite(foodName)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = false))
+                Result.failure(Exception(response.message ?: "Không gỡ được món yêu thích"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            dao.upsertPendingFavorite(PendingFavoriteEntity(foodName, isAdd = false))
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
-    override suspend fun fetchDietRecommendation(): Result<DietRecommendationData> {
+    override suspend fun exportData(output: java.io.OutputStream): Result<Long> {
         return try {
-            val response = api.getDietRecommendation()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val response = api.exportData()
+                if (!response.isSuccessful) {
+                    // Dùng chung cách đọc thông báo lỗi của máy chủ (ví dụ "đã dùng 1/1 lần xuất hôm nay")
+                    return@withContext Result.failure<Long>(Exception(extractErrorMessage(HttpException(response))))
+                }
+                val body = response.body() ?: return@withContext Result.failure<Long>(Exception("Máy chủ không trả về dữ liệu"))
+                var total = 0L
+                body.byteStream().use { input ->
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        output.write(buffer, 0, n)
+                        total += n
+                    }
+                }
+                output.flush()
+                Result.success(total)
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun fetchTodayMealPlan(): Result<TodayMealPlanDto> {
+        return try {
+            val response = api.getTodayMealPlan()
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockDietRecommendation()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockDietRecommendation()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
-    private fun getMockDietRecommendation(): Result<DietRecommendationData> {
-        val plan = VietnameseDietPlanDto(
-            id = "diet-lose-1500",
-            goal = "LOSE_WEIGHT",
-            title = "Thực đơn giảm cân 1500 kcal - Giàu đạm",
-            description = "Ưu tiên ức gà, cá, trứng và rau xanh, tinh bột hấp thu chậm để no lâu và giữ cơ trong quá trình giảm cân.",
-            targetCalo = 1500f,
-            macroRatio = MacroRatioDto(proteinPercent = 35, carbPercent = 40, fatPercent = 25),
-            meals = DietMealsDto(
-                breakfast = MealBlockDto(
-                    title = "Bữa sáng",
-                    items = listOf(VietnameseMealItemDto("Trứng ốp la + bánh mì nguyên cám", "1 phần", 350f, 18f, 35f, 14f)),
-                    totalCalories = 350f
-                ),
-                lunch = MealBlockDto(
-                    title = "Bữa trưa",
-                    items = listOf(VietnameseMealItemDto("Ức gà áp chảo + cơm gạo lứt + rau luộc", "1 phần", 550f, 42f, 55f, 12f)),
-                    totalCalories = 550f
-                ),
-                dinner = MealBlockDto(
-                    title = "Bữa tối",
-                    items = listOf(VietnameseMealItemDto("Cá hấp + salad rau củ", "1 phần", 450f, 32f, 30f, 18f)),
-                    totalCalories = 450f
-                ),
-                snack = MealBlockDto(
-                    title = "Bữa phụ",
-                    items = listOf(VietnameseMealItemDto("Sữa chua không đường + hạt óc chó", "1 phần", 150f, 8f, 10f, 9f)),
-                    totalCalories = 150f
-                )
-            )
-        )
-        return Result.success(
-            DietRecommendationData(
-                userTarget = UserDietTargetDto(goal = "LOSE_WEIGHT", targetCalories = 1500f, targetProtein = 135f, targetCarb = 150f, targetFat = 42f),
-                recommendedPlan = plan,
-                availableOptions = listOf(
-                    DietOptionDto("diet-lose-1500", plan.title, 1500f, plan.description),
-                    DietOptionDto("diet-lose-1800", "Thực đơn giảm cân 1800 kcal", 1800f, "Phù hợp người vận động nhiều hơn.")
-                )
-            )
-        )
+    override suspend fun fetchMealPlan(days: Int): Result<MealPlanDto> {
+        return try {
+            val response = api.getMealPlan(days)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
     }
 
     override suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData> {
@@ -618,44 +914,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWorkoutRecommendation()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWorkoutRecommendation()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWorkoutRecommendation(): Result<WorkoutRecommendationData> {
-        val plan = WorkoutTemplatePlanDto(
-            id = "workout-lose-home-beginner",
-            goal = "LOSE_WEIGHT",
-            level = "BEGINNER",
-            title = "Lộ trình đốt mỡ toàn thân tại nhà 4 tuần",
-            description = "Bài tập Bodyweight an toàn cho khớp gối, tăng nhịp tim để đốt mỡ hiệu quả.",
-            suitableForBmi = "Thừa cân (BMI >= 23)",
-            weeklySchedule = listOf(
-                DayWorkoutPlanDto(
-                    dayName = "Thứ 2 - Toàn thân",
-                    focus = "Cardio + Bodyweight",
-                    estimatedMinutes = 30,
-                    exercises = listOf(
-                        WorkoutExerciseItemDto("Jumping Jack", "Toàn thân", 3, "45 giây", 30, 40f, "Bật nhảy dang tay chân liên tục, giữ nhịp thở đều."),
-                        WorkoutExerciseItemDto("Squat", "Đùi, Mông", 3, "15 lần", 45, 35f, "Hạ hông xuống như ngồi ghế, giữ lưng thẳng.")
-                    )
-                ),
-                DayWorkoutPlanDto(dayName = "Thứ 3 - Nghỉ phục hồi", focus = "Nghỉ ngơi", estimatedMinutes = 0, exercises = emptyList())
-            )
-        )
-        return Result.success(
-            WorkoutRecommendationData(
-                userProfile = UserWorkoutProfileDto(bmi = 24.5f, goal = "LOSE_WEIGHT", activityLevel = "SEDENTARY"),
-                recommendedWorkout = plan,
-                allWorkoutPlans = listOf(
-                    WorkoutOptionDto(plan.id, plan.title, plan.goal, plan.level, plan.suitableForBmi)
-                )
-            )
-        )
-    }
 
     override suspend fun fetchExercises(gender: String?, level: String?): Result<ExerciseListData> {
         return try {
@@ -663,103 +929,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockExercises(gender)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockExercises(gender)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockExercises(gender: String?): Result<ExerciseListData> {
-        val targetGender = gender ?: "MALE"
-        val exercises = listOf(
-            ExerciseGuideDto(
-                id = "mock-ex-1",
-                name = "Chống đẩy quỳ gối",
-                genderTarget = targetGender,
-                level = "BEGINNER",
-                targetMuscle = "Ngực, Vai, Tay sau",
-                equipment = "NO_EQUIPMENT",
-                sets = 3,
-                repsOrDuration = "10-12 lần",
-                restSeconds = 45,
-                caloriesBurnedEstimate = 30f,
-                instructions = ExerciseInstructionsDto(
-                    preparation = "Quỳ 2 gối trên thảm, 2 tay chống rộng hơn vai.",
-                    execution = "Hạ ngực xuống gần sàn rồi đẩy lên, giữ thân thẳng.",
-                    commonMistakes = "Võng lưng, hạ đầu trước ngực.",
-                    breathing = "Hít vào khi hạ xuống, thở ra khi đẩy lên."
-                )
-            ),
-            ExerciseGuideDto(
-                id = "mock-ex-2",
-                name = "Plank",
-                genderTarget = targetGender,
-                level = "BEGINNER",
-                targetMuscle = "Core, Bụng",
-                equipment = "NO_EQUIPMENT",
-                sets = 3,
-                repsOrDuration = "30-45 giây",
-                restSeconds = 30,
-                caloriesBurnedEstimate = 20f,
-                instructions = ExerciseInstructionsDto(
-                    preparation = "Chống 2 cẳng tay và mũi chân xuống sàn.",
-                    execution = "Giữ thân người thành 1 đường thẳng, siết bụng.",
-                    commonMistakes = "Võng hông xuống hoặc đẩy mông lên cao.",
-                    breathing = "Thở đều, không nín thở."
-                )
-            )
-        )
-        return Result.success(
-            ExerciseListData(
-                gender = targetGender,
-                totalCount = exercises.size,
-                filteredCount = exercises.size,
-                levelsSummary = LevelsSummaryDto(beginner = exercises.size, intermediate = 0, advanced = 0),
-                exercises = exercises
-            )
-        )
-    }
-
-    override suspend fun fetchMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
-        return try {
-            val response = api.getMonthlyDiet(goal, level)
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                getMockMonthlyDiet(goal, level)
-            }
-        } catch (_: Exception) {
-            getMockMonthlyDiet(goal, level)
-        }
-    }
-
-    private fun getMockMonthlyDiet(goal: String?, level: String?): Result<MonthlyDietData> {
-        val resolvedGoal = goal ?: "LOSE_WEIGHT"
-        val resolvedLevel = level ?: "BEGINNER"
-        val plans = (1..3).map { day ->
-            MonthDietPlanItemDto(
-                dayNumber = day,
-                dayTitle = "Ngày $day: Thực đơn cân bằng đạm - tinh bột - rau xanh",
-                goal = resolvedGoal,
-                experienceLevel = resolvedLevel,
-                suitableForWho = "Người mới bắt đầu, ưu tiên an toàn khớp gối",
-                phaseName = "Giai đoạn 1: Thích nghi & Giảm mỡ nền tảng",
-                focusMessage = "Ưu tiên đạm nạc và rau xanh để no lâu, hạn chế tinh bột tinh chế.",
-                targetCalories = 1500f,
-                macroSummary = MacroSummaryDto(proteinGrams = 135f, carbGrams = 150f, fatGrams = 42f, proteinRatio = 35, carbRatio = 40, fatRatio = 25),
-                meals = DietMealsDto(
-                    breakfast = MealBlockDto("Bữa sáng", listOf(VietnameseMealItemDto("Trứng luộc + Khoai lang", "1 phần", 300f, 15f, 35f, 8f)), 300f),
-                    lunch = MealBlockDto("Bữa trưa", listOf(VietnameseMealItemDto("Ức gà + Cơm gạo lứt + Rau luộc", "1 phần", 550f, 42f, 55f, 12f)), 550f),
-                    dinner = MealBlockDto("Bữa tối", listOf(VietnameseMealItemDto("Cá hấp + Salad", "1 phần", 450f, 32f, 30f, 18f)), 450f),
-                    snack = MealBlockDto("Bữa phụ", listOf(VietnameseMealItemDto("Sữa chua không đường", "1 hộp", 150f, 8f, 10f, 9f)), 150f)
-                )
-            )
-        }
-        return Result.success(
-            MonthlyDietData(goal = resolvedGoal, experienceLevel = resolvedLevel, totalDays = plans.size, monthlyPlans = plans)
-        )
-    }
 
     override suspend fun createCustomFood(
         name: String,
@@ -769,7 +946,8 @@ class CalAIRepositoryImpl @Inject constructor(
         calories: Float,
         protein: Float,
         carb: Float,
-        fat: Float
+        fat: Float,
+        ingredients: List<RecipeIngredientDto>?
     ): Result<CustomFoodDto> {
         val request = CreateCustomFoodRequest(
             name = name,
@@ -779,34 +957,47 @@ class CalAIRepositoryImpl @Inject constructor(
             calories = calories,
             protein = protein,
             carb = carb,
-            fat = fat
+            fat = fat,
+            ingredients = ingredients
         )
         return try {
             val response = api.createCustomFood(request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockCreatedCustomFood(request)
+                queuePendingCustomFood(request)
             }
-        } catch (_: Exception) {
-            getMockCreatedCustomFood(request)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            queuePendingCustomFood(request)
         }
     }
 
-    private fun getMockCreatedCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+    private val PENDING_CUSTOM_FOOD_PREFIX = "pending_"
+
+    /** Server chưa tạo được — lưu vào hàng đợi Room (id giả "pending_<localId>" để deleteCustomFood
+     * biết đường xoá đúng chỗ) thay vì chỉ giữ trong bộ nhớ tiến trình như trước, để không mất khi
+     * app bị đóng và còn cơ hội tự đồng bộ lên server ở lần fetch kế tiếp có mạng. */
+    private suspend fun queuePendingCustomFood(request: CreateCustomFoodRequest): Result<CustomFoodDto> {
+        val localId = dao.insertPendingCustomFood(
+            PendingCustomFoodEntity(
+                name = request.name, servingSize = request.servingSize,
+                servingAmount = request.servingAmount, servingUnit = request.servingUnit,
+                calories = request.calories ?: 0f, protein = request.protein, carb = request.carb, fat = request.fat
+            )
+        )
         val food = CustomFoodDto(
-            id = UUID.randomUUID().toString(),
-            userId = "mock_user_01",
+            id = "$PENDING_CUSTOM_FOOD_PREFIX$localId",
+            userId = "offline",
             name = request.name,
             servingSize = request.servingSize,
             servingAmount = request.servingAmount,
             servingUnit = request.servingUnit,
-            calories = request.calories,
+            calories = request.calories ?: 0f,
             protein = request.protein,
             carb = request.carb,
             fat = request.fat
         )
-        mockCustomFoods.add(0, food)
         return Result.success(food)
     }
 
@@ -818,60 +1009,66 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(null)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(null)
         }
     }
+
+    private fun PendingCustomFoodEntity.toOfflineDto() = CustomFoodDto(
+        id = "$PENDING_CUSTOM_FOOD_PREFIX$localId", userId = "offline", name = name,
+        servingSize = servingSize, servingAmount = servingAmount, servingUnit = servingUnit,
+        calories = calories, protein = protein, carb = carb, fat = fat
+    )
 
     override suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>> {
         return try {
             val response = api.getCustomFoods()
             if (response.success && response.data != null) {
-                Result.success(response.data)
+                flushPendingOfflineSync()
+                val stillPending = dao.getPendingCustomFoods().map { it.toOfflineDto() }
+                Result.success(stillPending + response.data)
             } else {
-                Result.success(mockCustomFoods.toList())
+                Result.success(dao.getPendingCustomFoods().map { it.toOfflineDto() })
             }
-        } catch (_: Exception) {
-            Result.success(mockCustomFoods.toList())
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.success(dao.getPendingCustomFoods().map { it.toOfflineDto() })
         }
     }
 
     override suspend fun deleteCustomFood(id: String): Result<Unit> {
-        mockCustomFoods.removeAll { it.id == id }
+        if (id.startsWith(PENDING_CUSTOM_FOOD_PREFIX)) {
+            val localId = id.removePrefix(PENDING_CUSTOM_FOOD_PREFIX).toLongOrNull()
+            if (localId != null) dao.deletePendingCustomFood(localId)
+            return Result.success(Unit)
+        }
         return try {
-            api.deleteCustomFood(id)
-            Result.success(Unit)
-        } catch (_: Exception) {
-            Result.success(Unit)
+            val response = api.deleteCustomFood(id)
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không xoá được món tự tạo"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
     // --- Weight Logs Remote ---
     override suspend fun createRemoteWeightLog(weightKg: Float, note: String?): Result<WeightLogResponseDto> {
+        // Không trả bản ghi giả khi server từ chối hoặc lỗi mạng: người dùng phải biết bản ghi CHƯA được lưu
         return try {
             val response = api.createWeightLog(CreateWeightLogRequest(weightKg = weightKg, note = note))
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWeightLog(weightKg, note)
+                Result.failure(Exception(response.message ?: "Không thể ghi cân nặng"))
             }
-        } catch (_: Exception) {
-            getMockWeightLog(weightKg, note)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
         }
     }
 
-    private fun getMockWeightLog(weightKg: Float, note: String?): Result<WeightLogResponseDto> {
-        val dateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        return Result.success(
-            WeightLogResponseDto(
-                id = UUID.randomUUID().toString(),
-                userId = "mock_user_01",
-                weightKg = weightKg,
-                note = note,
-                date = dateIso
-            )
-        )
-    }
 
     override suspend fun fetchRemoteWeightLogs(limit: Int): Result<List<WeightLogResponseDto>> {
         return try {
@@ -879,23 +1076,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWeightLogs()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWeightLogs()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWeightLogs(): Result<List<WeightLogResponseDto>> {
-        val dateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        return Result.success(
-            listOf(
-                WeightLogResponseDto("w_1", "mock_user_01", 68.5f, "Cân sáng lúc bụng rỗng", dateIso),
-                WeightLogResponseDto("w_2", "mock_user_01", 68.8f, "Sau buổi tập nhẹ", "2026-09-04"),
-                WeightLogResponseDto("w_3", "mock_user_01", 69.2f, "Bắt đầu chuỗi siết mỡ", "2026-09-02")
-            )
-        )
-    }
 
     override suspend fun fetchWeightTrend(limit: Int): Result<List<WeightTrendPointDto>> {
         return try {
@@ -903,22 +1091,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWeightTrend()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWeightTrend()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWeightTrend(): Result<List<WeightTrendPointDto>> {
-        return Result.success(
-            listOf(
-                WeightTrendPointDto("wt_1", "2026-09-02", loggedWeight = 69.2f, trendWeight = 69.2f, note = "Bắt đầu chuỗi siết mỡ"),
-                WeightTrendPointDto("wt_2", "2026-09-04", loggedWeight = 68.8f, trendWeight = 69.16f, note = "Sau buổi tập nhẹ"),
-                WeightTrendPointDto("wt_3", "2026-09-05", loggedWeight = 68.5f, trendWeight = 69.09f, note = "Cân sáng lúc bụng rỗng")
-            )
-        )
-    }
 
     override suspend fun fetchWeightProgress(): Result<WeightProgressDto> {
         return try {
@@ -926,10 +1106,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWeightProgress()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWeightProgress()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
@@ -939,10 +1120,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWeightLog(weightKg ?: 0f, note)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWeightLog(weightKg ?: 0f, note)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
@@ -950,26 +1132,14 @@ class CalAIRepositoryImpl @Inject constructor(
         return try {
             api.deleteWeightLog(logId)
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }
 
-    private fun getMockWeightProgress(): Result<WeightProgressDto> {
-        return Result.success(
-            WeightProgressDto(
-                goal = "LOSE_WEIGHT",
-                startWeightKg = 72.0f,
-                currentWeightKg = 68.5f,
-                targetWeightKg = 65.0f,
-                weightChangedKg = -3.5f,
-                remainingToGoalKg = 3.5f,
-                progressPercent = 50
-            )
-        )
-    }
 
-    // --- AI Food Recognition & Chat Coach (với Mock Offline Fallback) ---
+    // --- AI Food Recognition & Chat Coach  ---
     override suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto> {
         return try {
             val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
@@ -979,11 +1149,12 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.success(response.data)
             } else {
                 android.util.Log.w("CalAIRepository", "recognizeFood unsuccess: ${response.message}")
-                getMockRecognition()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFood exception: ${e.message}", e)
-            getMockRecognition()
+            Result.failure(e)
         }
     }
 
@@ -994,33 +1165,15 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.success(response.data)
             } else {
                 android.util.Log.w("CalAIRepository", "recognizeFoodBase64 unsuccess: ${response.message}")
-                getMockRecognition()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFoodBase64 exception: ${e.message}", e)
-            getMockRecognition()
+            Result.failure(e)
         }
     }
 
-    private fun getMockRecognition(): Result<FoodRecognitionResultDto> {
-        return Result.success(
-            FoodRecognitionResultDto(
-                foodName = "Phở Bò Tái Cầu",
-                confidenceScore = 0.96,
-                totalCalories = 550.0,
-                totalProtein = 28.0,
-                totalCarb = 65.0,
-                totalFat = 18.0,
-                servingSize = "1 tô lớn (450g)",
-                healthTip = "Món ăn giàu đạm và năng lượng phục hồi. Bạn có thể giảm nước lèo béo để duy trì thâm hụt calo tốt hơn.",
-                items = listOf(
-                    FoodItemRecognitionDto("Thịt bò tái & nạm", "150g", 220.0, 22.0, 0.0, 14.0),
-                    FoodItemRecognitionDto("Bánh phở tươi", "200g", 250.0, 5.0, 58.0, 1.0),
-                    FoodItemRecognitionDto("Nước dùng & Rau thơm", "100g", 80.0, 1.0, 7.0, 3.0)
-                )
-            )
-        )
-    }
 
     override suspend fun chatAi(message: String): Result<ChatAiResponseDto> {
         return try {
@@ -1029,59 +1182,15 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.success(response.data)
             } else {
                 android.util.Log.w("CalAIRepository", "chatAi unsuccess: ${response.message}")
-                getMockChatAi(message)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "chatAi exception: ${e.message}", e)
-            getMockChatAi(message)
-        }
-    }
-
-    private fun getMockChatAi(message: String): Result<ChatAiResponseDto> {
-        val answer = when {
-            message.contains("calo", ignoreCase = true) || message.contains("gợi ý", ignoreCase = true) ->
-                "Dựa trên chỉ số TDEE 2310 kcal của bạn, để giảm cân an toàn bạn nên duy trì lượng nạp khoảng 1810 kcal/ngày (thâm hụt 500 kcal). Ưu tiên bữa ăn giàu ức gà, trứng, cá thu và rau xanh!"
-            message.contains("protein", ignoreCase = true) || message.contains("đạm", ignoreCase = true) ->
-                "Mục tiêu Protein hàng ngày của bạn là 135g. Bạn có thể chia làm 3-4 bữa, mỗi bữa bổ sung từ 30-35g đạm (tương đương 150g ức gà hoặc 4 quả trứng luộc)."
-            else ->
-                "CalAI Coach chào bạn! Tôi là trợ lý dinh dưỡng AI. Bạn có thể hỏi tôi bất kỳ câu hỏi nào về calo, thực đơn siết mỡ, tăng cơ hay cách phân bổ dinh dưỡng hợp lý!"
-        }
-        return Result.success(ChatAiResponseDto(reply = answer))
-    }
-
-    override suspend fun fetchChatPlans(): Result<List<ChatPlanDto>> {
-        return try {
-            val response = api.getChatPlans()
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.success(listOf(
-                    ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
-                    ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
-                    ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
-                ))
-            }
-        } catch (_: Exception) {
-            Result.success(listOf(
-                ChatPlanDto("PLUS", "Bản Plus", 29000L, "Mở rộng trò chuyện với AI Coach, phân tích sâu thực đơn & chế độ ăn"),
-                ChatPlanDto("PRO", "Bản Pro", 59000L, "Trò chuyện không giới hạn, phân tích dinh dưỡng cá nhân hóa chuyên sâu", isPopular = true),
-                ChatPlanDto("MAX", "Bản Max", 99000L, "Bản cao cấp nhất - Huấn luyện viên AI toàn diện đồng hành mọi lúc mọi nơi", bestValue = true)
-            ))
-        }
-    }
-
-    override suspend fun purchaseChatPlan(packageId: String): Result<ChatQuotaInfoDto> {
-        return try {
-            val response = api.purchaseChatPlan(PurchaseChatPlanRequest(packageId = packageId))
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(Exception(response.message ?: "Không thể nâng cấp gói"))
-            }
-        } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     override suspend fun fetchChatQuota(): Result<ChatQuotaInfoDto> {
         return try {
@@ -1091,7 +1200,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(ChatQuotaInfoDto())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(ChatQuotaInfoDto())
         }
     }
@@ -1105,32 +1215,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể lấy hạn mức chụp ảnh AI"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun fetchAiPackages(): Result<List<AiPackageDto>> {
-        return try {
-            val response = api.getAiPackages()
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(Exception(response.message ?: "Không thể lấy danh sách gói lượt chụp"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun purchaseAiCredits(packageId: String): Result<AiQuotaDto> {
-        return try {
-            val response = api.purchaseAiCredits(PurchaseAiQuotaRequest(packageId = packageId))
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(Exception(response.message ?: "Không thể mua thêm lượt chụp"))
-            }
-        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1143,7 +1228,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(ChatHistoryResponseDto())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(ChatHistoryResponseDto())
         }
     }
@@ -1157,6 +1243,7 @@ class CalAIRepositoryImpl @Inject constructor(
                 Result.failure(Exception(response.message ?: "Không thể xóa lịch sử"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -1183,7 +1270,8 @@ class CalAIRepositoryImpl @Inject constructor(
                     advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
                 ))
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(SuggestMealResponseDto(
                 nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
                 suggestions = listOf(
@@ -1212,10 +1300,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockMenuScan()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockMenuScan()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
@@ -1225,29 +1314,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockMenuScan()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockMenuScan()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockMenuScan(): Result<ScanMenuResponseDto> {
-        return Result.success(
-            ScanMenuResponseDto(
-                restaurantName = "Thực Đơn Quán Cơm & Bún",
-                items = listOf(
-                    MenuItemDto("Phở bò tái nạc", "55.000đ", 480, 34, 60, 10, "Bò tái tươi ngon, nước dùng thanh", isRecommended = true, recommendationReason = "Cung cấp 34g protein chất lượng cao phù hợp ngân sách dinh dưỡng hôm nay"),
-                    MenuItemDto("Cơm tấm sườn nướng", "50.000đ", 580, 28, 70, 18, "Sườn nướng than hoa, cơm tấm dẻo"),
-                    MenuItemDto("Gỏi cuốn tôm thịt", "35.000đ", 240, 18, 32, 4, "Thanh đạm, ít calo", isRecommended = true, recommendationReason = "Calo thấp, thanh mát cho bữa ăn nhẹ")
-                ),
-                recommendedItems = listOf(
-                    MenuItemDto("Phở bò tái nạc", "55.000đ", 480, 34, 60, 10, "Bò tái tươi ngon, nước dùng thanh", isRecommended = true, recommendationReason = "Cung cấp 34g protein chất lượng cao phù hợp ngân sách dinh dưỡng hôm nay")
-                ),
-                summaryAdvice = "Món Phở bò tái nạc là lựa chọn tối ưu nhất cho chỉ tiêu calo và đạm còn lại của bạn!"
-            )
-        )
-    }
 
     // --- Workouts & Training Implementation ---
 
@@ -1257,29 +1331,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWorkoutCategories()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWorkoutCategories()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWorkoutCategories(): Result<List<WorkoutCategoryInfoDto>> {
-        return Result.success(
-            listOf(
-                WorkoutCategoryInfoDto(WorkoutCategory.STRENGTH, "Tập tạ / Kháng lực", 5.0f, "Tập kháng lực, nâng tạ nghỉ giữa các hiệp"),
-                WorkoutCategoryInfoDto(WorkoutCategory.RUNNING, "Chạy bộ", 9.8f, "Chạy ngoài trời hoặc máy chạy bộ tốc độ ~8.5 km/h"),
-                WorkoutCategoryInfoDto(WorkoutCategory.HIIT, "HIIT / Tabata", 8.5f, "Tập luyện ngắt quãng cường độ cao"),
-                WorkoutCategoryInfoDto(WorkoutCategory.CYCLING, "Đạp xe", 7.5f, "Đạp xe ngoài trời hoặc máy đạp xe cường độ vừa"),
-                WorkoutCategoryInfoDto(WorkoutCategory.SWIMMING, "Bơi lội", 8.0f, "Bơi sải hoặc bơi ếch nhịp độ liên tục"),
-                WorkoutCategoryInfoDto(WorkoutCategory.CARDIO, "Cardio tổng hợp", 6.5f, "Aerobic, nhảy dây, leo cầu thang"),
-                WorkoutCategoryInfoDto(WorkoutCategory.WALKING, "Đi bộ", 3.8f, "Đi bộ nhanh tốc độ ~5 km/h"),
-                WorkoutCategoryInfoDto(WorkoutCategory.YOGA, "Yoga / Giãn cơ", 2.8f, "Hatha/Vinyasa yoga, kéo giãn cơ bắp"),
-                WorkoutCategoryInfoDto(WorkoutCategory.SPORTS, "Thể thao đối kháng", 7.0f, "Cầu lông, bóng đá, bóng rổ, tennis"),
-                WorkoutCategoryInfoDto(WorkoutCategory.OTHER, "Vận động khác", 4.0f, "Lao động tay chân, vận động tự do")
-            )
-        )
-    }
 
     override suspend fun fetchWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
         return try {
@@ -1287,24 +1346,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWorkoutSummary(date)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWorkoutSummary(date)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWorkoutSummary(date: String?): Result<WorkoutSummaryDto> {
-        return Result.success(
-            WorkoutSummaryDto(
-                date = date ?: "2026-09-06",
-                totalActiveCalories = 420,
-                totalDurationMinutes = 55,
-                workoutCount = 1,
-                categories = listOf("STRENGTH")
-            )
-        )
-    }
 
     override suspend fun createWorkoutLog(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
         return try {
@@ -1312,56 +1361,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockCreatedWorkout(request)
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockCreatedWorkout(request)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockCreatedWorkout(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
-        val cat = try {
-            WorkoutCategory.valueOf(request.category)
-        } catch (_: Exception) {
-            WorkoutCategory.STRENGTH
-        }
-        val exDtos = request.exercises?.mapIndexed { index, ex ->
-            WorkoutExerciseDto(
-                id = "mock_ex_$index",
-                name = ex.name,
-                order = ex.order,
-                sets = ex.sets.map { s ->
-                    WorkoutSetDto(
-                        id = "mock_set_${s.setNumber}",
-                        setNumber = s.setNumber,
-                        reps = s.reps,
-                        weightKg = s.weightKg,
-                        rpe = s.rpe,
-                        isCompleted = true
-                    )
-                }
-            )
-        } ?: emptyList()
-
-        val totalVol = exDtos.sumOf { ex ->
-            ex.sets.sumOf { (it.reps * it.weightKg).toDouble() }
-        }.toFloat()
-
-        return Result.success(
-            WorkoutLogDto(
-                id = "mock_workout_${System.currentTimeMillis()}",
-                name = request.name,
-                category = cat,
-                date = request.date ?: "2026-09-06T08:00:00.000Z",
-                durationMinutes = request.durationMinutes,
-                caloriesBurned = request.caloriesBurned ?: (request.durationMinutes * 6.5f),
-                rpe = request.rpe ?: 8,
-                note = request.note,
-                exercises = exDtos,
-                totalVolumeKg = totalVol
-            )
-        )
-    }
 
     override suspend fun fetchWorkouts(
         date: String?,
@@ -1374,107 +1381,14 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWorkouts()
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWorkouts()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
-    private fun getMockWorkouts(): Result<List<WorkoutLogDto>> {
-        val sampleWorkouts = listOf(
-            WorkoutLogDto(
-                id = "workout_1",
-                name = "Buổi tập Ngực & Tay sau (Push Day)",
-                category = WorkoutCategory.STRENGTH,
-                date = "2026-09-05T08:30:00.000Z",
-                durationMinutes = 60,
-                caloriesBurned = 380f,
-                rpe = 8,
-                note = "Đẩy ngực lên 80kg 6 reps rất tốt, form chuẩn.",
-                exercises = listOf(
-                    WorkoutExerciseDto(
-                        id = "ex_1",
-                        name = "Barbell Bench Press (Đẩy ngực ngang)",
-                        order = 1,
-                        sets = listOf(
-                            WorkoutSetDto("s1", 1, 12, 60f, 7),
-                            WorkoutSetDto("s2", 2, 10, 70f, 8),
-                            WorkoutSetDto("s3", 3, 8, 75f, 8),
-                            WorkoutSetDto("s4", 4, 6, 80f, 9)
-                        )
-                    ),
-                    WorkoutExerciseDto(
-                        id = "ex_2",
-                        name = "Incline Dumbbell Press (Đẩy tạ đơn ngực trên)",
-                        order = 2,
-                        sets = listOf(
-                            WorkoutSetDto("s5", 1, 10, 24f, 8),
-                            WorkoutSetDto("s6", 2, 10, 24f, 8),
-                            WorkoutSetDto("s7", 3, 8, 26f, 9)
-                        )
-                    ),
-                    WorkoutExerciseDto(
-                        id = "ex_3",
-                        name = "Cable Triceps Pushdown (Kéo cáp tay sau)",
-                        order = 3,
-                        sets = listOf(
-                            WorkoutSetDto("s8", 1, 15, 25f, 7),
-                            WorkoutSetDto("s9", 2, 12, 30f, 8),
-                            WorkoutSetDto("s10", 3, 10, 35f, 9)
-                        )
-                    )
-                ),
-                totalVolumeKg = 3480f
-            ),
-            WorkoutLogDto(
-                id = "workout_2",
-                name = "Chạy bộ sáng Cardio (Outdoor Run)",
-                category = WorkoutCategory.RUNNING,
-                date = "2026-09-04T06:15:00.000Z",
-                durationMinutes = 35,
-                caloriesBurned = 320f,
-                rpe = 7,
-                note = "Chạy quanh công viên tốc độ đều pace 5:45.",
-                exercises = emptyList(),
-                totalVolumeKg = 0f
-            ),
-            WorkoutLogDto(
-                id = "workout_3",
-                name = "Buổi tập Lưng & Tay trước (Pull Day)",
-                category = WorkoutCategory.STRENGTH,
-                date = "2026-09-03T17:45:00.000Z",
-                durationMinutes = 65,
-                caloriesBurned = 410f,
-                rpe = 8,
-                note = "Deadlift 110kg 5 reps. Cảm giác lưng xô căng tốt.",
-                exercises = listOf(
-                    WorkoutExerciseDto(
-                        id = "ex_4",
-                        name = "Conventional Deadlift",
-                        order = 1,
-                        sets = listOf(
-                            WorkoutSetDto("s11", 1, 8, 90f, 7),
-                            WorkoutSetDto("s12", 2, 6, 100f, 8),
-                            WorkoutSetDto("s13", 3, 5, 110f, 9)
-                        )
-                    ),
-                    WorkoutExerciseDto(
-                        id = "ex_5",
-                        name = "Lat Pulldown (Kéo xô rộng tay)",
-                        order = 2,
-                        sets = listOf(
-                            WorkoutSetDto("s14", 1, 12, 55f, 8),
-                            WorkoutSetDto("s15", 2, 10, 60f, 8),
-                            WorkoutSetDto("s16", 3, 10, 60f, 9)
-                        )
-                    )
-                ),
-                totalVolumeKg = 3520f
-            )
-        )
-        return Result.success(sampleWorkouts)
-    }
 
     override suspend fun fetchWorkoutById(id: String): Result<WorkoutLogDto> {
         return try {
@@ -1482,10 +1396,11 @@ class CalAIRepositoryImpl @Inject constructor(
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
             }
-        } catch (_: Exception) {
-            getMockWorkouts().map { list -> list.firstOrNull { it.id == id } ?: list.first() }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
         }
     }
 
@@ -1497,7 +1412,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 fetchWorkoutById(id)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             fetchWorkoutById(id)
         }
     }
@@ -1510,7 +1426,8 @@ class CalAIRepositoryImpl @Inject constructor(
             } else {
                 Result.success(Unit)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.success(Unit)
         }
     }

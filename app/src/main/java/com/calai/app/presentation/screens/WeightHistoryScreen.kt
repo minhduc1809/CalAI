@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.local.UserPreferencesManager
+import com.calai.app.R
 import com.calai.app.data.remote.dto.WeightLogResponseDto
+import com.calai.app.presentation.components.AppButton
+import com.calai.app.presentation.components.CuteLoadingIndicator
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.WeightHistoryViewModel
 
@@ -78,19 +82,59 @@ fun WeightHistoryScreen(
                             unfocusedBorderColor = border
                         )
                     )
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            uiState.errorMessage!!,
+                            color = CrimsonError,
+                            fontSize = 12.5.sp
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(
+                AppButton(
+                    text = "Lưu",
                     onClick = { viewModel.confirmAdd() },
-                    enabled = !uiState.isSaving && uiState.addWeightText.toFloatOrNull() != null
-                ) {
-                    Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-                }
+                    enabled = uiState.addWeightText.toFloatOrNull() != null,
+                    isLoading = uiState.isSaving,
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelAdd() }) {
                     Text("Hủy", color = textSecondary)
+                }
+            }
+        )
+    }
+
+    uiState.suspiciousLog?.let { log ->
+        AlertDialog(
+            onDismissRequest = { viewModel.keepSuspiciousLog() },
+            containerColor = surface,
+            title = { Text("Cân nặng này có đúng không?", color = textPrimary, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Số cân bạn vừa nhập chênh khá nhiều so với xu hướng gần đây. Bạn có nhập đúng đơn vị ($inputUnitLabel) không?",
+                    color = textSecondary,
+                    fontSize = 13.5.sp,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                AppButton(
+                    text = "Đúng, giữ lại",
+                    onClick = { viewModel.keepSuspiciousLog() },
+                    modifier = Modifier.width(140.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.deleteSuspiciousLog() }) {
+                    Text("Nhập nhầm, xoá", color = textSecondary)
                 }
             }
         )
@@ -126,15 +170,25 @@ fun WeightHistoryScreen(
                             unfocusedBorderColor = border
                         )
                     )
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            uiState.errorMessage!!,
+                            color = CrimsonError,
+                            fontSize = 12.5.sp
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(
+                AppButton(
+                    text = "Lưu",
                     onClick = { viewModel.confirmEdit() },
-                    enabled = !uiState.isSaving && uiState.editWeightText.toFloatOrNull() != null
-                ) {
-                    Text("Lưu", color = VividOrange, fontWeight = FontWeight.Bold)
-                }
+                    enabled = uiState.editWeightText.toFloatOrNull() != null,
+                    isLoading = uiState.isSaving,
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelEdit() }) {
@@ -146,17 +200,51 @@ fun WeightHistoryScreen(
 
     if (uiState.pendingDeleteLog != null) {
         AlertDialog(
-            onDismissRequest = { viewModel.cancelDelete() },
+            onDismissRequest = { if (!uiState.isDeleting) viewModel.cancelDelete() },
             containerColor = surface,
-            title = { Text("Xóa bản ghi này?", color = textPrimary, fontWeight = FontWeight.Bold) },
-            text = { Text("Xu hướng cân nặng (EWMA) sẽ được tính lại sau khi xóa.", color = textSecondary, fontSize = 13.sp) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.confirmDelete() }) {
-                    Text("Xóa", color = CoralWarning, fontWeight = FontWeight.Bold)
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CrimsonError.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = CrimsonError)
                 }
             },
+            title = { Text("Xóa bản ghi cân nặng này?", color = textPrimary, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Bản ghi sẽ bị xóa vĩnh viễn và không thể khôi phục. Xu hướng cân nặng (EWMA) sẽ được tính lại sau khi xóa.",
+                        color = textSecondary,
+                        fontSize = 13.sp
+                    )
+                    if (uiState.errorMessage != null) {
+                        Text(uiState.errorMessage!!, color = CrimsonError, fontSize = 12.5.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                AppButton(
+                    text = "Xóa",
+                    onClick = { viewModel.confirmDelete() },
+                    isLoading = uiState.isDeleting,
+                    gradientColors = listOf(CrimsonError, CrimsonError.copy(alpha = 0.85f)),
+                    glowColor = CrimsonError.copy(alpha = 0.4f),
+                    modifier = Modifier.width(100.dp),
+                    height = 40.dp,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
             dismissButton = {
-                TextButton(onClick = { viewModel.cancelDelete() }) {
+                OutlinedButton(
+                    onClick = { viewModel.cancelDelete() },
+                    enabled = !uiState.isDeleting,
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, border)
+                ) {
                     Text("Hủy", color = textSecondary)
                 }
             }
@@ -202,8 +290,9 @@ fun WeightHistoryScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        color = VividOrange,
+                    CuteLoadingIndicator(
+                        rawResId = R.raw.loading_general,
+                        size = 96.dp,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

@@ -8,12 +8,12 @@ import androidx.compose.ui.graphics.Color
 // ==========================================
 
 // 1. Nền & Bề mặt — 5 lớp độ sâu (Spec 10.5 - Tinh chỉnh chống bệt đen)
-val ObsidianBackground = Color(0xFF0D0E12)       // Nền gốc toàn app
+val ObsidianBackground = Color(0xFF0B0D12)       // Nền gốc toàn app (Final v3 - 3.1)
 val CharcoalSurface = Color(0xFF1B1E26)          // Surface — nền section (thoáng hơn #171920)
 val CharcoalCard = Color(0xFF242833)             // Nền card chuẩn (tách lớp rõ ràng)
 val CharcoalCardElevated = Color(0xFF2D3240)     // Card nổi cao hơn (hero card, overlay, toggle track)
 val CharcoalBorder = Color(0xFF383D4D)           // Viền 1px sắc nét tách bạch
-val CharcoalDock = Color(0xFF242833)             // Floating bottom dock (đồng bộ layer)
+val CharcoalDock = Color(0xFF2D3240)             // Floating bottom dock (Final v3 - align to CharcoalCardElevated)
 
 // 2. Bento Pastel — Gradient 2 tông Đã Hiệu Chỉnh Hài Hòa (Spec 10.4)
 // Độ sáng 68-80%, Độ bão hòa 45-60%, êm dịu như bộ macaron cao cấp
@@ -49,17 +49,26 @@ val PastelButtercupDark = CarbGradientEnd
 val PastelRose = FatGradientStart
 val PastelRoseDark = FatGradientEnd
 
-// 3. Điểm nhấn hành động (Accent)
-val VividOrange = Color(0xFFFF6433)              // CTA chính, icon Quét AI, tab active, glow sau số hero
-val VividOrangeDark = Color(0xFFE55122)          // Trạng thái pressed
-val VividOrangeLight = Color(0xFFFF8F6B)         // Hover/disabled, viền nhấn nhẹ, tip của progress arc
-val VividOrangeSoft = Color(0x33FF6433)          // 20% alpha - Nền mờ sau icon/badge
-val VividOrangeGlow = Color(0x22FF6433)          // 13% alpha - Halo glow sau số liệu
+// 3. Điểm nhấn hành động (Accent) — Final v3 Part 3.4
+val VividOrange = Color(0xFFFF8A3D)              // CTA chính, icon Quét AI, tab active, glow sau số hero (was #FF6433)
+val VividOrangeDark = Color(0xFFFF5F3D)          // Điểm cuối gradient/pressed — ngả đỏ cam rực, KHÔNG pha đen/nâu xỉn như bản cũ (0xFFE07936)
+val VividOrangeLight = Color(0xFFFFA76E)         // Hover/disabled, viền nhấn nhẹ, tip của progress arc (derived ~25% lighter)
+val VividOrangeSoft = Color(0x33FF8A3D)          // 20% alpha - Nền mờ sau icon/badge
+val VividOrangeGlow = Color(0x22FF8A3D)          // 13% alpha - Halo glow sau số liệu
+val CtaSolidOrange = Color(0xFFFF6F55)           // Màu ĐẶC duy nhất cho nền nút CTA (AppButton) — không gradient chuyển màu dần
 
-// 4. Chữ trên nền tối
-val TextWhite = Color(0xFFFFFFFF)                // Tiêu đề, số liệu chính
-val TextLightGrey = Color(0xFFE1E2E8)            // Nội dung phụ
-val TextMuted = Color(0xFF9596A2)                // Nhãn, placeholder
+// Final v3 Part 3.4 — new solid semantic accents (NOT gradients; distinct from Bento macro card gradients above)
+val BrandBlue = Color(0xFF4F7CFF)                // Navigation/Action, chart: Calories series
+val VividMint = Color(0xFF20D6A3)                // Protein/Positive, chart: Protein series
+val VividAmber = Color(0xFFFFB84D)               // Carbs/Attention, chart: Carbs series
+val VividCoral = Color(0xFFFF6B6B)               // Fat/Warning, chart: Fat series
+val VividPurple = Color(0xFF9B7CFF)              // AI/Premium, chart: AI series
+val VividCyan = Color(0xFF39C8FF)                // Hydration/Secondary, chart: Water series
+
+// 4. Chữ trên nền tối — Final v3 Part 3.3
+val TextWhite = Color(0xFFF8FAFF)                // Tiêu đề, số liệu chính
+val TextLightGrey = Color(0xFFC2CAD9)            // Nội dung phụ
+val TextMuted = Color(0xFF8792A7)                // Nhãn, placeholder
 val TextDeepInk = Color(0xFF14151C)              // Chữ chính trên nền thẻ Pastel
 
 // 5. Trạng thái
@@ -71,16 +80,61 @@ val CrimsonError = Color(0xFFEF4444)
 // IVORY LUXURY CANVAS (LIGHT MODE) - SPEC 9.4 & 10.6
 // ==========================================
 
-val IvoryBackground = Color(0xFFF5F1E8)          // Nền gốc — trắng ngà ấm tạo độ tương phản rõ với card #FFFFFF
-val PearlSurface = Color(0xFFFFFFFF)             // Surface — trắng tinh khiết
-val PearlCard = Color(0xFFFFFFFF)                // Nền card trắng tinh nổi bật trên nền Ivory
-val PearlCardElevated = Color(0xFFFFFFFF)        // Card nổi cao hơn
-val PearlBorder = Color(0xFFE8E2D6)              // Viền card ấm 1px
+// Final v3 Part 3.2 — Light depth layers
+val IvoryBackground = Color(0xFFF6F8FC)          // LightBackground — nền gốc (was #F5F1E8)
+val PearlSurface = Color(0xFFFFFFFF)             // LightSurface — trắng tinh khiết
+val PearlCard = Color(0xFFF0F3F8)                // LightSurfaceSecondary — nền section phụ (was #FFFFFF)
+val PearlCardElevated = Color(0xFFFFFFFF)        // LightSurfaceElevated — card nổi cao hơn
+val PearlBorder = Color(0xFFE3E8F1)              // LightBorder — viền card 1px (was #E8E2D6)
 val PearlDock = Color(0xFFFFFFFF)                // Floating bottom dock trắng sáng
+val LightDivider = Color(0xFFEDF0F5)             // LightDivider — Final v3 Part 3.2 (new)
 
-// Màu bóng đổ (Elevation Shadow) chuẩn Spec 10.6
-val WarmShadow = Color(0x22423320)               // Bóng nâu xám ấm mềm cho Light Mode (14% alpha)
-val DarkShadow = Color(0x75000000)               // Bóng đen sâu cho Dark Mode (46% alpha)
+// ==========================================
+// ELEVATION SHADOW TOKEN SCALE (Graduated L1–L4)
+// Base shadow color: #1A2540 (deep navy, neutral, no harsh black)
+// ==========================================
+//
+// L1 — Inputs / small controls:   very subtle, just lifts from background
+// L2 — Standard cards:            soft visible, clear card separation
+// L3 — Primary buttons / CTA:     stronger, colored per button brand
+// L4 — Modals / floating sheets:  strongest but still diffused, not harsh
+//
+// Light Mode (IvoryBackground nền) — slightly stronger needed to separate from white
+val ShadowLightL1Ambient  = Color(0x141A2540)    // #1A2540 @  8% — input fields unfocused
+val ShadowLightL1Spot     = Color(0x1A1A2540)    // #1A2540 @ 10%
+val ShadowLightL2Ambient  = Color(0x1E1A2540)    // #1A2540 @ 12% — standard cards
+val ShadowLightL2Spot     = Color(0x241A2540)    // #1A2540 @ 14%
+val ShadowLightL3Ambient  = Color(0x261A2540)    // #1A2540 @ 15% — neutral use; buttons use colored shadow
+val ShadowLightL3Spot     = Color(0x2E1A2540)    // #1A2540 @ 18%
+val ShadowLightL4Ambient  = Color(0x2E1A2540)    // #1A2540 @ 18% — modals / bottom sheets
+val ShadowLightL4Spot     = Color(0x381A2540)    // #1A2540 @ 22%
+
+// Dark Mode (ObsidianBackground nền) — slightly less needed; depth comes from surface contrast
+val ShadowDarkL1Ambient   = Color(0x0F1A2540)    // #1A2540 @  6%
+val ShadowDarkL1Spot      = Color(0x141A2540)    // #1A2540 @  8%
+val ShadowDarkL2Ambient   = Color(0x1A1A2540)    // #1A2540 @ 10%
+val ShadowDarkL2Spot      = Color(0x1E1A2540)    // #1A2540 @ 12%
+val ShadowDarkL3Ambient   = Color(0x201A2540)    // #1A2540 @ 13%
+val ShadowDarkL3Spot      = Color(0x261A2540)    // #1A2540 @ 15%
+val ShadowDarkL4Ambient   = Color(0x261A2540)    // #1A2540 @ 15%
+val ShadowDarkL4Spot      = Color(0x2E1A2540)    // #1A2540 @ 18%
+
+// Colored button shadows — tinted with brand color so shadow "belongs" to the button
+// Primary CTA (VividOrange / CtaSolidOrange)
+val ShadowCtaAmbient      = Color(0x40FF6F55)    // CtaSolidOrange @ 25% — ambient (spread)
+val ShadowCtaSpot         = Color(0x55FF6F55)    // CtaSolidOrange @ 33% — spot (directional)
+val ShadowCtaDisabled     = Color(0x1AFF6F55)    // CtaSolidOrange @ 10% — disabled state
+
+// Secondary / Google button — neutral light shadow
+val ShadowSecondaryAmbient = Color(0x141A2540)   // L1 ambient
+val ShadowSecondarySpot    = Color(0x1C1A2540)   // L1 spot, slightly stronger
+
+// Deprecated aliases — kept for callers not yet migrated; do NOT use in new code
+// TODO: remove once all callsites migrate to graduated scale above
+// Nâng từ L2→L3: card trước đó bóng quá nhẹ (12%/10%) nên "chìm" vào nền sáng, khó phân biệt
+// ranh giới/bo góc. L3 (15%/13%) vẫn mềm (không phải shadow đen nặng) nhưng tách bạch rõ hơn hẳn.
+val WarmShadow = ShadowLightL3Ambient
+val DarkShadow = ShadowDarkL3Ambient
 
 // Bento Pastel trên nền sáng — Độ bão hòa tươi 55-70% (Spec 10.6 - Không xỉn màu)
 val PastelProteinLight = Color(0xFF10B981)       // Xanh ngọc lục bảo tươi
@@ -108,9 +162,10 @@ val CarbBrushLight = Brush.verticalGradient(listOf(CarbGradientStartLight, CarbG
 val FatBrushLight = Brush.horizontalGradient(listOf(FatGradientStartLight, FatGradientEndLight))
 val LavenderBrushLight = Brush.verticalGradient(listOf(LavenderGradientStartLight, LavenderGradientEndLight))
 
-val TextInkPrimary = Color(0xFF14151C)           // Chữ chính đậm rõ nét
-val TextInkSecondary = Color(0xFF5B5D6B)         // Chữ phụ
-val TextInkMuted = Color(0xFF888A98)             // Chữ mờ, placeholder
+// Final v3 Part 3.3
+val TextInkPrimary = Color(0xFF111827)           // Chữ chính đậm rõ nét (was #14151C)
+val TextInkSecondary = Color(0xFF596579)         // Chữ phụ (was #5B5D6B)
+val TextInkMuted = Color(0xFF8B95A7)             // Chữ mờ, placeholder (was #888A98)
 
 // Semantic text-on-light
 val SuccessTextLight = Color(0xFF047857)
