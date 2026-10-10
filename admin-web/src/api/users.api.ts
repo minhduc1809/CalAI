@@ -1,6 +1,6 @@
 import { apiClient } from './client';
-import { User, PaginatedResponse, Role } from '../types';
-import { mockUsers } from '../utils/mockData';
+import { User, PaginatedResponse, Role, AdminUserBillingDetails } from '../types';
+import { mockUsers, mockPaymentOrders, mockManualGrants } from '../utils/mockData';
 
 export interface UserQueryParams {
   search?: string;
@@ -81,6 +81,35 @@ export const usersApi = {
       const user = localUsers.find((u) => u.id === id);
       if (!user) throw new Error('Không tìm thấy người dùng');
       return user;
+    }
+  },
+
+  async getUserBilling(id: string): Promise<AdminUserBillingDetails> {
+    try {
+      const res = await apiClient.get(`/admin/users/${id}/billing`);
+      return res.data.data || res.data;
+    } catch {
+      const user = localUsers.find((u) => u.id === id) || localUsers[0];
+      const orders = mockPaymentOrders.filter((o) => o.userId === id);
+      const grants = mockManualGrants.filter((g) => g.userId === id);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email || '',
+          username: user.username,
+          name: user.name || user.username,
+          isPremium: !!user.isPremium,
+        },
+        subscription: user.subscriptionState || (user.isPremium ? {
+          status: 'ACTIVE',
+          expiryTime: '2026-11-10T00:00:00.000Z',
+          productId: 'premium_monthly',
+          autoRenewing: true,
+        } : null),
+        orders,
+        manualGrants: grants,
+      };
     }
   },
 

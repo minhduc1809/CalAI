@@ -2,7 +2,8 @@ import { apiClient } from './client';
 import { mockUsers } from '../utils/mockData';
 
 export interface LoginPayload {
-  username: string;
+  usernameOrEmail?: string;
+  username?: string;
   password: string;
 }
 
@@ -21,19 +22,52 @@ export interface LoginResponse {
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
+    const usernameOrEmail = payload.usernameOrEmail || payload.username || '';
     try {
-      const res = await apiClient.post<{ data: LoginResponse }>('/auth/login', payload);
-      // Backend TransformInterceptor wraps response in { statusCode, message, data }
-      const data = res.data.data || (res.data as any);
-      if (data.user?.role !== 'ADMIN') {
-        throw new Error('Quyền truy cập bị từ chối: Tài khoản không phải Quản trị viên (ADMIN)');
+      let res;
+      try {
+        res = await apiClient.post('/admin/auth/login', {
+          usernameOrEmail,
+          password: payload.password,
+        });
+      } catch (e: any) {
+        if (e.response?.status === 404) {
+          // Fallback to legacy endpoint if admin prefix is mounted differently
+          res = await apiClient.post('/auth/login', {
+            username: usernameOrEmail,
+            password: payload.password,
+          });
+        } else {
+          throw e;
+        }
       }
-      return data;
+
+      const resData = res.data;
+      const rawUser = resData.admin || resData.user || resData.data?.admin || resData.data?.user || resData.data;
+      const accessToken = resData.accessToken || resData.data?.accessToken;
+      const refreshToken = resData.refreshToken || resData.data?.refreshToken;
+
+      if (!rawUser || rawUser.role !== 'ADMIN') {
+        throw new Error('Chỉ quản trị viên (ADMIN) mới có quyền truy cập');
+      }
+
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: rawUser.id,
+          username: rawUser.username,
+          email: rawUser.email,
+          name: rawUser.name,
+          role: rawUser.role,
+          avatar: rawUser.avatar || null,
+        },
+      };
     } catch (err: any) {
       // If server is not reachable and credentials are demo admin, allow demo session
       if (
         (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED' || !err.response) &&
-        payload.username === 'admin'
+        (usernameOrEmail === 'admin' || usernameOrEmail === 'admin@calai.com')
       ) {
         console.warn('Backend server offline. Entering preview admin session with mock data.');
         return {
@@ -54,18 +88,28 @@ export const authApi = {
 
   async getProfile(): Promise<any> {
     try {
-      const res = await apiClient.get('/users/profile');
-      return res.data.data;
+      const res = await apiClient.get('/admin/auth/me');
+      return res.data.admin || res.data;
     } catch {
-      return mockUsers[0];
+      try {
+        const res = await apiClient.get('/users/profile');
+        return res.data.data || res.data;
+      } catch {
+        return mockUsers[0];
+      }
     }
   },
 
   async logout(): Promise<void> {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post('/admin/auth/logout');
     } catch {
-      // ignore
+      try {
+        await apiClient.post('/auth/logout');
+      } catch {
+        // ignore
+      }
     }
   },
 };
+
