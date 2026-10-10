@@ -46,14 +46,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string) => {
-    const res = await authApi.login({ username, password });
-    if (res.user.role !== 'ADMIN') {
-      throw new Error('Tài khoản không có quyền Admin!');
+    const res = await authApi.login({ usernameOrEmail: username, password });
+    const adminUser = res.admin || (res as any).user;
+    if (adminUser.role !== 'ADMIN') {
+      throw new Error('Chỉ quản trị viên (ADMIN) mới có quyền truy cập');
     }
     localStorage.setItem('calai_admin_token', res.accessToken);
-    localStorage.setItem('calai_admin_user', JSON.stringify(res.user));
+    if (res.refreshToken) {
+      localStorage.setItem('calai_admin_refresh_token', res.refreshToken);
+    }
+    localStorage.setItem('calai_admin_user', JSON.stringify(adminUser));
     setToken(res.accessToken);
-    setUser(res.user);
+    setUser(adminUser);
   };
 
   const logout = () => {

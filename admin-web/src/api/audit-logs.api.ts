@@ -10,8 +10,25 @@ export interface AuditLogQueryParams {
   targetType?: string;
 }
 
-// In-memory mock storage
+// In-memory mock storage fallback
 let localLogs: AdminAuditLog[] = [...mockAuditLogs];
+
+function normalizeLog(l: any): AdminAuditLog {
+  return {
+    id: l.id,
+    adminId: l.adminId || '',
+    adminEmail: l.adminEmail || 'admin@calai.com',
+    action: l.action || 'ACTIVITY',
+    targetType: l.targetType || 'System',
+    targetId: l.targetId || '',
+    before: l.before || null,
+    after: l.after || null,
+    reason: l.reason || null,
+    ipAddress: l.ipAddress || null,
+    userAgent: l.userAgent || null,
+    createdAt: l.createdAt || new Date().toISOString(),
+  };
+}
 
 export const auditLogsApi = {
   async getAuditLogs(params?: AuditLogQueryParams): Promise<PaginatedResponse<AdminAuditLog>> {
@@ -21,16 +38,25 @@ export const auditLogsApi = {
       if (apiParams.targetType === 'ALL') delete apiParams.targetType;
 
       const res = await apiClient.get('/admin/audit-logs', { params: apiParams });
-      const data = res.data.data || res.data;
-      const pagination = res.data.pagination || res.data.meta || {
+      const raw = res.data?.data || res.data;
+      const rawItems = Array.isArray(raw) ? raw : (raw?.items || raw?.data || []);
+      const pagination = raw?.pagination || res.data?.pagination || res.data?.meta || {
         page: params?.page || 1,
         limit: params?.limit || 20,
-        total: Array.isArray(data) ? data.length : 0,
+        total: rawItems.length,
         totalPages: 1,
       };
+
+      const normalizedItems = rawItems.map(normalizeLog);
+
       return {
-        data: Array.isArray(data) ? data : [],
-        meta: pagination,
+        data: normalizedItems,
+        meta: {
+          page: Number(pagination.page || 1),
+          limit: Number(pagination.limit || 20),
+          total: Number(pagination.total || normalizedItems.length),
+          totalPages: Number(pagination.totalPages || 1),
+        },
       };
     } catch {
       let filtered = [...localLogs];

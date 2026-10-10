@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -10,13 +10,17 @@ import {
   CheckCircle2,
   XCircle,
   Gift,
-  KeyRound,
   AlertTriangle,
   ArrowRight,
   ShieldCheck,
   Check,
-  ExternalLink,
   Copy,
+  ExternalLink,
+  ChevronRight,
+  UserCheck,
+  DollarSign,
+  Activity,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -38,6 +42,7 @@ import { paymentsApi } from '../api/payments.api';
 import { auditLogsApi } from '../api/audit-logs.api';
 import { AdminDashboardSummary, AdminPaymentOrder, AdminAuditLog } from '../types';
 import { StatCard } from '../components/ui/StatCard';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatNumber, formatCurrencyVnd, formatDateTimeVn } from '../utils/formatters';
 import { mockRevenueTrend30Days } from '../utils/mockData';
 import { toast } from 'sonner';
@@ -48,6 +53,12 @@ export const Dashboard: React.FC = () => {
   const [recentLogs, setRecentLogs] = useState<AdminAuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Quick Approve State
+  const [orderToApprove, setOrderToApprove] = useState<AdminPaymentOrder | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -70,253 +81,218 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+
+    const handleGlobalRefresh = () => {
+      setIsRefreshing(true);
+      fetchData().then(() => toast.success('Đã cập nhật dữ liệu Dashboard'));
+    };
+
+    window.addEventListener('admin-refresh-data', handleGlobalRefresh);
+    return () => window.removeEventListener('admin-refresh-data', handleGlobalRefresh);
   }, []);
 
-  const handleRefresh = () => {
+  const handleManualRefresh = () => {
     setIsRefreshing(true);
-    fetchData().then(() => {
-      toast.success('Đã cập nhật dữ liệu mới nhất');
-    });
+    fetchData().then(() => toast.success('Đã làm mới dữ liệu mới nhất'));
   };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
+    setCopiedId(text);
     toast.success(`Đã sao chép ${label}: ${text}`);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleQuickApprove = async (orderId: string, orderCode: string) => {
+  const handleConfirmApprove = async () => {
+    if (!orderToApprove) return;
+    setIsApproving(true);
     try {
-      await paymentsApi.approveOrder(orderId);
-      toast.success(`Đã duyệt đơn ${orderCode} và kích hoạt gói thành công`);
+      await paymentsApi.approveOrder(orderToApprove.id);
+      toast.success(`Đã duyệt đơn ${orderToApprove.orderCode} & kích hoạt gói thành công`);
+      setOrderToApprove(null);
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi duyệt đơn');
+      toast.error(err.message || 'Lỗi khi duyệt đơn nạp');
+    } finally {
+      setIsApproving(false);
     }
   };
 
-  // Calculations for charts
-  const totalUsers = summary?.users.total || 1250;
-  const activePremiums = summary?.subscriptions.activePremiums || 142;
+  // KPI calculations
+  const totalUsers = summary?.users?.total ?? 0;
+  const new7d = summary?.users?.newLast7Days ?? 0;
+  const new30d = summary?.users?.newLast30Days ?? 0;
+  const activePremiums = summary?.subscriptions?.activePremiums ?? 0;
+  const pendingOrdersCount = summary?.orders?.pending ?? 0;
+  const paidOrdersCount = summary?.orders?.paid ?? 0;
+  const totalRevenue = summary?.revenue?.totalVnd ?? 0;
+
+  const conversionRate = totalUsers > 0 ? ((activePremiums / totalUsers) * 100).toFixed(1) : '0.0';
   const freeUsers = Math.max(0, totalUsers - activePremiums);
-  const conversionRate = ((activePremiums / totalUsers) * 100).toFixed(1);
 
-  const pendingCount = summary?.orders.pending ?? 8;
-  const paidCount = summary?.orders.paid ?? 320;
-  const cancelledCount = 24;
-  const totalOrdersCalc = pendingCount + paidCount + cancelledCount;
-
-  // Donut data: Free vs Pro
-  const userTierData = [
+  // Biểu đồ 2: Data Tỷ lệ chuyển đổi Donut
+  const conversionDonutData = useMemo(() => [
     { name: 'Active Premium', value: activePremiums, color: '#10B981' },
     { name: 'Free Users', value: freeUsers, color: '#334155' },
-  ];
+  ], [activePremiums, freeUsers]);
 
-  // Acquisition Velocity: 7 days vs 30 days avg
-  const new7Days = summary?.users.newLast7Days || 84;
-  const weeklyAvg30Days = Math.round((summary?.users.newLast30Days || 312) / 4.2);
-  const velocityData = [
+  // Biểu đồ 3: Data Phân bổ đơn hàng VietQR
+  const totalOrdersTracked = pendingOrdersCount + paidOrdersCount || 1;
+  const paidPct = Math.round((paidOrdersCount / totalOrdersTracked) * 100);
+  const pendingPct = Math.round((pendingOrdersCount / totalOrdersTracked) * 100);
+
+  // Biểu đồ 4: Data Tốc độ gia tăng người dùng (7 ngày vs TB tuần 30 ngày)
+  const weeklyAvg30d = Math.round(new30d / 4.2);
+  const velocityData = useMemo(() => [
     {
-      period: 'Tăng trưởng đăng ký',
-      newLast7Days: new7Days,
-      weeklyAvg30Days: weeklyAvg30Days,
+      period: 'Người dùng mới',
+      '7 ngày qua': new7d,
+      'TB tuần (30 ngày)': weeklyAvg30d,
     },
-  ];
-
-  // Helper for Audit action icon & badge
-  const renderAuditAction = (action: string) => {
-    switch (action) {
-      case 'APPROVE_PAYMENT':
-        return {
-          icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
-          color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-          title: 'Duyệt thanh toán VietQR',
-        };
-      case 'GRANT_PREMIUM':
-        return {
-          icon: <Gift className="w-4 h-4 text-purple-400" />,
-          color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-          title: 'Cấp bù gói Premium',
-        };
-      case 'REJECT_PAYMENT':
-        return {
-          icon: <XCircle className="w-4 h-4 text-rose-400" />,
-          color: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-          title: 'Từ chối đơn nạp',
-        };
-      case 'REVOKE_PREMIUM':
-        return {
-          icon: <AlertTriangle className="w-4 h-4 text-amber-400" />,
-          color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-          title: 'Thu hồi gói Premium',
-        };
-      case 'LOGIN':
-      default:
-        return {
-          icon: <KeyRound className="w-4 h-4 text-cyan-400" />,
-          color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-          title: 'Đăng nhập Quản trị',
-        };
-    }
-  };
+  ], [new7d, weeklyAvg30d]);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-      {/* Top Operations Header */}
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-900/90 to-[#0F172A] border border-slate-700/60 backdrop-blur-xl shadow-2xl">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
+    <div className="space-y-7 animate-fade-in pb-12">
+      {/* Top Banner Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#334155]">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#F8FAFC] flex items-center gap-2.5">
+            Tổng quan Vận hành & Doanh thu
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              LIVE
+            </span>
+          </h1>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            Giám sát thời gian thực các chỉ số tài chính, người dùng và luồng phê duyệt đơn VietQR (BR-17)
+          </p>
+        </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>NutriWise / CalAI Operations Console • BR-17 Phase 1</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              Trung tâm Vận hành & Doanh thu
-            </h1>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl">
-              Giám sát dòng tiền VietQR thời gian thực, quản lý người dùng, duyệt kích hoạt gói và đối soát kiểm toán bất biến.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
-              title="Làm mới dữ liệu tức thì"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-              <span>{isRefreshing ? 'Đang tải...' : 'Làm mới'}</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/orders')}
-              className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-            >
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span>Duyệt đơn VietQR ({pendingCount})</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/grants')}
-              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-glow flex items-center gap-2"
-            >
-              <Gift className="w-4 h-4" />
-              <span>Cấp gói thủ công</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155]/80 text-[#F8FAFC] border border-[#334155] text-xs font-semibold transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới số liệu'}</span>
+          </button>
         </div>
       </div>
 
-      {/* 4 KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* 4 THẺ KPI METRIC CARDS ĐẦU TRANG */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1: Tổng Users */}
         <StatCard
-          title="Tổng User"
+          title="Tổng Người Dùng"
           value={formatNumber(totalUsers)}
-          subtitle={`+${formatNumber(summary?.users.newLast7Days || 84)} trong 7 ngày`}
-          icon={<Users className="w-5 h-5" />}
+          subtitle="Tài khoản hệ thống"
+          icon={<Users className="w-5 h-5 text-emerald-400" />}
           trend={{
-            value: `+${formatNumber(summary?.users.newLast30Days || 312)}`,
+            value: `+${formatNumber(new7d)}`,
             isPositive: true,
-            label: '30 ngày qua',
+            label: '7 ngày qua',
           }}
           accentColor="emerald"
         />
 
+        {/* KPI 2: Active Premium */}
         <StatCard
-          title="Active Premium"
+          title="Thành Viên Premium"
           value={formatNumber(activePremiums)}
-          subtitle={`${conversionRate}% tỷ lệ chuyển đổi`}
-          icon={<Sparkles className="w-5 h-5" />}
+          subtitle={`Tỷ lệ chuyển đổi: ${conversionRate}%`}
+          icon={<Sparkles className="w-5 h-5 text-teal-400" />}
           trend={{
             value: `${conversionRate}%`,
             isPositive: true,
-            label: 'Free ➜ Paid',
+            label: 'Conversion',
           }}
-          accentColor="purple"
+          accentColor="cyan"
+          highlight={activePremiums > 0}
         />
 
+        {/* KPI 3: Đơn Chờ Duyệt VietQR */}
         <StatCard
-          title="Đơn VietQR Chờ"
-          value={`${pendingCount} ĐƠN`}
-          subtitle="Cần đối soát sao kê"
-          icon={<Clock className="w-5 h-5" />}
-          highlight={pendingCount > 0}
+          title="Đơn VietQR Chờ Duyệt"
+          value={`${formatNumber(pendingOrdersCount)} ĐƠN`}
+          subtitle={pendingOrdersCount > 0 ? 'Cần xử lý kích hoạt' : 'Hệ thống đã khớp hết'}
+          icon={<Clock className="w-5 h-5 text-amber-400" />}
           trend={{
-            value: pendingCount > 0 ? 'Cần xử lý ngay' : 'Không có đơn treo',
-            isPositive: pendingCount === 0,
+            value: pendingOrdersCount > 0 ? 'Chờ duyệt' : '0 pending',
+            isPositive: pendingOrdersCount === 0,
+            label: 'Trạng thái',
           }}
           accentColor="amber"
+          highlight={pendingOrdersCount > 0}
         />
 
+        {/* KPI 4: Doanh Thu VietQR */}
         <StatCard
           title="Doanh Thu VietQR"
-          value={formatCurrencyVnd(summary?.revenue.totalVnd || 45600000)}
-          subtitle={`${paidCount} đơn đã kích hoạt`}
-          icon={<CreditCard className="w-5 h-5" />}
+          value={formatCurrencyVnd(totalRevenue)}
+          subtitle={`Từ ${formatNumber(paidOrdersCount)} đơn hoàn tất`}
+          icon={<DollarSign className="w-5 h-5 text-emerald-400" />}
           trend={{
-            value: '+22.4%',
+            value: `${formatNumber(paidOrdersCount)} đơn`,
             isPositive: true,
-            label: 'so với tháng trước',
+            label: 'Đã thanh toán',
           }}
           accentColor="emerald"
         />
       </div>
 
-      {/* Row 1 Charts: Spline Area Chart (Biểu Đồ 1) & Donut Chart (Biểu Đồ 2) */}
+      {/* KHUNG ĐỒ THỊ TRỰC QUAN (CHARTS SECTION) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* BIỂU ĐỒ 1: Xu Hướng Doanh Thu 30 Ngày (Spline Area Chart) */}
-        <div className="lg:col-span-2 p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Biểu đồ 1: Xu Hướng Doanh Thu & Dòng Tiền 30 Ngày
+        {/* BIỂU ĐỒ 1: XU HƯỚNG DOANH THU & DÒNG TIỀN 30 NGÀY (Chiếm 2 cột) */}
+        <div className="lg:col-span-2 bg-[#1E293B] border border-[#334155] rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#334155] gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <TrendingUp className="w-4 h-4" />
+                </span>
+                <h3 className="text-sm font-bold text-[#F8FAFC]">
+                  Xu Hướng Dòng Tiền & Tần Suất Giao Dịch 30 Ngày
                 </h3>
               </div>
-              <div className="flex items-center gap-4 text-xs font-semibold">
-                <div className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
-                  <span>Doanh thu (VND)</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-amber-400">
-                  <span className="w-3 h-1 rounded-full bg-amber-500 inline-block" />
-                  <span>Số đơn hàng</span>
-                </div>
-              </div>
+              <p className="text-xs text-[#94A3B8] mt-1">
+                Doanh thu nạp gói (VND - triệu đồng) & số lượng giao dịch thành công (Volume Run-rate)
+              </p>
             </div>
-            <p className="text-xs text-slate-400 mb-6">
-              Giám sát dòng tiền vào theo từng ngày và đỉnh doanh thu nạp gói VietQR.
-            </p>
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+                Doanh thu (VND)
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+                Số đơn
+              </span>
+            </div>
           </div>
 
-          <div className="h-72 w-full">
+          <div className="h-72 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRevenueTrend30Days} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <AreaChart data={mockRevenueTrend30Days} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
                 <XAxis
                   dataKey="date"
                   stroke="#94A3B8"
                   fontSize={11}
                   tickLine={false}
-                  axisLine={{ stroke: '#334155' }}
+                  dy={5}
                 />
                 <YAxis
                   yAxisId="left"
                   stroke="#94A3B8"
                   fontSize={11}
                   tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `${(val / 1000000).toFixed(1)} tr`}
+                  tickFormatter={(val) => `${(val / 1000000).toFixed(1)}M`}
                 />
                 <YAxis
                   yAxisId="right"
@@ -324,31 +300,34 @@ export const Dashboard: React.FC = () => {
                   stroke="#F59E0B"
                   fontSize={11}
                   tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `${val} đ`}
+                  tickFormatter={(val) => `${val}`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0F172A',
-                    borderColor: '#334155',
-                    borderRadius: '16px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
-                    padding: '10px 14px',
-                  }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-                  labelStyle={{ color: '#F8FAFC', fontWeight: 700, marginBottom: '4px', fontSize: '13px' }}
-                  formatter={(value: any, name: any) => {
-                    if (name === 'revenue') {
-                      return [formatCurrencyVnd(Number(value)), 'Doanh thu'];
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const rev = payload.find((p) => p.dataKey === 'revenue')?.value as number;
+                      const ord = payload.find((p) => p.dataKey === 'orders')?.value as number;
+                      return (
+                        <div className="bg-[#0F172A] border border-[#334155] p-3 rounded-xl shadow-xl text-xs space-y-1">
+                          <p className="font-bold text-[#F8FAFC] pb-1 border-b border-[#334155]">
+                            Ngày {label}
+                          </p>
+                          <p className="text-emerald-400 font-semibold">
+                            Doanh thu: {formatCurrencyVnd(rev)}
+                          </p>
+                          <p className="text-amber-400 font-semibold">
+                            Số đơn thành công: {ord} đơn
+                          </p>
+                        </div>
+                      );
                     }
-                    return [`${value} đơn`, 'Số đơn hoàn thành'];
+                    return null;
                   }}
                 />
                 <Area
                   yAxisId="left"
                   type="monotone"
                   dataKey="revenue"
-                  name="revenue"
                   stroke="#10B981"
                   strokeWidth={2.5}
                   fillOpacity={1}
@@ -358,287 +337,274 @@ export const Dashboard: React.FC = () => {
                   yAxisId="right"
                   type="monotone"
                   dataKey="orders"
-                  name="orders"
                   stroke="#F59E0B"
                   strokeWidth={2}
-                  fillOpacity={0}
-                  fill="transparent"
+                  fill="none"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* BIỂU ĐỒ 2: Tỷ Lệ Gói & Chuyển Đổi (Donut Chart) */}
-        <div className="p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg flex flex-col justify-between">
+        {/* BIỂU ĐỒ 2: TỶ LỆ CHUYỂN ĐỔI PREMIUM (DONUT / GAUGE METER) */}
+        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-white tracking-tight mb-1">
-              Biểu đồ 2: Tỷ Lệ Gói & Chuyển Đổi
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Theo dõi phân bổ người dùng Active Premium vs Free Users.
+            <div className="flex items-center gap-2 pb-3 border-b border-[#334155]">
+              <span className="p-1.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-bold text-[#F8FAFC]">
+                Cơ Cấu Người Dùng & Tỷ Lệ Chuyển Đổi Premium
+              </h3>
+            </div>
+            <p className="text-xs text-[#94A3B8] mt-1.5">
+              Tỷ lệ giữa thành viên trả phí (Active Pro) và người dùng miễn phí (Free Tier)
             </p>
           </div>
 
-          <div className="relative h-56 flex items-center justify-center">
+          <div className="relative h-56 flex items-center justify-center my-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={userTierData}
+                  data={conversionDonutData}
                   cx="50%"
                   cy="50%"
                   innerRadius={65}
-                  outerRadius={92}
+                  outerRadius={85}
                   paddingAngle={4}
                   dataKey="value"
+                  stroke="#0F172A"
+                  strokeWidth={3}
                 >
-                  {userTierData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                  {conversionDonutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
+                  formatter={(value: any, name: any) => [
+                    `${formatNumber(Number(value))} users`,
+                    name,
+                  ]}
                   contentStyle={{
                     backgroundColor: '#0F172A',
                     borderColor: '#334155',
-                    borderRadius: '12px',
-                    padding: '8px 12px',
+                    borderRadius: '0.75rem',
+                    fontSize: '12px',
+                    color: '#F8FAFC',
                   }}
-                  itemStyle={{ fontSize: '12px', color: '#F8FAFC' }}
-                  formatter={(value: any, name: any) => [`${formatNumber(Number(value))} users`, name]}
                 />
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Tâm Donut */}
+            {/* Tâm Donut hiển thị phần trăm */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-black text-emerald-400 tracking-tight">
+              <span className="text-3xl font-extrabold tracking-tight text-[#10B981]">
                 {conversionRate}%
               </span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Tỷ lệ chuyển đổi
+              <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
+                Chuyển đổi
               </span>
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-around text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <div>
-                <p className="text-slate-400 font-medium">Premium</p>
-                <p className="text-white font-bold">{formatNumber(activePremiums)} users</p>
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#334155] text-xs">
+            <div className="p-2 rounded-xl bg-[#0F172A] border border-[#334155]/60">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                Active Premium
               </div>
+              <p className="text-base font-bold text-[#F8FAFC]">
+                {formatNumber(activePremiums)}
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-slate-600" />
-              <div>
-                <p className="text-slate-400 font-medium">Free Tier</p>
-                <p className="text-white font-bold">{formatNumber(freeUsers)} users</p>
+            <div className="p-2 rounded-xl bg-[#0F172A] border border-[#334155]/60">
+              <div className="flex items-center gap-1.5 text-[#94A3B8] font-semibold mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#334155]" />
+                Free Users
               </div>
+              <p className="text-base font-bold text-[#F8FAFC]">
+                {formatNumber(freeUsers)}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Row 2: Biểu Đồ 3 (Fulfillment Health) & Biểu Đồ 4 (Acquisition Velocity) & Biểu Đồ 5 (Activity Stream) */}
+      {/* HÀNG BIỂU ĐỒ 3, 4 & 5 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* BIỂU ĐỒ 3: Trạng Thái Phân Bổ Đơn VietQR (Horizontal Stacked Bar / Progress) */}
-        <div className="p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg flex flex-col justify-between">
+        {/* TRẠNG THÁI XỬ LÝ GIAO DỊCH VIETQR */}
+        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-base font-bold text-white tracking-tight">
-                Biểu đồ 3: Trạng Thái Đơn VietQR
-              </h3>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-700 text-slate-300">
-                {totalOrdersCalc} đơn
+            <div className="flex items-center gap-2 pb-3 border-b border-[#334155]">
+              <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <CreditCard className="w-4 h-4" />
               </span>
+              <h3 className="text-sm font-bold text-[#F8FAFC]">
+                Trạng Thái Xử Lý Giao Dịch VietQR
+              </h3>
             </div>
-            <p className="text-xs text-slate-400 mb-6">
-              Đánh giá sức khỏe vận hành đơn hàng và tỷ lệ hoàn tất nạp tiền.
+            <p className="text-xs text-[#94A3B8] mt-1.5">
+              Tỷ lệ khớp lệnh hoàn tất (PAID) vs Đang chờ xử lý (PENDING)
             </p>
           </div>
 
-          {/* Rounded Multi-segmented Progress Bar */}
-          <div className="space-y-4 my-auto">
-            <div className="w-full h-5 rounded-full overflow-hidden flex bg-slate-800 p-0.5 border border-slate-700">
+          <div className="my-6 space-y-4">
+            {/* Visual Rounded Stacked Progress Bar */}
+            <div className="h-6 w-full bg-[#0F172A] rounded-full overflow-hidden flex border border-[#334155] p-0.5">
               <div
-                style={{ width: `${(paidCount / totalOrdersCalc) * 100}%` }}
-                className="h-full bg-emerald-500 rounded-l-full transition-all duration-500"
-                title={`PAID: ${paidCount}`}
+                style={{ width: `${paidPct}%` }}
+                className="h-full bg-[#10B981] rounded-l-full transition-all duration-500 relative group"
+                title={`Đã thanh toán: ${paidPct}%`}
               />
               <div
-                style={{ width: `${(pendingCount / totalOrdersCalc) * 100}%` }}
-                className="h-full bg-amber-500 transition-all duration-500"
-                title={`PENDING: ${pendingCount}`}
-              />
-              <div
-                style={{ width: `${(cancelledCount / totalOrdersCalc) * 100}%` }}
-                className="h-full bg-slate-500 rounded-r-full transition-all duration-500"
-                title={`CANCELLED/EXPIRED: ${cancelledCount}`}
+                style={{ width: `${pendingPct}%` }}
+                className="h-full bg-[#F59E0B] rounded-r-full transition-all duration-500 relative group"
+                title={`Đang chờ: ${pendingPct}%`}
               />
             </div>
 
+            {/* Breakdown details */}
             <div className="space-y-2.5 pt-2">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/40 border border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-semibold text-slate-200">PAID (Đã kích hoạt)</span>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0F172A] border border-[#334155]/60 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-[#10B981]" />
+                  <span className="text-[#F8FAFC] font-semibold">PAID (Đã kích hoạt)</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-extrabold text-emerald-400">{paidCount} đơn</span>
-                  <span className="text-[11px] text-slate-500 ml-1.5">
-                    ({((paidCount / totalOrdersCalc) * 100).toFixed(1)}%)
-                  </span>
+                <div className="font-mono font-bold text-emerald-400">
+                  {paidOrdersCount} đơn ({paidPct}%)
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
-                  <span className="text-xs font-semibold text-amber-200">PENDING (Chờ duyệt)</span>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0F172A] border border-[#334155]/60 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-[#F59E0B]" />
+                  <span className="text-[#F8FAFC] font-semibold">PENDING (Chờ quét mã)</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-extrabold text-amber-400">{pendingCount} đơn</span>
-                  <span className="text-[11px] text-amber-300/70 ml-1.5">
-                    ({((pendingCount / totalOrdersCalc) * 100).toFixed(1)}%)
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/40 border border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                  <span className="text-xs font-semibold text-slate-400">CANCELLED / Hết hạn</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400">{cancelledCount} đơn</span>
-                  <span className="text-[11px] text-slate-500 ml-1.5">
-                    ({((cancelledCount / totalOrdersCalc) * 100).toFixed(1)}%)
-                  </span>
+                <div className="font-mono font-bold text-amber-400">
+                  {pendingOrdersCount} đơn ({pendingPct}%)
                 </div>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => navigate('/orders')}
-            className="mt-4 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2"
-          >
-            <span>Quản lý chi tiết danh sách đơn</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="text-[11px] text-[#94A3B8] flex items-center justify-between pt-2 border-t border-[#334155]">
+            <span>Tự động kiểm tra sao kê</span>
+            <span className="font-mono text-emerald-400 font-bold">VietQR 24/7</span>
+          </div>
         </div>
 
-        {/* BIỂU ĐỒ 4: Tốc Độ Gia Tăng Người Dùng (Acquisition Velocity) */}
-        <div className="p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg flex flex-col justify-between">
+        {/* TỐC ĐỘ MỞ RỘNG NGƯỜI DÙNG MỚI (ACQUISITION VELOCITY) */}
+        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-white tracking-tight mb-1">
-              Biểu đồ 4: Tốc Độ Tăng User
-            </h3>
-            <p className="text-xs text-slate-400 mb-6">
-              So sánh lượng đăng ký 7 ngày qua vs mức trung bình tuần trong 30 ngày.
+            <div className="flex items-center gap-2 pb-3 border-b border-[#334155]">
+              <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                <UserCheck className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-bold text-[#F8FAFC]">
+                Tốc Độ Mở Rộng Người Dùng Mới
+              </h3>
+            </div>
+            <p className="text-xs text-[#94A3B8] mt-1.5">
+              So sánh lượng đăng ký 7 ngày qua vs Mức TB tuần 30 ngày (Acquisition Velocity)
             </p>
           </div>
 
-          <div className="h-60 w-full my-auto">
+          <div className="h-56 w-full my-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={velocityData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} vertical={false} />
-                <XAxis dataKey="period" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+              <BarChart data={velocityData} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+                <XAxis dataKey="period" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#0F172A',
                     borderColor: '#334155',
-                    borderRadius: '12px',
-                    padding: '8px 12px',
+                    borderRadius: '0.75rem',
+                    fontSize: '12px',
+                    color: '#F8FAFC',
                   }}
-                  itemStyle={{ fontSize: '12px' }}
-                  labelStyle={{ color: '#F8FAFC', fontWeight: 600 }}
-                  formatter={(value: any, name: any) => [
-                    `${value} người`,
-                    name === 'newLast7Days' ? '7 ngày qua' : 'TB tuần 30 ngày',
-                  ]}
                 />
                 <Legend
-                  verticalAlign="top"
-                  align="right"
-                  wrapperStyle={{ paddingBottom: '10px', fontSize: '11px' }}
-                  formatter={(value) =>
-                    value === 'newLast7Days' ? '7 ngày qua' : 'Trung bình tuần (30 ngày)'
-                  }
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                 />
-                <Bar
-                  dataKey="newLast7Days"
-                  name="newLast7Days"
-                  fill="#10B981"
-                  radius={[8, 8, 0, 0]}
-                  barSize={40}
-                />
-                <Bar
-                  dataKey="weeklyAvg30Days"
-                  name="weeklyAvg30Days"
-                  fill="#06B6D4"
-                  radius={[8, 8, 0, 0]}
-                  barSize={40}
-                />
+                <Bar dataKey="7 ngày qua" fill="#10B981" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="TB tuần (30 ngày)" fill="#6366F1" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 p-3 rounded-2xl bg-slate-900/50 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-            <span>Tốc độ tuần này so với trung bình:</span>
-            <span className="font-extrabold text-emerald-400">
-              +{(((new7Days - weeklyAvg30Days) / weeklyAvg30Days) * 100).toFixed(1)}%
-            </span>
+          <div className="p-2.5 rounded-xl bg-[#0F172A] border border-[#334155]/60 text-xs flex items-center justify-between">
+            <span className="text-[#94A3B8]">Tổng mới 30 ngày:</span>
+            <span className="font-mono font-bold text-[#F8FAFC]">+{new30d} tài khoản</span>
           </div>
         </div>
 
-        {/* BIỂU ĐỒ 5: Luồng Hoạt Động Thao Tác Quản Trị (Admin Activity Stream) */}
-        <div className="p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg flex flex-col justify-between">
+        {/* LUỒNG THAO TÁC QUẢN TRỊ THỜI GIAN THỰC (ACTIVITY STREAM) */}
+        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-base font-bold text-white tracking-tight">
-                Biểu đồ 5: Hoạt Động Quản Trị
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[#334155]">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <Activity className="w-4 h-4" />
+                </span>
+                <h3 className="text-sm font-bold text-[#F8FAFC]">
+                  Luồng Thao Tác Quản Trị Trực Tiếp
+                </h3>
+              </div>
               <button
                 onClick={() => navigate('/audit-logs')}
-                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
               >
-                <span>Xem tất cả</span>
-                <ArrowRight className="w-3 h-3" />
+                Tất cả <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <p className="text-xs text-slate-400 mb-4">
-              Nhật ký kiểm toán thời gian thực các thao tác của Quản trị viên.
+            <p className="text-xs text-[#94A3B8] mt-1.5">
+              Nhật ký kiểm toán thời gian thực các thao tác phê duyệt & cấp gói (Live Stream)
             </p>
           </div>
 
-          {/* Vertical Timeline */}
-          <div className="space-y-3.5 my-auto overflow-y-auto max-h-[300px] pr-1">
+          {/* Activity Stream Timeline */}
+          <div className="my-3 space-y-3 max-h-56 overflow-y-auto pr-1">
             {recentLogs.length === 0 ? (
-              <p className="text-xs text-slate-500 py-6 text-center">Chưa có nhật ký gần đây</p>
+              <p className="text-xs text-[#94A3B8] text-center py-6">Chưa có nhật ký hoạt động nào</p>
             ) : (
-              recentLogs.map((log) => {
-                const actionMeta = renderAuditAction(log.action);
+              recentLogs.slice(0, 5).map((log) => {
+                let badgeIcon = <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />;
+                let badgeBg = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
+                let actionText = log.action;
+
+                if (log.action === 'APPROVE_PAYMENT') {
+                  badgeIcon = <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />;
+                  badgeBg = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
+                  actionText = 'Duyệt đơn VietQR';
+                } else if (log.action === 'GRANT_PREMIUM') {
+                  badgeIcon = <Gift className="w-3.5 h-3.5 text-purple-400" />;
+                  badgeBg = 'bg-purple-500/15 border-purple-500/30 text-purple-400';
+                  actionText = 'Cấp Premium';
+                } else if (log.action === 'REJECT_PAYMENT' || log.action === 'REVOKE_PREMIUM') {
+                  badgeIcon = <XCircle className="w-3.5 h-3.5 text-red-400" />;
+                  badgeBg = 'bg-red-500/15 border-red-500/30 text-red-400';
+                  actionText = log.action === 'REJECT_PAYMENT' ? 'Từ chối đơn' : 'Thu hồi gói';
+                } else if (log.action === 'LOGIN') {
+                  actionText = 'Đăng nhập hệ thống';
+                }
+
                 return (
-                  <div key={log.id} className="flex items-start gap-3 relative group">
-                    <div className={`p-2 rounded-xl shrink-0 border mt-0.5 ${actionMeta.color}`}>
-                      {actionMeta.icon}
+                  <div key={log.id} className="flex items-start gap-2.5 text-xs">
+                    <div className={`p-1.5 rounded-lg border shrink-0 mt-0.5 ${badgeBg}`}>
+                      {badgeIcon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-200 truncate">
-                          {actionMeta.title}
-                        </p>
-                        <span className="text-[10px] text-slate-500 shrink-0 font-medium">
-                          {formatDateTimeVn(log.createdAt).split(' - ')[0]}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-[#F8FAFC] truncate">
+                          {actionText}
+                        </span>
+                        <span className="text-[10px] text-[#94A3B8] font-mono shrink-0">
+                          {log.createdAt ? formatDateTimeVn(log.createdAt).split(' - ')[0] : ''}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                        {log.reason || `Mã đối tượng: ${log.targetId}`}
-                      </p>
-                      <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                        Thực hiện bởi: <span className="text-slate-400 font-semibold">{log.adminEmail}</span>
+                      <p className="text-[11px] text-[#94A3B8] truncate">
+                        {log.adminEmail || 'Admin'} {log.targetId ? `• ID: ${log.targetId.slice(0, 8)}` : ''}
                       </p>
                     </div>
                   </div>
@@ -647,115 +613,129 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-700/60 text-center">
-            <span className="text-[11px] text-slate-400">
-              Dữ liệu được ghi nhận bất biến theo quy chuẩn <b className="text-slate-300">BR-17.4</b>
-            </span>
+          <div className="pt-2 border-t border-[#334155] text-[11px] text-[#94A3B8] flex items-center justify-between">
+            <span>Bất biến (Append-Only)</span>
+            <span className="font-mono text-emerald-400 font-bold">BR-17.1 Verified</span>
           </div>
         </div>
       </div>
 
-      {/* Actionable Data Table: Pending VietQR Orders Ready for Approval */}
-      <div className="p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-extrabold text-white tracking-tight">
-                Đơn VietQR Chờ Duyệt Nhanh ({pendingOrders.length})
-              </h3>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Action Required
-              </span>
+      {/* BẢNG DỮ LIỆU TÁC NGHIỆP: 5 ĐƠN VIETQR CHỜ DUYỆT (PENDING ORDERS) */}
+      <div className="bg-[#1E293B] border border-[#334155] rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Clock className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Thao tác kích hoạt ngay hoặc tra cứu mã đơn đối soát ngân hàng chỉ với 1 cú click.
-            </p>
+            <div>
+              <h3 className="text-sm font-bold text-[#F8FAFC]">
+                Đơn Thanh Toán VietQR Cần Xử Lý Ngay (Pending Queue)
+              </h3>
+              <p className="text-xs text-[#94A3B8]">
+                Duyệt thủ công kích hoạt gói cước ngay cho khách hàng hoặc từ chối đơn sai sót
+              </p>
+            </div>
           </div>
 
           <button
             onClick={() => navigate('/orders')}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-all flex items-center gap-2 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0F172A] hover:bg-[#334155]/60 text-emerald-400 border border-[#334155] text-xs font-semibold transition-all"
           >
             <span>Xem toàn bộ đơn hàng</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {pendingOrders.length === 0 ? (
-          <div className="p-8 text-center rounded-2xl bg-slate-900/40 border border-slate-800">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
-            <p className="text-sm font-bold text-slate-200">Không có đơn hàng VietQR nào đang bị treo!</p>
-            <p className="text-xs text-slate-400 mt-1">Hệ thống xử lý kích hoạt tự động đang vận hành hoàn hảo.</p>
+          <div className="p-10 text-center flex flex-col items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 border border-emerald-500/20">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h4 className="text-sm font-bold text-[#F8FAFC]">Tất cả đơn hàng đã được xử lý!</h4>
+            <p className="text-xs text-[#94A3B8] mt-1 max-w-sm">
+              Không có đơn nạp VietQR nào đang bị treo ở trạng thái PENDING.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="text-[11px] uppercase font-bold text-slate-400 bg-slate-900/60 border-b border-slate-700/80">
-                <tr>
-                  <th className="py-3 px-4 rounded-l-xl">Mã Đơn VietQR</th>
-                  <th className="py-3 px-4">Khách Hàng</th>
-                  <th className="py-3 px-4">Gói Nạp</th>
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[#334155] bg-[#0F172A]/70 text-[#94A3B8] uppercase text-[10px] tracking-wider font-semibold">
+                  <th className="py-3 px-4">Mã Đơn / Khách hàng</th>
+                  <th className="py-3 px-4">Gói SKU</th>
                   <th className="py-3 px-4">Số Tiền (VND)</th>
                   <th className="py-3 px-4">Thời Gian Tạo</th>
                   <th className="py-3 px-4">Trạng Thái</th>
-                  <th className="py-3 px-4 text-right rounded-r-xl">Thao Tác</th>
+                  <th className="py-3 px-4 text-right">Thao Tác Tác Nghiệp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-[#334155]">
                 {pendingOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                      <div className="flex items-center gap-1.5">
-                        <span>{order.orderCode}</span>
+                  <tr key={order.id} className="hover:bg-[#0F172A]/40 transition-colors">
+                    {/* Mã Đơn & Khách Hàng */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-emerald-400 text-xs">
+                          {order.orderCode}
+                        </span>
                         <button
-                          onClick={() => copyToClipboard(order.orderCode, 'Mã đơn')}
-                          className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
-                          title="Sao chép mã đơn"
+                          onClick={() => copyToClipboard(order.orderCode, 'mã đơn')}
+                          className="p-1 rounded text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#334155] transition-colors"
+                          title="Copy mã đơn"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          {copiedId === order.orderCode ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
                         </button>
                       </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div>
-                        <p className="font-bold text-slate-200">{order.user?.name || 'Khách hàng'}</p>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                          <span>{order.user?.email || order.userId}</span>
-                          <button
-                            onClick={() => copyToClipboard(order.user?.email || order.userId, 'Email/ID')}
-                            className="text-slate-500 hover:text-slate-300"
-                            title="Sao chép email"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </p>
+                      <div className="text-[11px] text-[#94A3B8] mt-0.5">
+                        {order.user?.name || order.user?.email || `User: ${order.userId.slice(0, 8)}`}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-300 uppercase">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px]">
-                        {order.itemSku.replace('premium_', '')}
-                      </span>
+
+                    {/* Gói SKU */}
+                    <td className="py-3.5 px-4 font-mono font-semibold text-[#F8FAFC]">
+                      {order.itemSku}
                     </td>
-                    <td className="py-3.5 px-4 font-extrabold text-white">
+
+                    {/* Số tiền */}
+                    <td className="py-3.5 px-4 font-bold text-emerald-400 font-mono text-sm">
                       {formatCurrencyVnd(order.amount)}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-400">
+
+                    {/* Thời gian tạo */}
+                    <td className="py-3.5 px-4 text-[#94A3B8] font-mono text-[11px]">
                       {formatDateTimeVn(order.createdAt)}
                     </td>
+
+                    {/* Trạng thái */}
                     <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                         PENDING
                       </span>
                     </td>
+
+                    {/* Nút tác nghiệp */}
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleQuickApprove(order.id, order.orderCode)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all shadow-sm inline-flex items-center gap-1.5"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Duyệt</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setOrderToApprove(order)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-glow transition-all flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Duyệt kích hoạt</span>
+                        </button>
+                        <button
+                          onClick={() => navigate('/orders')}
+                          className="p-1.5 rounded-lg bg-[#0F172A] hover:bg-[#334155] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#334155] transition-colors"
+                          title="Chi tiết đơn"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -764,6 +744,19 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* QUICK APPROVE CONFIRM DIALOG */}
+      <ConfirmDialog
+        isOpen={!!orderToApprove}
+        onClose={() => setOrderToApprove(null)}
+        onConfirm={handleConfirmApprove}
+        title="Xác nhận Duyệt Đơn Nạp VietQR"
+        message={`Bạn có chắc chắn muốn duyệt đơn ${orderToApprove?.orderCode} (${formatCurrencyVnd(orderToApprove?.amount)})? Hệ thống sẽ tự động kích hoạt gói Premium tương ứng và ghi nhận vào Audit Log.`}
+        confirmLabel="Duyệt đơn ngay"
+        cancelLabel="Hủy bỏ"
+        isLoading={isApproving}
+        isDestructive={false}
+      />
     </div>
   );
 };

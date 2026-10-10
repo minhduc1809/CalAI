@@ -1,418 +1,387 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CreditCard,
   Search,
-  Filter,
-  Check,
-  X,
-  Copy,
-  Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle,
+  Copy,
+  Check,
   RefreshCw,
-  Eye,
-  ShieldCheck,
+  Clock,
+  Filter,
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
-import { paymentsApi, PaymentOrderQueryParams } from '../api/payments.api';
+import { paymentsApi } from '../api/payments.api';
 import { AdminPaymentOrder, PaymentOrderStatus } from '../types';
-import { Button } from '../components/ui/Button';
-import { Input, Select } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { EmptyState } from '../components/ui/EmptyState';
-import { formatCurrencyVnd, formatDateTimeVn, formatNumber } from '../utils/formatters';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { formatCurrencyVnd, formatDateTimeVn } from '../utils/formatters';
 import { toast } from 'sonner';
 
 export const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<AdminPaymentOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Modals state
-  const [selectedOrder, setSelectedOrder] = useState<AdminPaymentOrder | null>(null);
-  const [isApproveOpen, setIsApproveOpen] = useState(false);
-  const [isRejectOpen, setIsRejectOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // Approve Dialog State
+  const [orderToApprove, setOrderToApprove] = useState<AdminPaymentOrder | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Reject Modal State
+  const [orderToReject, setOrderToReject] = useState<AdminPaymentOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
-  const fetchOrders = async (targetPage = page) => {
+  const fetchOrders = async () => {
     setIsLoading(true);
     try {
       const res = await paymentsApi.getOrders({
-        page: targetPage,
+        page,
         limit: 15,
         status: statusFilter,
-        search,
+        search: searchTerm.trim() || undefined,
       });
       setOrders(res.data);
-      setPage(res.meta.page);
-      setTotalPages(res.meta.totalPages);
-      setTotalRecords(res.meta.total);
+      setTotalPages(res.meta.totalPages || 1);
+      setTotalRecords(res.meta.total || 0);
     } catch (err: any) {
-      toast.error('Lỗi khi tải danh sách đơn thanh toán VietQR');
+      toast.error('Lỗi khi tải danh sách đơn thanh toán');
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders(1);
-  }, [statusFilter]);
+    fetchOrders();
+  }, [page, statusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchOrders(1);
-  };
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchOrders(page).then(() => toast.success('Đã làm mới danh sách đơn'));
+    setPage(1);
+    fetchOrders();
   };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
+    setCopiedText(text);
     toast.success(`Đã sao chép ${label}: ${text}`);
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
-  // Quick stats
-  const pendingCount = useMemo(
-    () => orders.filter((o) => o.status === 'PENDING').length,
-    [orders]
-  );
-  const paidCount = useMemo(
-    () => orders.filter((o) => o.status === 'PAID').length,
-    [orders]
-  );
-
-  // Approve Handler
-  const handleApprove = async () => {
-    if (!selectedOrder) return;
-    setActionLoading(true);
+  const handleConfirmApprove = async () => {
+    if (!orderToApprove) return;
+    setIsApproving(true);
     try {
-      await paymentsApi.approveOrder(selectedOrder.id);
-      toast.success(`Đã duyệt đơn ${selectedOrder.orderCode} & kích hoạt gói Premium!`);
-      setIsApproveOpen(false);
-      setSelectedOrder(null);
-      fetchOrders(page);
+      await paymentsApi.approveOrder(orderToApprove.id);
+      toast.success(`Đã duyệt đơn ${orderToApprove.orderCode} và kích hoạt gói thành công`);
+      setOrderToApprove(null);
+      fetchOrders();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi duyệt đơn');
+      toast.error(err.message || 'Lỗi duyệt đơn');
     } finally {
-      setActionLoading(false);
+      setIsApproving(false);
     }
   };
 
-  // Reject Handler
-  const handleReject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrder) return;
+  const handleConfirmReject = async () => {
+    if (!orderToReject) return;
     if (rejectReason.trim().length < 5) {
-      toast.error('Lý do từ chối phải có tối thiểu 5 ký tự');
+      toast.error('Lý do từ chối đơn bắt buộc tối thiểu 5 ký tự');
       return;
     }
-    setActionLoading(true);
+
+    setIsRejecting(true);
     try {
-      await paymentsApi.rejectOrder(selectedOrder.id, rejectReason.trim());
-      toast.success(`Đã từ chối đơn ${selectedOrder.orderCode}`);
-      setIsRejectOpen(false);
-      setSelectedOrder(null);
+      await paymentsApi.rejectOrder(orderToReject.id, rejectReason.trim());
+      toast.success(`Đã từ chối đơn ${orderToReject.orderCode}`);
+      setOrderToReject(null);
       setRejectReason('');
-      fetchOrders(page);
+      fetchOrders();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi từ chối đơn');
+      toast.error(err.message || 'Lỗi khi từ chối đơn');
     } finally {
-      setActionLoading(false);
+      setIsRejecting(false);
     }
   };
 
-  const renderStatusBadge = (status: PaymentOrderStatus) => {
-    switch (status) {
-      case 'PAID':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            PAID
-          </span>
-        );
-      case 'PENDING':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 inline-flex items-center gap-1.5 animate-pulse">
-            <Clock className="w-3.5 h-3.5" />
-            PENDING
-          </span>
-        );
-      case 'CANCELLED':
-      case 'EXPIRED':
-      case 'FAILED':
-      default:
-        return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-700/60 text-slate-300 border border-slate-600 inline-flex items-center gap-1.5">
-            <XCircle className="w-3.5 h-3.5" />
-            {status}
-          </span>
-        );
-    }
+  const statusBadges: Record<string, { label: string; class: string }> = {
+    PAID: {
+      label: 'ĐÃ THANH TOÁN',
+      class: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    },
+    PENDING: {
+      label: 'CHỜ DUYỆT',
+      class: 'bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse',
+    },
+    CANCELED: {
+      label: 'ĐÃ HỦY',
+      class: 'bg-slate-700 text-slate-300 border-slate-600',
+    },
+    CANCELLED: {
+      label: 'ĐÃ HỦY',
+      class: 'bg-slate-700 text-slate-300 border-slate-600',
+    },
+    FAILED: {
+      label: 'THẤT BẠI',
+      class: 'bg-red-500/15 text-red-400 border-red-500/30',
+    },
+    EXPIRED: {
+      label: 'HẾT HẠN',
+      class: 'bg-slate-700/60 text-slate-400 border-slate-600',
+    },
   };
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#334155]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <CreditCard className="w-5 h-5" />
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Quản Lý Đơn Thanh Toán VietQR
-            </h1>
-          </div>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Theo dõi, tra cứu và duyệt các giao dịch nạp tiền qua mã QR động (VietQR). Kích hoạt gói tức thì hoặc đối soát thủ công theo <b className="text-slate-300">BR-17.2</b>.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#F8FAFC] flex items-center gap-2.5">
+            <CreditCard className="w-6 h-6 text-emerald-400" />
+            Vận Hành Đơn Thanh Toán VietQR
+          </h1>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            Tra cứu, kiểm soát gian lận, đối soát sao kê ngân hàng và phê duyệt kích hoạt gói Premium thủ công (BR-17.2)
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchOrders}
+            isLoading={isLoading}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            className="border border-[#334155] text-xs text-[#F8FAFC]"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-            <span>Làm mới</span>
-          </button>
+            Làm mới
+          </Button>
         </div>
       </div>
 
-      {/* Filter Tabs & Search Controls */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#1E293B]/60 border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Status Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+      {/* Filter and Search Bar */}
+      <div className="p-4 rounded-2xl bg-[#1E293B] border border-[#334155] flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+        {/* Search */}
+        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm theo mã đơn (orderCode), User ID, Email..."
+            className="w-full bg-[#0F172A] border border-[#334155] rounded-xl pl-9 pr-4 py-2 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+          />
+        </form>
+
+        {/* Status Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           {[
-            { key: 'ALL', label: 'Tất cả đơn' },
-            { key: 'PENDING', label: 'Chờ duyệt', badge: pendingCount > 0 ? pendingCount : undefined },
-            { key: 'PAID', label: 'Đã nhận tiền' },
-            { key: 'CANCELLED', label: 'Đã hủy / Quá hạn' },
-          ].map((tab) => (
+            { id: 'ALL', label: 'Tất cả' },
+            { id: 'PENDING', label: 'Chờ duyệt' },
+            { id: 'PAID', label: 'Đã thanh toán' },
+            { id: 'CANCELED', label: 'Đã hủy' },
+            { id: 'EXPIRED', label: 'Hết hạn' },
+          ].map((st) => (
             <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 ${
-                statusFilter === tab.key
+              key={st.id}
+              onClick={() => {
+                setStatusFilter(st.id);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                statusFilter === st.id
                   ? 'bg-emerald-500 text-white shadow-glow'
-                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60'
+                  : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#334155]'
               }`}
             >
-              <span>{tab.label}</span>
-              {tab.badge !== undefined && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-900">
-                  {tab.badge}
-                </span>
-              )}
+              {st.label}
             </button>
           ))}
         </div>
-
-        {/* Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 min-w-[280px]">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm mã đơn, User ID, Email..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-          <Button type="submit" variant="primary" className="text-xs shrink-0">
-            Tìm
-          </Button>
-        </form>
       </div>
 
       {/* Orders Table */}
-      <div className="rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-            <span className="text-xs text-slate-400">Đang tải danh sách đơn thanh toán...</span>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="py-16 text-center">
-            <EmptyState
-              title="Không tìm thấy đơn thanh toán nào"
-              description="Thử đổi bộ lọc trạng thái hoặc từ khóa tìm kiếm mã đơn VietQR."
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="text-[11px] uppercase font-bold text-slate-400 bg-slate-900/60 border-b border-slate-700/80">
+      <div className="bg-[#1E293B] border border-[#334155] rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[#334155] bg-[#0F172A]/80 text-[#94A3B8] uppercase text-[10px] tracking-wider font-semibold">
+                <th className="py-3.5 px-4">Mã Đơn (Order Code)</th>
+                <th className="py-3.5 px-4">Người Dùng</th>
+                <th className="py-3.5 px-4">Gói SKU</th>
+                <th className="py-3.5 px-4">Số Tiền (VND)</th>
+                <th className="py-3.5 px-4">Thời Gian Tạo</th>
+                <th className="py-3.5 px-4">Trạng Thái</th>
+                <th className="py-3.5 px-4 text-right">Tác Nghiệp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#334155]">
+              {isLoading ? (
                 <tr>
-                  <th className="py-3.5 px-4">Mã Đơn VietQR</th>
-                  <th className="py-3.5 px-4">Khách Hàng & Liên Hệ</th>
-                  <th className="py-3.5 px-4">Gói Đăng Ký</th>
-                  <th className="py-3.5 px-4">Số Tiền (VND)</th>
-                  <th className="py-3.5 px-4">Thời Gian Tạo</th>
-                  <th className="py-3.5 px-4">Trạng Thái</th>
-                  <th className="py-3.5 px-4 text-right">Thao Tác</th>
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2" />
+                    <p>Đang tải dữ liệu đơn hàng...</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
-                    {/* Mã Đơn */}
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                      <div className="flex items-center gap-1.5">
-                        <span>{order.orderCode}</span>
-                        <button
-                          onClick={() => copyToClipboard(order.orderCode, 'Mã đơn')}
-                          className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
-                          title="Sao chép mã đơn"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
-                        ID: {order.id.slice(0, 8)}...
-                      </span>
-                    </td>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    <p className="text-sm font-semibold text-[#F8FAFC]">Không tìm thấy đơn hàng nào</p>
+                    <p className="text-xs mt-1 text-[#94A3B8]">Thử thay đổi bộ lọc trạng thái hoặc từ khóa tìm kiếm</p>
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => {
+                  const badge = statusBadges[order.status] || {
+                    label: order.status,
+                    class: 'bg-slate-700 text-slate-300 border-slate-600',
+                  };
 
-                    {/* Khách hàng */}
-                    <td className="py-3.5 px-4">
-                      <div>
-                        <p className="font-bold text-slate-200">{order.user?.name || 'Khách hàng'}</p>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                          <span>{order.user?.email || order.userId}</span>
+                  return (
+                    <tr key={order.id} className="hover:bg-[#0F172A]/40 transition-colors">
+                      {/* Mã đơn */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-emerald-400 text-xs">
+                            {order.orderCode}
+                          </span>
                           <button
-                            onClick={() => copyToClipboard(order.user?.email || order.userId, 'Email/ID')}
-                            className="text-slate-500 hover:text-slate-300"
-                            title="Sao chép email"
+                            onClick={() => copyToClipboard(order.orderCode, 'mã đơn')}
+                            className="p-1 rounded text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#334155] transition-colors"
+                            title="Sao chép mã đơn"
                           >
-                            <Copy className="w-3 h-3" />
+                            {copiedText === order.orderCode ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
                           </button>
                         </div>
-                      </div>
-                    </td>
+                        {order.userNote && (
+                          <p className="text-[10px] text-[#94A3B8] italic mt-0.5 truncate max-w-xs">
+                            Ghi chú: {order.userNote}
+                          </p>
+                        )}
+                      </td>
 
-                    {/* Gói nạp */}
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-bold uppercase">
-                        {order.itemSku.replace('premium_', '')}
-                      </span>
-                      {order.userNote && (
-                        <p className="text-[10px] text-slate-500 italic mt-1 max-w-[180px] truncate" title={order.userNote}>
-                          Note: {order.userNote}
+                      {/* Người dùng */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-[#F8FAFC] truncate max-w-[140px]">
+                            {order.user?.name || order.user?.email || `User: ${order.userId.slice(0, 8)}`}
+                          </p>
+                          <button
+                            onClick={() => copyToClipboard(order.userId, 'User ID')}
+                            className="p-1 rounded text-[#94A3B8] hover:text-[#F8FAFC] transition-colors"
+                            title="Sao chép User ID"
+                          >
+                            {copiedText === order.userId ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-[#94A3B8] font-mono truncate max-w-[160px]">
+                          {order.user?.email || order.userId}
                         </p>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Số tiền */}
-                    <td className="py-3.5 px-4 font-extrabold text-white text-sm">
-                      {formatCurrencyVnd(order.amount)}
-                      {order.paidAmount ? (
-                        <span className="text-[10px] text-emerald-400 block font-normal">
-                          Đã trả: {formatCurrencyVnd(order.paidAmount)}
+                      {/* Gói SKU */}
+                      <td className="py-3.5 px-4 font-mono font-semibold text-[#F8FAFC]">
+                        {order.itemSku}
+                      </td>
+
+                      {/* Số tiền */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-400 text-sm">
+                        {formatCurrencyVnd(order.amount)}
+                      </td>
+
+                      {/* Thời gian tạo */}
+                      <td className="py-3.5 px-4 text-[#94A3B8] font-mono text-[11px]">
+                        {formatDateTimeVn(order.createdAt)}
+                      </td>
+
+                      {/* Trạng thái */}
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.class}`}
+                        >
+                          {badge.label}
                         </span>
-                      ) : null}
-                    </td>
+                      </td>
 
-                    {/* Thời gian */}
-                    <td className="py-3.5 px-4 text-slate-400">
-                      <p>{formatDateTimeVn(order.createdAt)}</p>
-                      {order.paidAt && (
-                        <p className="text-[10px] text-emerald-400 mt-0.5">
-                          Duyệt: {formatDateTimeVn(order.paidAt).split(' - ')[0]}
-                        </p>
-                      )}
-                    </td>
-
-                    {/* Trạng thái */}
-                    <td className="py-3.5 px-4">
-                      {renderStatusBadge(order.status)}
-                    </td>
-
-                    {/* Hành động */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      {/* Thao tác */}
+                      <td className="py-3.5 px-4 text-right">
                         {order.status === 'PENDING' ? (
-                          <>
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setIsApproveOpen(true);
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-                              title="Duyệt và kích hoạt gói"
+                              onClick={() => setOrderToApprove(order)}
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-glow transition-all flex items-center gap-1"
+                              title="Duyệt đơn nạp tiền thủ công"
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>Duyệt</span>
                             </button>
                             <button
                               onClick={() => {
-                                setSelectedOrder(order);
+                                setOrderToReject(order);
                                 setRejectReason('');
-                                setIsRejectOpen(true);
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                              className="px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs transition-colors flex items-center gap-1"
                               title="Từ chối đơn"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <XCircle className="w-3.5 h-3.5" />
                               <span>Từ chối</span>
                             </button>
-                          </>
+                          </div>
+                        ) : order.status === 'PAID' ? (
+                          <span className="text-[11px] text-emerald-400 font-mono">
+                            Đã kích hoạt {order.paidAt ? formatDateTimeVn(order.paidAt).split(' - ')[0] : ''}
+                          </span>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setIsDetailOpen(true);
-                            }}
-                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Chi tiết</span>
-                          </button>
+                          <span className="text-[11px] text-[#94A3B8]">Đã kết thúc</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Pagination Bar */}
-        <div className="p-4 bg-slate-900/60 border-t border-slate-700/80 flex items-center justify-between text-xs text-slate-400">
-          <span>
-            Hiển thị {orders.length} / tổng {totalRecords} đơn
-          </span>
+        {/* Pagination Footer */}
+        <div className="p-4 border-t border-[#334155] flex items-center justify-between text-xs text-[#94A3B8] bg-[#0F172A]/50">
+          <div>
+            Hiển thị <span className="font-bold text-[#F8FAFC]">{orders.length}</span> /{' '}
+            <span className="font-bold text-[#F8FAFC]">{totalRecords}</span> đơn hàng
+          </div>
+
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchOrders(page - 1)}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-lg bg-[#1E293B] border border-[#334155] text-[#F8FAFC] disabled:opacity-40 hover:bg-[#334155] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-slate-200">
-              Trang {page} / {totalPages}
+            <span className="font-mono px-2">
+              Trang <span className="text-[#F8FAFC] font-bold">{page}</span> / {totalPages}
             </span>
             <button
-              onClick={() => fetchOrders(page + 1)}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-lg bg-[#1E293B] border border-[#334155] text-[#F8FAFC] disabled:opacity-40 hover:bg-[#334155] transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -420,125 +389,66 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Confirm Approve Modal */}
+      {/* CONFIRM APPROVE MODAL */}
       <ConfirmDialog
-        isOpen={isApproveOpen}
-        onClose={() => setIsApproveOpen(false)}
-        onConfirm={handleApprove}
-        title="Xác Nhận Duyệt Đơn & Kích Hoạt Gói"
-        message={`Bạn có chắc chắn muốn duyệt đơn ${selectedOrder?.orderCode} (${formatCurrencyVnd(
-          selectedOrder?.amount
-        )}) cho người dùng ${selectedOrder?.user?.name || selectedOrder?.userId}? Hệ thống sẽ tự động kích hoạt gói Premium và ghi nhận nhật ký kiểm toán.`}
-        confirmLabel="Duyệt Kích Hoạt"
+        isOpen={!!orderToApprove}
+        onClose={() => setOrderToApprove(null)}
+        onConfirm={handleConfirmApprove}
+        title="Xác nhận Duyệt Đơn Nạp VietQR (BR-17.2)"
+        message={`Bạn xác nhận duyệt đơn ${orderToApprove?.orderCode} với số tiền ${formatCurrencyVnd(orderToApprove?.amount)}? Hệ thống sẽ kích hoạt gói Premium tương ứng SKU ${orderToApprove?.itemSku}, tự động cộng dồn ngày và ghi nhận vào Nhật ký kiểm toán.`}
+        confirmLabel="Duyệt đơn ngay"
+        cancelLabel="Hủy"
+        isLoading={isApproving}
         isDestructive={false}
-        isLoading={actionLoading}
       />
 
-      {/* Reject Modal with Mandatory Reason (>= 5 chars) */}
+      {/* REJECT MODAL WITH REASON */}
       <Modal
-        isOpen={isRejectOpen}
-        onClose={() => setIsRejectOpen(false)}
-        title="Từ Chối Đơn Thanh Toán"
+        isOpen={!!orderToReject}
+        onClose={() => setOrderToReject(null)}
+        title="Từ Chối / Hủy Đơn Thanh Toán"
         maxWidth="md"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setIsRejectOpen(false)} disabled={actionLoading}>
-              Hủy
+            <Button
+              variant="ghost"
+              onClick={() => setOrderToReject(null)}
+              disabled={isRejecting}
+            >
+              Hủy bỏ
             </Button>
             <Button
               variant="danger"
-              onClick={handleReject}
-              isLoading={actionLoading}
+              onClick={handleConfirmReject}
+              isLoading={isRejecting}
               disabled={rejectReason.trim().length < 5}
             >
-              Xác Nhận Từ Chối
+              Xác nhận Từ chối
             </Button>
           </>
         }
       >
         <div className="space-y-4 py-2">
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>
-              Theo quy chuẩn <b>BR-17.2</b>, mọi hành động từ chối đơn nạp đều bắt buộc giải trình lý do (tối thiểu 5 ký tự) phục vụ đối soát kiểm toán và bảo vệ quyền lợi người dùng.
-            </span>
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+            Đơn <span className="font-mono font-bold">{orderToReject?.orderCode}</span> sẽ chuyển sang trạng thái <span className="font-bold">CANCELLED</span>. Thao tác này sẽ ghi lại lý do vào Audit Log.
           </div>
 
           <div>
-            <p className="text-xs font-bold text-slate-300 mb-1">Mã đơn:</p>
-            <p className="font-mono text-sm text-emerald-400 font-bold">{selectedOrder?.orderCode}</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1">
-              Lý do từ chối đơn <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
+              Lý do từ chối (bắt buộc $\ge 5$ ký tự):
             </label>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="VD: Khách chuyển khoản sai số tài khoản hoặc đơn quá hạn 24h..."
               rows={3}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl p-3 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
             />
-            <p className="text-[11px] text-slate-500 mt-1">Tối thiểu 5 ký tự ({rejectReason.trim().length}/5)</p>
+            <p className="text-[10px] text-[#94A3B8] mt-1 text-right">
+              {rejectReason.trim().length}/5 ký tự tối thiểu
+            </p>
           </div>
         </div>
-      </Modal>
-
-      {/* Order Detail Modal */}
-      <Modal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        title="Chi Tiết Đơn Hàng VietQR"
-        maxWidth="md"
-        footer={
-          <Button variant="primary" onClick={() => setIsDetailOpen(false)}>
-            Đóng
-          </Button>
-        }
-      >
-        {selectedOrder && (
-          <div className="space-y-3.5 py-2 text-xs">
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Mã đơn hàng:</span>
-              <span className="font-mono font-bold text-emerald-400 text-sm">{selectedOrder.orderCode}</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Số tiền:</span>
-              <span className="font-extrabold text-white text-sm">{formatCurrencyVnd(selectedOrder.amount)}</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Trạng thái:</span>
-              <span>{renderStatusBadge(selectedOrder.status)}</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Người nạp:</span>
-              <span className="font-bold text-slate-200">
-                {selectedOrder.user?.name} ({selectedOrder.user?.email || selectedOrder.userId})
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Gói dịch vụ:</span>
-              <span className="font-bold text-slate-200 uppercase">{selectedOrder.itemSku}</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-slate-400">Thời gian tạo:</span>
-              <span className="text-slate-300">{formatDateTimeVn(selectedOrder.createdAt)}</span>
-            </div>
-
-            {selectedOrder.userNote && (
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Ghi chú:</span>
-                <p className="text-slate-200 italic">{selectedOrder.userNote}</p>
-              </div>
-            )}
-          </div>
-        )}
       </Modal>
     </div>
   );

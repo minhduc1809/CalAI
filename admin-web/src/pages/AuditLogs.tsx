@@ -3,301 +3,311 @@ import {
   Shield,
   Search,
   Filter,
+  RefreshCw,
   CheckCircle2,
   XCircle,
   Gift,
   KeyRound,
-  AlertTriangle,
-  Copy,
-  Clock,
   Eye,
-  RefreshCw,
+  Copy,
+  Check,
   ChevronLeft,
   ChevronRight,
-  Code2,
+  Clock,
+  Terminal,
+  Globe,
+  FileText,
 } from 'lucide-react';
-import { auditLogsApi, AuditLogQueryParams } from '../api/audit-logs.api';
-import { AdminAuditLog, AuditLogAction } from '../types';
-import { Button } from '../components/ui/Button';
+import { auditLogsApi } from '../api/audit-logs.api';
+import { AdminAuditLog } from '../types';
 import { Modal } from '../components/ui/Modal';
-import { EmptyState } from '../components/ui/EmptyState';
+import { Button } from '../components/ui/Button';
 import { formatDateTimeVn } from '../utils/formatters';
 import { toast } from 'sonner';
 
 export const AuditLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<AdminAuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [actionFilter, setActionFilter] = useState<string>('ALL');
-  const [targetTypeFilter, setTargetTypeFilter] = useState<string>('ALL');
+  const [actionFilter, setActionFilter] = useState('ALL');
+  const [targetFilter, setTargetFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Detail Modal
+  // Inspector Modal State
   const [selectedLog, setSelectedLog] = useState<AdminAuditLog | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const fetchLogs = async (targetPage = page) => {
+  const fetchLogs = async () => {
     setIsLoading(true);
     try {
       const res = await auditLogsApi.getAuditLogs({
-        page: targetPage,
+        page,
         limit: 15,
-        action: actionFilter,
-        targetType: targetTypeFilter,
+        action: actionFilter !== 'ALL' ? actionFilter : undefined,
+        targetType: targetFilter !== 'ALL' ? targetFilter : undefined,
       });
       setLogs(res.data);
-      setPage(res.meta.page);
-      setTotalPages(res.meta.totalPages);
-      setTotalRecords(res.meta.total);
-    } catch (err: any) {
+      setTotalPages(res.meta.totalPages || 1);
+      setTotalRecords(res.meta.total || 0);
+    } catch {
       toast.error('Lỗi khi tải nhật ký kiểm toán');
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs(1);
-  }, [actionFilter, targetTypeFilter]);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchLogs(page).then(() => toast.success('Đã làm mới nhật ký kiểm toán'));
-  };
+    fetchLogs();
+  }, [page, actionFilter, targetFilter]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
+    setCopiedId(text);
     toast.success(`Đã sao chép ${label}: ${text}`);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const renderActionBadge = (action: AuditLogAction) => {
-    switch (action) {
-      case 'APPROVE_PAYMENT':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1.5">
-            <CheckCircle2 className="w-3 h-3" />
-            APPROVE_PAYMENT
-          </span>
-        );
-      case 'GRANT_PREMIUM':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 inline-flex items-center gap-1.5">
-            <Gift className="w-3 h-3" />
-            GRANT_PREMIUM
-          </span>
-        );
-      case 'REJECT_PAYMENT':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 inline-flex items-center gap-1.5">
-            <XCircle className="w-3 h-3" />
-            REJECT_PAYMENT
-          </span>
-        );
-      case 'REVOKE_PREMIUM':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 inline-flex items-center gap-1.5">
-            <AlertTriangle className="w-3 h-3" />
-            REVOKE_PREMIUM
-          </span>
-        );
-      case 'LOGIN':
-      default:
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 inline-flex items-center gap-1.5">
-            <KeyRound className="w-3 h-3" />
-            {action}
-          </span>
-        );
-    }
+  const actionConfig: Record<string, { label: string; class: string; icon: any }> = {
+    APPROVE_PAYMENT: {
+      label: 'DUYỆT THANH TOÁN',
+      class: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+      icon: CheckCircle2,
+    },
+    REJECT_PAYMENT: {
+      label: 'TỪ CHỐI ĐƠN',
+      class: 'bg-red-500/15 text-red-400 border-red-500/30',
+      icon: XCircle,
+    },
+    GRANT_PREMIUM: {
+      label: 'CẤP GÓI BÙ',
+      class: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+      icon: Gift,
+    },
+    REVOKE_PREMIUM: {
+      label: 'THU HỒI GÓI',
+      class: 'bg-red-500/15 text-red-400 border-red-500/30',
+      icon: XCircle,
+    },
+    LOGIN: {
+      label: 'ĐĂNG NHẬP ADMIN',
+      class: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+      icon: KeyRound,
+    },
   };
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#334155]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
-              <Shield className="w-5 h-5" />
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Nhật Ký Kiểm Toán Bất Biến (Audit Logs)
-            </h1>
-          </div>
-          <p className="text-xs text-slate-400 max-w-2xl">
-            Lưu vết toàn bộ thao tác vận hành của đội ngũ Quản trị viên (Admin) theo chuẩn kiểm toán <b className="text-slate-300">BR-17.4</b>. Dữ liệu ghi nhận tự động và không thể chỉnh sửa.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#F8FAFC] flex items-center gap-2.5">
+            <Shield className="w-6 h-6 text-emerald-400" />
+            Nhật Ký Kiểm Toán Bất Biến (Audit Trail)
+          </h1>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            Ghi nhận tự động (Append-Only) mọi thao tác duyệt đơn, cấp gói bù và đăng nhập hệ thống của Quản trị viên (BR-17)
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchLogs}
+            isLoading={isLoading}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            className="border border-[#334155] text-xs text-[#F8FAFC]"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
-            <span>Làm mới</span>
-          </button>
+            Làm mới
+          </Button>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="p-4 rounded-2xl bg-[#1E293B]/60 border border-slate-700/60 flex flex-wrap items-center justify-between gap-4 text-xs">
-        {/* Action Filters */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+      {/* Filter Bar */}
+      <div className="p-4 rounded-2xl bg-[#1E293B] border border-[#334155] flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+        {/* Action Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
+          <span className="text-[10px] uppercase font-bold text-[#94A3B8] px-1">Thao tác:</span>
           {[
-            { key: 'ALL', label: 'Tất cả thao tác' },
-            { key: 'APPROVE_PAYMENT', label: 'Duyệt đơn VietQR' },
-            { key: 'GRANT_PREMIUM', label: 'Cấp gói bù' },
-            { key: 'REJECT_PAYMENT', label: 'Từ chối đơn' },
-            { key: 'REVOKE_PREMIUM', label: 'Thu hồi gói' },
-            { key: 'LOGIN', label: 'Đăng nhập' },
-          ].map((tab) => (
+            { id: 'ALL', label: 'Tất cả' },
+            { id: 'APPROVE_PAYMENT', label: 'Duyệt đơn' },
+            { id: 'REJECT_PAYMENT', label: 'Từ chối đơn' },
+            { id: 'GRANT_PREMIUM', label: 'Cấp gói bù' },
+            { id: 'REVOKE_PREMIUM', label: 'Thu hồi gói' },
+            { id: 'LOGIN', label: 'Đăng nhập' },
+          ].map((act) => (
             <button
-              key={tab.key}
-              onClick={() => setActionFilter(tab.key)}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
-                actionFilter === tab.key
-                  ? 'bg-cyan-500 text-white shadow-glow'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60'
+              key={act.id}
+              onClick={() => {
+                setActionFilter(act.id);
+                setPage(1);
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                actionFilter === act.id
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#334155]'
               }`}
             >
-              {tab.label}
+              {act.label}
             </button>
           ))}
         </div>
 
-        {/* Target Type Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-semibold">Đối tượng:</span>
-          <select
-            value={targetTypeFilter}
-            onChange={(e) => setTargetTypeFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-cyan-500 font-bold"
-          >
-            <option value="ALL">Tất cả đối tượng</option>
-            <option value="PaymentOrder">PaymentOrder (Đơn hàng)</option>
-            <option value="ManualGrant">ManualGrant (Gói bù)</option>
-            <option value="User">User (Người dùng)</option>
-            <option value="AdminSession">AdminSession (Phiên làm việc)</option>
-          </select>
+        {/* Target Filter */}
+        <div className="flex items-center gap-1 bg-[#0F172A] p-1 rounded-xl border border-[#334155] text-xs self-start md:self-auto">
+          <span className="text-[10px] uppercase font-bold text-[#94A3B8] px-2">Đối tượng:</span>
+          {['ALL', 'PaymentOrder', 'User', 'ManualGrant'].map((tgt) => (
+            <button
+              key={tgt}
+              onClick={() => {
+                setTargetFilter(tgt);
+                setPage(1);
+              }}
+              className={`px-2 py-1 rounded-lg font-semibold text-xs transition-all ${
+                targetFilter === tgt
+                  ? 'bg-emerald-500 text-white'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+              }`}
+            >
+              {tgt === 'ALL' ? 'Tất cả' : tgt}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Audit Logs Table */}
-      <div className="rounded-3xl bg-[#1E293B]/80 dark:bg-[#1E293B]/90 border border-slate-700/80 shadow-lg overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
-            <span className="text-xs text-slate-400">Đang tải nhật ký kiểm toán...</span>
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="py-16 text-center">
-            <EmptyState
-              title="Không có nhật ký kiểm toán phù hợp"
-              description="Thử thay đổi bộ lọc thao tác hoặc đối tượng tác động."
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="text-[11px] uppercase font-bold text-slate-400 bg-slate-900/60 border-b border-slate-700/80">
+      {/* Logs Table */}
+      <div className="bg-[#1E293B] border border-[#334155] rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[#334155] bg-[#0F172A]/80 text-[#94A3B8] uppercase text-[10px] tracking-wider font-semibold">
+                <th className="py-3.5 px-4">Thời Gian (Timestamp)</th>
+                <th className="py-3.5 px-4">Admin Thực Hiện</th>
+                <th className="py-3.5 px-4">Loại Hành Động</th>
+                <th className="py-3.5 px-4">Đối Tượng Tác Động</th>
+                <th className="py-3.5 px-4">Giải Trình / Lý Do</th>
+                <th className="py-3.5 px-4">Địa Chỉ IP</th>
+                <th className="py-3.5 px-4 text-right">Chi Tiết Diff</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#334155]">
+              {isLoading ? (
                 <tr>
-                  <th className="py-3.5 px-4">Thời Gian (GMT+7)</th>
-                  <th className="py-3.5 px-4">Quản Trị Viên (Admin)</th>
-                  <th className="py-3.5 px-4">Thao Tác</th>
-                  <th className="py-3.5 px-4">Đối Tượng Tác Động</th>
-                  <th className="py-3.5 px-4">Lý Do / Ghi Chú</th>
-                  <th className="py-3.5 px-4">Địa Chỉ IP</th>
-                  <th className="py-3.5 px-4 text-right">Chi Tiết</th>
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2" />
+                    <p>Đang tải nhật ký kiểm toán...</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 text-slate-300 font-medium">
-                      {formatDateTimeVn(log.createdAt)}
-                    </td>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    <p className="text-sm font-semibold text-[#F8FAFC]">Không có bản ghi nhật ký nào</p>
+                    <p className="text-xs mt-1 text-[#94A3B8]">Chưa ghi nhận hoạt động nào khớp với bộ lọc</p>
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => {
+                  const cfg = actionConfig[log.action] || {
+                    label: log.action,
+                    class: 'bg-slate-700 text-slate-300 border-slate-600',
+                    icon: Shield,
+                  };
+                  const Icon = cfg.icon;
 
-                    <td className="py-3.5 px-4">
-                      <p className="font-bold text-slate-200">{log.adminEmail}</p>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        ID: {log.adminId.slice(0, 8)}...
-                      </span>
-                    </td>
+                  return (
+                    <tr key={log.id} className="hover:bg-[#0F172A]/40 transition-colors">
+                      {/* Timestamp */}
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#94A3B8] whitespace-nowrap">
+                        {formatDateTimeVn(log.createdAt)}
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      {renderActionBadge(log.action)}
-                    </td>
+                      {/* Admin email */}
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#F8FAFC]">
+                        {log.adminEmail || 'admin@calai.com'}
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px] font-bold text-slate-300">
-                        {log.targetType}
-                      </span>
-                      <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono mt-0.5">
-                        <span className="truncate max-w-[120px]">{log.targetId}</span>
-                        <button
-                          onClick={() => copyToClipboard(log.targetId, 'Target ID')}
-                          className="text-slate-500 hover:text-slate-300"
-                          title="Copy ID"
+                      {/* Loại hành động */}
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.class}`}
                         >
-                          <Copy className="w-3 h-3" />
+                          <Icon className="w-3 h-3" />
+                          {cfg.label}
+                        </span>
+                      </td>
+
+                      {/* Đối tượng tác động */}
+                      <td className="py-3.5 px-4 font-mono text-[11px]">
+                        <span className="text-[#F8FAFC] font-semibold">{log.targetType}</span>
+                        {log.targetId && (
+                          <div className="flex items-center gap-1 text-[#94A3B8] mt-0.5">
+                            <span>ID: {log.targetId.slice(0, 10)}...</span>
+                            <button
+                              onClick={() => copyToClipboard(log.targetId, 'Target ID')}
+                              className="p-0.5 hover:text-[#F8FAFC]"
+                              title="Copy Target ID"
+                            >
+                              {copiedId === log.targetId ? (
+                                <Check className="w-2.5 h-2.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-2.5 h-2.5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Lý do */}
+                      <td className="py-3.5 px-4 text-[#94A3B8] max-w-xs truncate">
+                        {log.reason || '—'}
+                      </td>
+
+                      {/* IP */}
+                      <td className="py-3.5 px-4 font-mono text-[10px] text-[#94A3B8]">
+                        {log.ipAddress || '127.0.0.1'}
+                      </td>
+
+                      {/* Chi tiết Diff */}
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => setSelectedLog(log)}
+                          className="px-2.5 py-1 rounded-lg bg-[#0F172A] hover:bg-[#334155] text-emerald-400 border border-[#334155] font-semibold text-xs transition-colors inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Chi tiết</span>
                         </button>
-                      </div>
-                    </td>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                    <td className="py-3.5 px-4 max-w-xs">
-                      <p className="text-slate-300 line-clamp-2" title={log.reason || '—'}>
-                        {log.reason || <span className="text-slate-500 italic">Không kèm lý do</span>}
-                      </p>
-                    </td>
-
-                    <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400">
-                      {log.ipAddress || '—'}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedLog(log);
-                          setIsDetailOpen(true);
-                        }}
-                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                        title="Xem JSON Before/After"
-                      >
-                        <Code2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Pagination Footer */}
+        <div className="p-4 border-t border-[#334155] flex items-center justify-between text-xs text-[#94A3B8] bg-[#0F172A]/50">
+          <div>
+            Hiển thị <span className="font-bold text-[#F8FAFC]">{logs.length}</span> /{' '}
+            <span className="font-bold text-[#F8FAFC]">{totalRecords}</span> bản ghi kiểm toán
           </div>
-        )}
 
-        {/* Pagination */}
-        <div className="p-4 bg-slate-900/60 border-t border-slate-700/80 flex items-center justify-between text-xs text-slate-400">
-          <span>
-            Hiển thị {logs.length} / tổng {totalRecords} bản ghi kiểm toán
-          </span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchLogs(page - 1)}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:pointer-events-none"
+              className="p-1.5 rounded-lg bg-[#1E293B] border border-[#334155] text-[#F8FAFC] disabled:opacity-40 hover:bg-[#334155] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-slate-200">
-              Trang {page} / {totalPages}
+            <span className="font-mono px-2">
+              Trang <span className="text-[#F8FAFC] font-bold">{page}</span> / {totalPages}
             </span>
             <button
-              onClick={() => fetchLogs(page + 1)}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:pointer-events-none"
+              className="p-1.5 rounded-lg bg-[#1E293B] border border-[#334155] text-[#F8FAFC] disabled:opacity-40 hover:bg-[#334155] transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -305,71 +315,93 @@ export const AuditLogsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* JSON Before/After Inspector Modal */}
+      {/* AUDIT LOG DETAILS / STATE DIFF INSPECTOR MODAL */}
       <Modal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        title="Chi Tiết Bản Ghi Kiểm Toán Bất Biến"
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title="Chi Tiết Bản Ghi Kiểm Toán (Audit Inspector)"
         maxWidth="lg"
         footer={
-          <Button variant="primary" onClick={() => setIsDetailOpen(false)}>
+          <Button variant="ghost" onClick={() => setSelectedLog(null)}>
             Đóng
           </Button>
         }
       >
         {selectedLog && (
-          <div className="space-y-4 py-2 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+          <div className="space-y-4 py-1 text-xs">
+            {/* Meta Summary */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#0F172A] border border-[#334155]">
               <div>
-                <span className="text-slate-500">Mã kiểm toán:</span>
-                <p className="font-mono text-cyan-400 font-bold">{selectedLog.id}</p>
+                <span className="text-[#94A3B8]">Mã Log ID:</span>
+                <p className="font-mono text-[#F8FAFC] font-bold mt-0.5">{selectedLog.id}</p>
               </div>
               <div>
-                <span className="text-slate-500">Thao tác:</span>
-                <p className="font-bold text-white mt-0.5">{selectedLog.action}</p>
+                <span className="text-[#94A3B8]">Thời gian thực hiện:</span>
+                <p className="font-mono text-emerald-400 font-bold mt-0.5">
+                  {formatDateTimeVn(selectedLog.createdAt)}
+                </p>
               </div>
               <div>
-                <span className="text-slate-500">Admin thực hiện:</span>
-                <p className="font-semibold text-slate-200">{selectedLog.adminEmail}</p>
+                <span className="text-[#94A3B8]">Admin Email:</span>
+                <p className="font-mono text-[#F8FAFC] mt-0.5">{selectedLog.adminEmail}</p>
               </div>
               <div>
-                <span className="text-slate-500">Thời gian ghi nhận:</span>
-                <p className="text-slate-300">{formatDateTimeVn(selectedLog.createdAt)}</p>
+                <span className="text-[#94A3B8]">Loại Thao Tác:</span>
+                <p className="font-bold text-emerald-400 mt-0.5">{selectedLog.action}</p>
+              </div>
+              <div>
+                <span className="text-[#94A3B8]">Đối Tượng / ID:</span>
+                <p className="font-mono text-[#F8FAFC] mt-0.5">
+                  {selectedLog.targetType} • {selectedLog.targetId}
+                </p>
+              </div>
+              <div>
+                <span className="text-[#94A3B8]">Địa chỉ IP:</span>
+                <p className="font-mono text-[#F8FAFC] mt-0.5">{selectedLog.ipAddress || '127.0.0.1'}</p>
               </div>
             </div>
 
+            {/* Reason */}
             {selectedLog.reason && (
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                <span className="text-slate-500 font-semibold block mb-1">Lý do giải trình:</span>
-                <p className="text-slate-200">{selectedLog.reason}</p>
+              <div className="p-3 rounded-xl bg-[#0F172A] border border-[#334155]">
+                <span className="text-[#94A3B8] font-semibold">Lý do giải trình nghiệp vụ:</span>
+                <p className="text-[#F8FAFC] mt-1 leading-relaxed">{selectedLog.reason}</p>
               </div>
             )}
 
-            {/* Before and After JSON Diffs */}
+            {/* State Diffs (Before & After) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <span className="text-slate-400 font-bold block mb-1.5">Trạng thái Trước (Before):</span>
-                <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-amber-300 font-mono text-[11px] overflow-x-auto max-h-56">
-                  {selectedLog.before ? JSON.stringify(selectedLog.before, null, 2) : '// Không có bản ghi trước'}
+              {/* Before State */}
+              <div className="p-3 rounded-xl bg-[#0F172A] border border-[#334155] space-y-1.5">
+                <span className="font-bold text-amber-400 uppercase text-[10px] tracking-wider">
+                  Trạng Thái Trước (Before)
+                </span>
+                <pre className="p-2.5 rounded-lg bg-[#0B0F17] text-slate-300 font-mono text-[11px] overflow-x-auto max-h-40">
+                  {selectedLog.before
+                    ? JSON.stringify(selectedLog.before, null, 2)
+                    : 'null (Không áp dụng)'}
                 </pre>
               </div>
 
-              <div>
-                <span className="text-slate-400 font-bold block mb-1.5">Trạng thái Sau (After):</span>
-                <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-56">
-                  {selectedLog.after ? JSON.stringify(selectedLog.after, null, 2) : '// Không có bản ghi sau'}
+              {/* After State */}
+              <div className="p-3 rounded-xl bg-[#0F172A] border border-[#334155] space-y-1.5">
+                <span className="font-bold text-emerald-400 uppercase text-[10px] tracking-wider">
+                  Trạng Thái Sau (After)
+                </span>
+                <pre className="p-2.5 rounded-lg bg-[#0B0F17] text-emerald-300 font-mono text-[11px] overflow-x-auto max-h-40">
+                  {selectedLog.after
+                    ? JSON.stringify(selectedLog.after, null, 2)
+                    : 'null (Không áp dụng)'}
                 </pre>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-              <p>
-                <b className="text-slate-300">IP:</b> {selectedLog.ipAddress || '—'}
-              </p>
-              <p className="truncate">
-                <b className="text-slate-300">User Agent:</b> {selectedLog.userAgent || '—'}
-              </p>
-            </div>
+            {/* User Agent */}
+            {selectedLog.userAgent && (
+              <div className="p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[10px] text-[#94A3B8] font-mono truncate">
+                User Agent: {selectedLog.userAgent}
+              </div>
+            )}
           </div>
         )}
       </Modal>

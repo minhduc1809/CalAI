@@ -5,45 +5,74 @@ import { mockUsers, mockPaymentOrders, mockManualGrants } from '../utils/mockDat
 export interface UserQueryParams {
   search?: string;
   role?: Role;
-  isActive?: boolean;
+  isPremium?: string;
   page?: number;
   limit?: number;
-}
-
-export interface CreateUserPayload {
-  username: string;
-  email?: string;
-  password: string;
-  name?: string;
-  role?: Role;
-  isActive?: boolean;
-  dailyAiQuota?: number;
-}
-
-export interface UpdateUserPayload {
-  name?: string;
-  email?: string;
-  role?: Role;
-  isActive?: boolean;
-  dailyAiQuota?: number;
-  purchasedAiQuota?: number;
-  purchasedChatQuota?: number;
-  weightKg?: number;
-  heightCm?: number;
-  targetCalories?: number;
-  targetProtein?: number;
-  targetCarb?: number;
-  targetFat?: number;
 }
 
 // In-memory cache for mock fallbacks
 let localUsers = [...mockUsers];
 
+function normalizeUser(u: any): User {
+  const isPremium =
+    u.isPremium !== undefined
+      ? Boolean(u.isPremium)
+      : Boolean(u.subscriptionState?.expiryTime && new Date(u.subscriptionState.expiryTime) > new Date());
+
+  return {
+    id: u.id,
+    username: u.username || u.email?.split('@')[0] || 'user',
+    email: u.email || null,
+    name: u.name || null,
+    avatar: u.avatar || null,
+    role: u.role || 'USER',
+    isActive: u.isActive !== undefined ? u.isActive : true,
+    authProvider: u.authProvider || 'LOCAL',
+    isEmailVerified: u.isEmailVerified !== undefined ? u.isEmailVerified : true,
+    dailyAiQuota: u.dailyAiQuota ?? 10,
+    purchasedAiQuota: u.purchasedAiQuota ?? 0,
+    purchasedChatQuota: u.purchasedChatQuota ?? 0,
+    isPremium,
+    subscriptionState: u.subscriptionState || null,
+    createdAt: u.createdAt || new Date().toISOString(),
+    updatedAt: u.updatedAt || new Date().toISOString(),
+    // Strictly preserve privacy (BR-17.1)
+    weightKg: null,
+    targetWeightKg: null,
+    heightCm: null,
+    goal: null,
+    targetCalories: null,
+    targetProtein: null,
+    targetCarb: null,
+    targetFat: null,
+  };
+}
+
 export const usersApi = {
   async getUsers(params?: UserQueryParams): Promise<PaginatedResponse<User>> {
     try {
-      const res = await apiClient.get('/admin/users', { params });
-      return res.data.data || res.data;
+      const apiParams: any = { ...params };
+      const res = await apiClient.get('/admin/users', { params: apiParams });
+      const raw = res.data?.data || res.data;
+      const rawItems = Array.isArray(raw) ? raw : (raw?.items || raw?.data || []);
+      const pagination = raw?.pagination || res.data?.pagination || res.data?.meta || {
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+        total: rawItems.length,
+        totalPages: 1,
+      };
+
+      const items = rawItems.map(normalizeUser);
+
+      return {
+        data: items,
+        meta: {
+          page: Number(pagination.page || 1),
+          limit: Number(pagination.limit || 20),
+          total: Number(pagination.total || items.length),
+          totalPages: Number(pagination.totalPages || 1),
+        },
+      };
     } catch {
       let filtered = [...localUsers];
       if (params?.search) {
@@ -58,36 +87,72 @@ export const usersApi = {
       if (params?.role) {
         filtered = filtered.filter((u) => u.role === params.role);
       }
-      if (typeof params?.isActive === 'boolean') {
-        filtered = filtered.filter((u) => u.isActive === params.isActive);
+      if (params?.isPremium === 'true') {
+        filtered = filtered.filter((u) => u.isPremium);
+      } else if (params?.isPremium === 'false') {
+        filtered = filtered.filter((u) => !u.isPremium);
       }
+
+      const page = params?.page || 1;
+      const limit = params?.limit || 20;
+      const start = (page - 1) * limit;
+
       return {
-        data: filtered,
+        data: filtered.slice(start, start + limit),
         meta: {
           total: filtered.length,
-          page: params?.page || 1,
-          limit: params?.limit || 20,
-          totalPages: 1,
+          page,
+          limit,
+          totalPages: Math.ceil(filtered.length / limit) || 1,
         },
       };
-    }
-  },
-
-  async getUserById(id: string): Promise<User> {
-    try {
-      const res = await apiClient.get(`/admin/users/${id}`);
-      return res.data.data;
-    } catch {
-      const user = localUsers.find((u) => u.id === id);
-      if (!user) throw new Error('Không tìm thấy người dùng');
-      return user;
     }
   },
 
   async getUserBilling(id: string): Promise<AdminUserBillingDetails> {
     try {
       const res = await apiClient.get(`/admin/users/${id}/billing`);
-      return res.data.data || res.data;
+      const raw = res.data?.data || res.data;
+
+      const user = raw.user || raw;
+      const subscription = raw.subscription || user.subscriptionState || null;
+      const orders = (raw.orders || raw.paymentOrders || []).map((o: any) => ({
+        id: o.id,
+        orderCode: o.orderCode || o.code || o.id.slice(0, 8),
+        userId: o.userId || id,
+        amount: Number(o.amount || 0),
+        status: o.status === 'CANCELED' ? 'CANCELLED' : o.status,
+        itemSku: o.itemSku || o.productId || 'premium_1m',
+        createdAt: o.createdAt,
+        paidAt: o.paidAt || null,
+      }));
+
+      const manualGrants = (raw.manualGrants || []).map((g: any) => ({
+        id: g.id,
+        userId: g.userId || id,
+        startsAt: g.startsAt,
+        endsAt: g.endsAt,
+        reason: g.reason,
+        revokedAt: g.revokedAt || null,
+        revokedReason: g.revokedReason || null,
+        createdAt: g.createdAt || g.startsAt,
+      }));
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email || '',
+          username: user.username || user.email?.split('@')[0] || 'user',
+          name: user.name || user.username || 'User',
+          isPremium: Boolean(
+            subscription?.status === 'ACTIVE' ||
+            (subscription?.expiryTime && new Date(subscription.expiryTime) > new Date())
+          ),
+        },
+        subscription,
+        orders,
+        manualGrants,
+      };
     } catch {
       const user = localUsers.find((u) => u.id === id) || localUsers[0];
       const orders = mockPaymentOrders.filter((o) => o.userId === id);
@@ -110,81 +175,6 @@ export const usersApi = {
         orders,
         manualGrants: grants,
       };
-    }
-  },
-
-  async createUser(payload: CreateUserPayload): Promise<User> {
-    try {
-      const res = await apiClient.post('/admin/users', payload);
-      return res.data.data;
-    } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        const newUser: User = {
-          id: `usr_${Date.now()}`,
-          username: payload.username,
-          email: payload.email || null,
-          name: payload.name || null,
-          avatar: null,
-          role: payload.role || 'USER',
-          isActive: payload.isActive ?? true,
-          authProvider: 'LOCAL',
-          isEmailVerified: true,
-          weightKg: 65,
-          targetWeightKg: 65,
-          heightCm: 170,
-          goal: 'MAINTAIN',
-          targetCalories: 2000,
-          targetProtein: 140,
-          targetCarb: 200,
-          targetFat: 60,
-          dailyAiQuota: payload.dailyAiQuota || 10,
-          purchasedAiQuota: 0,
-          purchasedChatQuota: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        localUsers.unshift(newUser);
-        return newUser;
-      }
-      throw err;
-    }
-  },
-
-  async updateUser(id: string, payload: UpdateUserPayload): Promise<User> {
-    try {
-      const res = await apiClient.patch(`/admin/users/${id}`, payload);
-      return res.data.data;
-    } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        localUsers = localUsers.map((u) => (u.id === id ? { ...u, ...payload } : u));
-        return localUsers.find((u) => u.id === id)!;
-      }
-      throw err;
-    }
-  },
-
-  async resetPassword(id: string, newPassword: string): Promise<{ message: string }> {
-    try {
-      const res = await apiClient.patch(`/admin/users/${id}/password`, { newPassword });
-      return res.data.data || res.data;
-    } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        return { message: 'Đặt lại mật khẩu thành công (Mô phỏng)' };
-      }
-      throw err;
-    }
-  },
-
-  async deleteUser(id: string): Promise<{ message: string }> {
-    try {
-      const res = await apiClient.delete(`/admin/users/${id}`);
-      return res.data.data || res.data;
-    } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        localUsers = localUsers.filter((u) => u.id !== id);
-        return { message: 'Xóa người dùng thành công' };
-      }
-      throw err;
     }
   },
 };

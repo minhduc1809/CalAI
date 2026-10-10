@@ -9,27 +9,23 @@ import { OrdersPage } from './pages/Orders';
 import { UsersPage } from './pages/Users';
 import { GrantsPage } from './pages/Grants';
 import { AuditLogsPage } from './pages/AuditLogs';
-import { MealsPage } from './pages/Meals';
-import { WorkoutsPage } from './pages/Workouts';
-import { WeightLogsPage } from './pages/WeightLogs';
-import { CheckInsPage } from './pages/CheckIns';
-import { TemplatesPage } from './pages/Templates';
-import { FoodsPage } from './pages/Foods';
-import { AiLogsPage } from './pages/AiLogs';
 
-// Protected Route Guard
+// Protected Route Guard strictly enforcing ADMIN role
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-[#0B0F17]">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#0F172A]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin" />
+          <span className="text-xs font-semibold text-slate-400">Đang tải CalAI Admin Console...</span>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role !== 'ADMIN') {
     return <Navigate to="/login" replace />;
   }
 
@@ -60,18 +56,9 @@ export function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="grants" element={<GrantsPage />} />
               <Route path="audit-logs" element={<AuditLogsPage />} />
-
-              {/* Legacy routes */}
-              <Route path="meals" element={<MealsPage />} />
-              <Route path="workouts" element={<WorkoutsPage />} />
-              <Route path="weight-logs" element={<WeightLogsPage />} />
-              <Route path="checkins" element={<CheckInsPage />} />
-              <Route path="templates" element={<TemplatesPage />} />
-              <Route path="foods" element={<FoodsPage />} />
-              <Route path="ai-logs" element={<AiLogsPage />} />
             </Route>
 
-            {/* Catch all */}
+            {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
