@@ -1,46 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  CreditCard,
   Users,
-  UtensilsCrossed,
-  Dumbbell,
-  Scale,
-  ClipboardCheck,
-  FileText,
-  Apple,
-  Bot,
+  Gift,
+  Shield,
   ChevronLeft,
   ChevronRight,
   LogOut,
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { adminDashboardApi } from '../../api/admin-dashboard.api';
 
 interface SidebarProps {
-  pendingCheckInsCount?: number;
+  pendingOrdersCount?: number;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ pendingCheckInsCount = 18 }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ pendingOrdersCount }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number>(pendingOrdersCount ?? 8);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (pendingOrdersCount !== undefined) {
+      setPendingCount(pendingOrdersCount);
+      return;
+    }
+    adminDashboardApi.getSummary().then((sum) => {
+      if (sum?.orders?.pending !== undefined) {
+        setPendingCount(sum.orders.pending);
+      }
+    }).catch(() => {});
+  }, [pendingOrdersCount]);
+
   const menuItems = [
     { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Người dùng', path: '/users', icon: Users },
-    { name: 'Bữa ăn', path: '/meals', icon: UtensilsCrossed },
-    { name: 'Tập luyện', path: '/workouts', icon: Dumbbell },
-    { name: 'Cân nặng', path: '/weight-logs', icon: Scale },
     {
-      name: 'Duyệt Check-in',
-      path: '/checkins',
-      icon: ClipboardCheck,
-      badge: pendingCheckInsCount > 0 ? pendingCheckInsCount : undefined,
+      name: 'Quản lý Đơn VietQR',
+      path: '/orders',
+      icon: CreditCard,
+      badge: pendingCount > 0 ? pendingCount : undefined,
     },
-    { name: 'Mẫu Giáo án', path: '/templates', icon: FileText },
-    { name: 'Món ăn', path: '/foods', icon: Apple },
-    { name: 'AI Logs & Chat', path: '/ai-logs', icon: Bot },
+    { name: 'Người dùng', path: '/users', icon: Users },
+    { name: 'Cấp Gói Thủ công', path: '/grants', icon: Gift },
+    { name: 'Nhật ký Kiểm toán', path: '/audit-logs', icon: Shield },
   ];
 
   return (

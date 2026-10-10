@@ -5,7 +5,10 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { OrdersPage } from './pages/Orders';
 import { UsersPage } from './pages/Users';
+import { GrantsPage } from './pages/Grants';
+import { AuditLogsPage } from './pages/AuditLogs';
 import { MealsPage } from './pages/Meals';
 import { WorkoutsPage } from './pages/Workouts';
 import { WeightLogsPage } from './pages/WeightLogs';
@@ -53,7 +56,12 @@ export function App() {
             >
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="orders" element={<OrdersPage />} />
               <Route path="users" element={<UsersPage />} />
+              <Route path="grants" element={<GrantsPage />} />
+              <Route path="audit-logs" element={<AuditLogsPage />} />
+
+              {/* Legacy routes */}
               <Route path="meals" element={<MealsPage />} />
               <Route path="workouts" element={<WorkoutsPage />} />
               <Route path="weight-logs" element={<WeightLogsPage />} />
