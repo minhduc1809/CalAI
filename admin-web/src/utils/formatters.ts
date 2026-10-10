@@ -31,6 +31,15 @@ export function formatCurrencyUsd(val?: number | null): string {
   return `$${val.toFixed(2)}`;
 }
 
+export function formatCurrencyVnd(val?: number | null): string {
+  if (val === undefined || val === null) return '0 ₫';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+}
+
+export function formatDateTimeVn(dateString?: string | null): string {
+  return formatDate(dateString, 'HH:mm - dd/MM/yyyy');
+}
+
 export function formatCalories(val?: number | null): string {
   return `${formatNumber(val)} kcal`;
 }
@@ -38,3 +47,4 @@ export function formatCalories(val?: number | null): string {
 export function formatGrams(val?: number | null): string {
   return `${formatNumber(val)} g`;
 }
+
