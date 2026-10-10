@@ -26,6 +26,7 @@ apiClient.interceptors.response.use(
       if (!window.location.pathname.includes('/login')) {
         localStorage.removeItem('calai_admin_token');
         localStorage.removeItem('calai_admin_user');
+        localStorage.removeItem('calai_admin_refresh_token');
         window.location.href = '/login';
       }
     }

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Shield,
-  Search,
-  Filter,
   RefreshCw,
   CheckCircle2,
   XCircle,
@@ -13,10 +11,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Terminal,
-  Globe,
-  FileText,
 } from 'lucide-react';
 import { auditLogsApi } from '../api/audit-logs.api';
 import { AdminAuditLog } from '../types';
@@ -224,7 +218,7 @@ export const AuditLogsPage: React.FC = () => {
 
                       {/* Admin email */}
                       <td className="py-3.5 px-4 font-mono text-[11px] text-[#F8FAFC]">
-                        {log.adminEmail || 'admin@calai.com'}
+                        {log.adminEmail || '—'}
                       </td>
 
                       {/* Loại hành động */}
@@ -244,7 +238,9 @@ export const AuditLogsPage: React.FC = () => {
                           <div className="flex items-center gap-1 text-[#94A3B8] mt-0.5">
                             <span>ID: {log.targetId.slice(0, 10)}...</span>
                             <button
-                              onClick={() => copyToClipboard(log.targetId, 'Target ID')}
+                              onClick={() => {
+                                if (log.targetId) copyToClipboard(log.targetId, 'Target ID');
+                              }}
                               className="p-0.5 hover:text-[#F8FAFC]"
                               title="Copy Target ID"
                             >
@@ -343,7 +339,7 @@ export const AuditLogsPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-[#94A3B8]">Admin Email:</span>
-                <p className="font-mono text-[#F8FAFC] mt-0.5">{selectedLog.adminEmail}</p>
+                <p className="font-mono text-[#F8FAFC] mt-0.5">{selectedLog.adminEmail || '—'}</p>
               </div>
               <div>
                 <span className="text-[#94A3B8]">Loại Thao Tác:</span>
@@ -352,7 +348,7 @@ export const AuditLogsPage: React.FC = () => {
               <div>
                 <span className="text-[#94A3B8]">Đối Tượng / ID:</span>
                 <p className="font-mono text-[#F8FAFC] mt-0.5">
-                  {selectedLog.targetType} • {selectedLog.targetId}
+                  {selectedLog.targetType} • {selectedLog.targetId || '—'}
                 </p>
               </div>
               <div>

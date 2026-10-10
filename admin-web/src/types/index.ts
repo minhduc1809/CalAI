@@ -32,14 +32,14 @@ export interface User {
   role: Role;
   isActive: boolean;
   authProvider?: string;
-  isEmailVerified: boolean;
-  dailyAiQuota: number;
-  purchasedAiQuota: number;
+  isEmailVerified?: boolean;
+  dailyAiQuota?: number;
+  purchasedAiQuota?: number;
   purchasedChatQuota?: number;
   isPremium?: boolean;
   subscriptionState?: AdminUserSubscriptionState | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   // BR-17.1: Zero personal medical / diet metrics
   weightKg?: null;
   targetWeightKg?: null;
@@ -78,7 +78,7 @@ export interface AdminPaymentOrder {
   amount: number;
   currency?: string;
   status: PaymentOrderStatus;
-  itemSku: string;
+  itemSku?: string;
   userNote?: string | null;
   paidAmount?: number;
   paidAt?: string | null;
@@ -119,10 +119,10 @@ export type AuditLogAction =
 export interface AdminAuditLog {
   id: string;
   adminId: string;
-  adminEmail: string;
+  adminEmail: string | null;
   action: AuditLogAction;
   targetType: 'User' | 'PaymentOrder' | 'ManualGrant' | string;
-  targetId: string;
+  targetId: string | null;
   before?: Record<string, any> | null;
   after?: Record<string, any> | null;
   reason?: string | null;

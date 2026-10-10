@@ -3,20 +3,13 @@ import {
   Users as UsersIcon,
   Search,
   Sparkles,
-  Shield,
   CreditCard,
   Gift,
-  CheckCircle2,
-  XCircle,
   Copy,
   Check,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   X,
-  Clock,
-  Calendar,
-  Layers,
   RefreshCw,
 } from 'lucide-react';
 import { usersApi } from '../api/users.api';
@@ -131,7 +124,7 @@ export const UsersPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo email, username, tên..."
+            placeholder="Tìm theo email hoặc tên..."
             className="w-full bg-[#0F172A] border border-[#334155] rounded-xl pl-9 pr-4 py-2 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
           />
         </form>

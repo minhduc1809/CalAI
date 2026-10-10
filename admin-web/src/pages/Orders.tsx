@@ -7,15 +7,11 @@ import {
   Copy,
   Check,
   RefreshCw,
-  Clock,
-  Filter,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
 } from 'lucide-react';
 import { paymentsApi } from '../api/payments.api';
-import { AdminPaymentOrder, PaymentOrderStatus } from '../types';
+import { AdminPaymentOrder } from '../types';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
@@ -54,7 +50,7 @@ export const OrdersPage: React.FC = () => {
       setTotalPages(res.meta.totalPages || 1);
       setTotalRecords(res.meta.total || 0);
     } catch (err: any) {
-      toast.error('Lỗi khi tải danh sách đơn thanh toán');
+      toast.error(err.message || 'Lỗi khi tải danh sách đơn thanh toán');
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +173,7 @@ export const OrdersPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo mã đơn (orderCode), User ID, Email..."
+            placeholder="Tìm theo mã đơn hoặc email người dùng..."
             className="w-full bg-[#0F172A] border border-[#334155] rounded-xl pl-9 pr-4 py-2 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
           />
         </form>
@@ -298,7 +294,7 @@ export const OrdersPage: React.FC = () => {
 
                       {/* Gói SKU */}
                       <td className="py-3.5 px-4 font-mono font-semibold text-[#F8FAFC]">
-                        {order.itemSku}
+                        {order.itemSku || '—'}
                       </td>
 
                       {/* Số tiền */}
@@ -395,7 +391,7 @@ export const OrdersPage: React.FC = () => {
         onClose={() => setOrderToApprove(null)}
         onConfirm={handleConfirmApprove}
         title="Xác nhận Duyệt Đơn Nạp VietQR (BR-17.2)"
-        message={`Bạn xác nhận duyệt đơn ${orderToApprove?.orderCode} với số tiền ${formatCurrencyVnd(orderToApprove?.amount)}? Hệ thống sẽ kích hoạt gói Premium tương ứng SKU ${orderToApprove?.itemSku}, tự động cộng dồn ngày và ghi nhận vào Nhật ký kiểm toán.`}
+        message={`Bạn xác nhận duyệt đơn ${orderToApprove?.orderCode} với số tiền ${formatCurrencyVnd(orderToApprove?.amount)}? Hệ thống sẽ kích hoạt gói Premium tương ứng${orderToApprove?.itemSku ? ` SKU ${orderToApprove.itemSku}` : ''}, tự động cộng dồn ngày và ghi nhận vào Nhật ký kiểm toán.`}
         confirmLabel="Duyệt đơn ngay"
         cancelLabel="Hủy"
         isLoading={isApproving}

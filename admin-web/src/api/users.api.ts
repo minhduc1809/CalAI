@@ -1,6 +1,5 @@
 import { apiClient } from './client';
 import { User, PaginatedResponse, Role, AdminUserBillingDetails } from '../types';
-import { mockUsers, mockPaymentOrders, mockManualGrants } from '../utils/mockData';
 
 export interface UserQueryParams {
   search?: string;
@@ -10,33 +9,47 @@ export interface UserQueryParams {
   limit?: number;
 }
 
-// In-memory cache for mock fallbacks
-let localUsers = [...mockUsers];
+interface PaginatedItems<T> {
+  items: T[];
+  pagination?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+  };
+}
 
-function normalizeUser(u: any): User {
+function normalizeUser(user: Record<string, any>): User {
+  if (!user.id || !user.role || typeof user.isActive !== 'boolean' || !user.createdAt) {
+    throw new Error('Phản hồi người dùng không đúng định dạng');
+  }
+
+  const subscriptionState = user.subscriptionState ?? null;
   const isPremium =
-    u.isPremium !== undefined
-      ? Boolean(u.isPremium)
-      : Boolean(u.subscriptionState?.expiryTime && new Date(u.subscriptionState.expiryTime) > new Date());
+    user.isPremium !== undefined
+      ? Boolean(user.isPremium)
+      : Boolean(
+          subscriptionState?.expiryTime &&
+            new Date(subscriptionState.expiryTime).getTime() > Date.now(),
+        );
 
   return {
-    id: u.id,
-    username: u.username || u.email?.split('@')[0] || 'user',
-    email: u.email || null,
-    name: u.name || null,
-    avatar: u.avatar || null,
-    role: u.role || 'USER',
-    isActive: u.isActive !== undefined ? u.isActive : true,
-    authProvider: u.authProvider || 'LOCAL',
-    isEmailVerified: u.isEmailVerified !== undefined ? u.isEmailVerified : true,
-    dailyAiQuota: u.dailyAiQuota ?? 10,
-    purchasedAiQuota: u.purchasedAiQuota ?? 0,
-    purchasedChatQuota: u.purchasedChatQuota ?? 0,
+    id: String(user.id),
+    username: user.username ?? user.email?.split('@')[0] ?? String(user.id),
+    email: user.email ?? null,
+    name: user.name ?? null,
+    avatar: user.avatar ?? null,
+    role: user.role,
+    isActive: user.isActive,
+    authProvider: user.authProvider,
+    isEmailVerified: user.isEmailVerified,
+    dailyAiQuota: user.dailyAiQuota,
+    purchasedAiQuota: user.purchasedAiQuota,
+    purchasedChatQuota: user.purchasedChatQuota,
     isPremium,
-    subscriptionState: u.subscriptionState || null,
-    createdAt: u.createdAt || new Date().toISOString(),
-    updatedAt: u.updatedAt || new Date().toISOString(),
-    // Strictly preserve privacy (BR-17.1)
+    subscriptionState,
+    createdAt: String(user.createdAt),
+    updatedAt: user.updatedAt,
     weightKg: null,
     targetWeightKg: null,
     heightCm: null,
@@ -48,133 +61,88 @@ function normalizeUser(u: any): User {
   };
 }
 
+function normalizeBillingOrder(order: Record<string, any>, userId: string) {
+  const amount = Number(order.amount);
+  if (!order.id || !order.createdAt || !Number.isFinite(amount)) {
+    throw new Error('Phản hồi lịch sử đơn thanh toán không đúng định dạng');
+  }
+
+  return {
+    id: String(order.id),
+    orderCode: String(order.orderCode ?? order.code ?? order.id),
+    userId: String(order.userId ?? userId),
+    amount,
+    status: order.status === 'CANCELED' ? 'CANCELED' : order.status,
+    itemSku: order.itemSku ?? order.productId,
+    createdAt: String(order.createdAt),
+    paidAt: order.paidAt ?? null,
+  };
+}
+
 export const usersApi = {
   async getUsers(params?: UserQueryParams): Promise<PaginatedResponse<User>> {
-    try {
-      const apiParams: any = { ...params };
-      const res = await apiClient.get('/admin/users', { params: apiParams });
-      const raw = res.data?.data || res.data;
-      const rawItems = Array.isArray(raw) ? raw : (raw?.items || raw?.data || []);
-      const pagination = raw?.pagination || res.data?.pagination || res.data?.meta || {
-        page: params?.page || 1,
-        limit: params?.limit || 20,
-        total: rawItems.length,
-        totalPages: 1,
-      };
+    const res = await apiClient.get<{ data: PaginatedItems<Record<string, any>> }>(
+      '/admin/users',
+      { params },
+    );
+    const result = res.data.data;
+    const users = result.items.map(normalizeUser);
+    const pagination = result.pagination ?? {};
 
-      const items = rawItems.map(normalizeUser);
-
-      return {
-        data: items,
-        meta: {
-          page: Number(pagination.page || 1),
-          limit: Number(pagination.limit || 20),
-          total: Number(pagination.total || items.length),
-          totalPages: Number(pagination.totalPages || 1),
-        },
-      };
-    } catch {
-      let filtered = [...localUsers];
-      if (params?.search) {
-        const s = params.search.toLowerCase();
-        filtered = filtered.filter(
-          (u) =>
-            u.username.toLowerCase().includes(s) ||
-            (u.email && u.email.toLowerCase().includes(s)) ||
-            (u.name && u.name.toLowerCase().includes(s))
-        );
-      }
-      if (params?.role) {
-        filtered = filtered.filter((u) => u.role === params.role);
-      }
-      if (params?.isPremium === 'true') {
-        filtered = filtered.filter((u) => u.isPremium);
-      } else if (params?.isPremium === 'false') {
-        filtered = filtered.filter((u) => !u.isPremium);
-      }
-
-      const page = params?.page || 1;
-      const limit = params?.limit || 20;
-      const start = (page - 1) * limit;
-
-      return {
-        data: filtered.slice(start, start + limit),
-        meta: {
-          total: filtered.length,
-          page,
-          limit,
-          totalPages: Math.ceil(filtered.length / limit) || 1,
-        },
-      };
-    }
+    return {
+      data: users,
+      meta: {
+        page: pagination.page ?? params?.page ?? 1,
+        limit: pagination.limit ?? params?.limit ?? 20,
+        total: pagination.total ?? users.length,
+        totalPages: pagination.totalPages ?? (users.length > 0 ? 1 : 0),
+      },
+    };
   },
 
   async getUserBilling(id: string): Promise<AdminUserBillingDetails> {
-    try {
-      const res = await apiClient.get(`/admin/users/${id}/billing`);
-      const raw = res.data?.data || res.data;
-
-      const user = raw.user || raw;
-      const subscription = raw.subscription || user.subscriptionState || null;
-      const orders = (raw.orders || raw.paymentOrders || []).map((o: any) => ({
-        id: o.id,
-        orderCode: o.orderCode || o.code || o.id.slice(0, 8),
-        userId: o.userId || id,
-        amount: Number(o.amount || 0),
-        status: o.status === 'CANCELED' ? 'CANCELLED' : o.status,
-        itemSku: o.itemSku || o.productId || 'premium_1m',
-        createdAt: o.createdAt,
-        paidAt: o.paidAt || null,
-      }));
-
-      const manualGrants = (raw.manualGrants || []).map((g: any) => ({
-        id: g.id,
-        userId: g.userId || id,
-        startsAt: g.startsAt,
-        endsAt: g.endsAt,
-        reason: g.reason,
-        revokedAt: g.revokedAt || null,
-        revokedReason: g.revokedReason || null,
-        createdAt: g.createdAt || g.startsAt,
-      }));
-
+    const res = await apiClient.get<{ data: Record<string, any> }>(
+      `/admin/users/${encodeURIComponent(id)}/billing`,
+    );
+    const raw = res.data.data;
+    const user = raw.user ?? raw;
+    const subscription = raw.subscription ?? raw.subscriptionState ?? null;
+    const orders = (raw.orders ?? raw.paymentOrders ?? []).map((order: Record<string, any>) =>
+      normalizeBillingOrder(order, id),
+    );
+    const manualGrants = (raw.manualGrants ?? []).map((grant: Record<string, any>) => {
+      if (!grant.id || !grant.startsAt || !grant.endsAt || !grant.reason) {
+        throw new Error('Phản hồi lịch sử cấp Premium không đúng định dạng');
+      }
       return {
-        user: {
-          id: user.id,
-          email: user.email || '',
-          username: user.username || user.email?.split('@')[0] || 'user',
-          name: user.name || user.username || 'User',
-          isPremium: Boolean(
-            subscription?.status === 'ACTIVE' ||
-            (subscription?.expiryTime && new Date(subscription.expiryTime) > new Date())
-          ),
-        },
-        subscription,
-        orders,
-        manualGrants,
+        id: String(grant.id),
+        userId: String(grant.userId ?? id),
+        startsAt: String(grant.startsAt),
+        endsAt: String(grant.endsAt),
+        reason: String(grant.reason),
+        revokedAt: grant.revokedAt ?? null,
+        revokedReason: grant.revokedReason ?? null,
+        grantedByAdminId: grant.grantedByAdminId ?? grant.adminId ?? undefined,
+        createdAt: String(grant.createdAt ?? grant.startsAt),
       };
-    } catch {
-      const user = localUsers.find((u) => u.id === id) || localUsers[0];
-      const orders = mockPaymentOrders.filter((o) => o.userId === id);
-      const grants = mockManualGrants.filter((g) => g.userId === id);
+    });
+    const email = user.email ?? '';
 
-      return {
-        user: {
-          id: user.id,
-          email: user.email || '',
-          username: user.username,
-          name: user.name || user.username,
-          isPremium: !!user.isPremium,
-        },
-        subscription: user.subscriptionState || (user.isPremium ? {
-          status: 'ACTIVE',
-          expiryTime: '2026-11-10T00:00:00.000Z',
-          productId: 'premium_monthly',
-          autoRenewing: true,
-        } : null),
-        orders,
-        manualGrants: grants,
-      };
-    }
+    return {
+      user: {
+        id: String(user.id ?? id),
+        email,
+        username: user.username ?? email.split('@')[0] ?? String(user.id ?? id),
+        name: user.name ?? email,
+        isPremium: Boolean(
+          user.isPremium ??
+            (subscription?.expiryTime &&
+              new Date(subscription.expiryTime).getTime() > Date.now()),
+        ),
+      },
+      subscription,
+      orders,
+      manualGrants,
+    };
   },
 };

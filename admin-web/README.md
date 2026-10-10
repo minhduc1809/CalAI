@@ -36,13 +36,9 @@ Mặc định Vite sẽ khởi chạy tại:
 
 Khi truy cập `http://localhost:5173`, hệ thống sẽ đưa bạn đến màn hình đăng nhập:
 
-* **Tài khoản mặc định (Demo & Backend Admin)**:
-  * **Tên đăng nhập / Username**: `admin`
-  * **Mật khẩu / Password**: `admin123`
-
-> 💡 **Cơ chế hoạt động**:
-> * Khi Backend API đang chạy (`http://localhost:3000/api/v1`), hệ thống sẽ xác thực JWT token qua API `/auth/login` với quyền `ADMIN`.
-> * Nếu Backend API chưa bật hoặc lỗi kết nối, hệ thống sẽ tự động kích hoạt **Chế độ Xem thử (Demo Preview Mode)** với bộ dữ liệu mẫu đầy đủ để bạn có thể xem và trải nghiệm trọn vẹn toàn bộ các màn hình giao diện.
+* Đăng nhập bằng email và mật khẩu của tài khoản có quyền `ADMIN` trong backend.
+* Không có tài khoản demo hoặc chế độ mock. Nếu backend không khả dụng, trang sẽ hiển thị lỗi thay vì dữ liệu giả.
+* Phiên đăng nhập được xác thực lại qua `GET /admin/auth/me`; khi access token hết hạn, hãy đăng nhập lại.
 
 ---
 
@@ -59,20 +55,16 @@ Nếu Backend của bạn chạy ở port hoặc domain khác, chỉ cần cập
 ## 📊 5. Các Chức năng Quản trị trên Dashboard
 
 1. **Dashboard Tổng quan (`/dashboard`)**:
-   * Thống kê tổng số Users, Active Members, Premium Users.
-   * Lượng Calo & Bữa ăn ghi nhận hôm nay, số lượt tập luyện.
-   * Thống kê lượng Check-in cần duyệt, biểu đồ xu hướng AI API token usage.
+   * KPI người dùng, Premium, đơn thanh toán và tổng doanh thu lấy từ `GET /admin/dashboard`.
+   * Đơn chờ và hoạt động kiểm toán lấy từ API tương ứng. Backend hiện chưa cung cấp dữ liệu doanh thu theo ngày nên không hiển thị biểu đồ xu hướng giả.
 2. **Quản lý Người dùng (`/users`)**:
-   * Danh sách tài khoản, trạng thái Active / Banned.
-   * Cập nhật thông tin, cấp/hủy quyền Admin, đặt lại mật khẩu, xóa tài khoản.
-3. **Quản lý Dinh dưỡng & Bữa ăn (`/meals`)**:
-   * Xem lịch sử nhật ký ăn uống của người dùng, phân tích chi tiết Calo/Carb/Protein/Fat.
-4. **Quản lý Tập luyện (`/workouts`)**:
-   * Xem nhật ký bài tập, calo tiêu hao, sets & reps.
-5. **Duyệt Check-in Tiến độ (`/checkins`)**:
-   * Danh sách check-in tuần của học viên/người dùng.
-   * Duyệt / từ chối và gửi ghi chú nhận xét của Coach/Chuyên gia.
-6. **Thư viện Thực phẩm & Mẫu (`/foods` & `/templates`)**:
-   * Quản lý kho thực phẩm tùy chỉnh và thực đơn mẫu.
-7. **Lịch sử & Giám sát AI (`/ai-logs`)**:
-   * Theo dõi lượng token tiêu thụ của Chatbot AI và Camera AI Scan, chi phí API ước tính.
+   * Tra cứu và xem thông tin thanh toán/gói cước; không hiển thị dữ liệu sức khỏe cá nhân.
+3. **Đơn thanh toán (`/orders`)**:
+   * Tìm kiếm, lọc, duyệt và từ chối đơn VietQR.
+4. **Cấp gói Premium (`/grants`)**:
+   * Cấp/thu hồi quyền Premium; tra cứu lịch sử cấp theo User ID qua `GET /admin/users/:id/billing`.
+   * Backend hiện không có endpoint liệt kê tất cả manual grant trên toàn hệ thống.
+5. **Nhật ký kiểm toán (`/audit-logs`)**:
+   * Xem và lọc các thao tác quản trị do backend ghi nhận.
+
+Các endpoint thao tác billing được gọi theo route backend hiện tại: `POST /admin/billing/grants` và `POST /admin/billing/grants/:id/revoke`.

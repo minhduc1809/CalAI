@@ -1,45 +1,66 @@
 import { apiClient } from './client';
 import { AdminDashboardSummary } from '../types';
-import { mockDashboardSummary } from '../utils/mockData';
+
+interface DashboardSummaryResponse {
+  users: {
+    total: number;
+    newLast7Days: number;
+    newLast30Days: number;
+  };
+  subscriptions: {
+    activePremiums: number;
+  };
+  orders: {
+    pending: number;
+    paid: number;
+    totalRevenueVnd?: number;
+  };
+  revenue?: {
+    totalVnd?: number;
+  };
+}
 
 export const adminDashboardApi = {
   async getSummary(): Promise<AdminDashboardSummary> {
-    try {
-      let res;
-      try {
-        res = await apiClient.get<{ message?: string; data: any }>('/admin/dashboard');
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          res = await apiClient.get<{ message?: string; data: any }>('/admin/dashboard/summary');
-        } else {
-          throw err;
-        }
-      }
+    const res = await apiClient.get<{ data?: DashboardSummaryResponse } & DashboardSummaryResponse>(
+      '/admin/dashboard',
+    );
+    const raw = res.data.data ?? res.data;
 
-      const raw = res.data?.data || res.data;
-      if (!raw || !raw.users) {
-        return mockDashboardSummary;
-      }
-
-      return {
-        users: {
-          total: Number(raw.users?.total ?? 0),
-          newLast7Days: Number(raw.users?.newLast7Days ?? 0),
-          newLast30Days: Number(raw.users?.newLast30Days ?? 0),
-        },
-        subscriptions: {
-          activePremiums: Number(raw.subscriptions?.activePremiums ?? 0),
-        },
-        orders: {
-          pending: Number(raw.orders?.pending ?? 0),
-          paid: Number(raw.orders?.paid ?? 0),
-        },
-        revenue: {
-          totalVnd: Number(raw.revenue?.totalVnd ?? raw.orders?.totalRevenueVnd ?? 0),
-        },
-      };
-    } catch {
-      return mockDashboardSummary;
+    const metrics = [
+      raw.users?.total,
+      raw.users?.newLast7Days,
+      raw.users?.newLast30Days,
+      raw.subscriptions?.activePremiums,
+      raw.orders?.pending,
+      raw.orders?.paid,
+      raw.revenue?.totalVnd ?? raw.orders?.totalRevenueVnd,
+    ];
+    if (
+      !raw.users ||
+      !raw.subscriptions ||
+      !raw.orders ||
+      metrics.some((value) => value === undefined || !Number.isFinite(Number(value)))
+    ) {
+      throw new Error('Phản hồi thống kê dashboard không đúng định dạng');
     }
+
+    return {
+      users: {
+        total: Number(raw.users.total),
+        newLast7Days: Number(raw.users.newLast7Days),
+        newLast30Days: Number(raw.users.newLast30Days),
+      },
+      subscriptions: {
+        activePremiums: Number(raw.subscriptions.activePremiums),
+      },
+      orders: {
+        pending: Number(raw.orders.pending),
+        paid: Number(raw.orders.paid),
+      },
+      revenue: {
+        totalVnd: Number(raw.revenue?.totalVnd ?? raw.orders.totalRevenueVnd),
+      },
+    };
   },
 };

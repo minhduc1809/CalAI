@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   Gift,
-  AlertTriangle,
   ArrowRight,
   ShieldCheck,
   Check,
@@ -20,12 +19,9 @@ import {
   UserCheck,
   DollarSign,
   Activity,
-  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -44,7 +40,6 @@ import { AdminDashboardSummary, AdminPaymentOrder, AdminAuditLog } from '../type
 import { StatCard } from '../components/ui/StatCard';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatNumber, formatCurrencyVnd, formatDateTimeVn } from '../utils/formatters';
-import { mockRevenueTrend30Days } from '../utils/mockData';
 import { toast } from 'sonner';
 
 export const Dashboard: React.FC = () => {
@@ -53,6 +48,7 @@ export const Dashboard: React.FC = () => {
   const [recentLogs, setRecentLogs] = useState<AdminAuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Quick Approve State
@@ -61,7 +57,7 @@ export const Dashboard: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const fetchData = async () => {
+  const fetchData = async (): Promise<boolean> => {
     try {
       const [sumRes, ordersRes, logsRes] = await Promise.all([
         adminDashboardApi.getSummary(),
@@ -71,8 +67,13 @@ export const Dashboard: React.FC = () => {
       setSummary(sumRes);
       setPendingOrders(ordersRes.data || []);
       setRecentLogs(logsRes.data || []);
+      setLoadError(null);
+      return true;
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      const message = err instanceof Error ? err.message : 'Lỗi không xác định';
+      setLoadError(message);
+      toast.error(`Không thể tải dữ liệu Dashboard: ${message}`);
+      return false;
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -84,7 +85,9 @@ export const Dashboard: React.FC = () => {
 
     const handleGlobalRefresh = () => {
       setIsRefreshing(true);
-      fetchData().then(() => toast.success('Đã cập nhật dữ liệu Dashboard'));
+      void fetchData().then((updated) => {
+        if (updated) toast.success('Đã cập nhật dữ liệu Dashboard');
+      });
     };
 
     window.addEventListener('admin-refresh-data', handleGlobalRefresh);
@@ -93,7 +96,9 @@ export const Dashboard: React.FC = () => {
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);
-    fetchData().then(() => toast.success('Đã làm mới dữ liệu mới nhất'));
+    void fetchData().then((updated) => {
+      if (updated) toast.success('Đã làm mới dữ liệu mới nhất');
+    });
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -110,7 +115,7 @@ export const Dashboard: React.FC = () => {
       await paymentsApi.approveOrder(orderToApprove.id);
       toast.success(`Đã duyệt đơn ${orderToApprove.orderCode} & kích hoạt gói thành công`);
       setOrderToApprove(null);
-      fetchData();
+      void fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Lỗi khi duyệt đơn nạp');
     } finally {
@@ -167,14 +172,20 @@ export const Dashboard: React.FC = () => {
           </p>
         </div>
 
+        {loadError && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            Không thể tải đầy đủ dữ liệu từ backend: {loadError}
+          </div>
+        )}
+
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
             onClick={handleManualRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || isLoading}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155]/80 text-[#F8FAFC] border border-[#334155] text-xs font-semibold transition-all disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-            <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới số liệu'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>{isRefreshing || isLoading ? 'Đang cập nhật...' : 'Làm mới số liệu'}</span>
           </button>
         </div>
       </div>
@@ -250,99 +261,25 @@ export const Dashboard: React.FC = () => {
                 <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <TrendingUp className="w-4 h-4" />
                 </span>
-                <h3 className="text-sm font-bold text-[#F8FAFC]">
-                  Xu Hướng Dòng Tiền & Tần Suất Giao Dịch 30 Ngày
-                </h3>
+                <h3 className="text-sm font-bold text-[#F8FAFC]">Doanh Thu VietQR</h3>
               </div>
               <p className="text-xs text-[#94A3B8] mt-1">
-                Doanh thu nạp gói (VND - triệu đồng) & số lượng giao dịch thành công (Volume Run-rate)
+                Tổng doanh thu và số đơn đã thanh toán do API Dashboard cung cấp
               </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-semibold">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-                Doanh thu (VND)
-              </span>
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
-                Số đơn
-              </span>
             </div>
           </div>
 
-          <div className="h-72 w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRevenueTrend30Days} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
-                <XAxis
-                  dataKey="date"
-                  stroke="#94A3B8"
-                  fontSize={11}
-                  tickLine={false}
-                  dy={5}
-                />
-                <YAxis
-                  yAxisId="left"
-                  stroke="#94A3B8"
-                  fontSize={11}
-                  tickLine={false}
-                  tickFormatter={(val) => `${(val / 1000000).toFixed(1)}M`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#F59E0B"
-                  fontSize={11}
-                  tickLine={false}
-                  tickFormatter={(val) => `${val}`}
-                />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      const rev = payload.find((p) => p.dataKey === 'revenue')?.value as number;
-                      const ord = payload.find((p) => p.dataKey === 'orders')?.value as number;
-                      return (
-                        <div className="bg-[#0F172A] border border-[#334155] p-3 rounded-xl shadow-xl text-xs space-y-1">
-                          <p className="font-bold text-[#F8FAFC] pb-1 border-b border-[#334155]">
-                            Ngày {label}
-                          </p>
-                          <p className="text-emerald-400 font-semibold">
-                            Doanh thu: {formatCurrencyVnd(rev)}
-                          </p>
-                          <p className="text-amber-400 font-semibold">
-                            Số đơn thành công: {ord} đơn
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#10B981"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#revenueGradient)"
-                />
-                <Area
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="orders"
-                  stroke="#F59E0B"
-                  strokeWidth={2}
-                  fill="none"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-72 flex flex-col items-center justify-center text-center">
+            <DollarSign className="w-9 h-9 text-emerald-400 mb-3" />
+            <p className="text-3xl font-extrabold tracking-tight text-[#F8FAFC]">
+              {formatCurrencyVnd(totalRevenue)}
+            </p>
+            <p className="text-sm font-semibold text-amber-400 mt-2">
+              {formatNumber(paidOrdersCount)} đơn đã thanh toán
+            </p>
+            <p className="text-xs text-[#94A3B8] mt-4 max-w-md">
+              Backend hiện chỉ cung cấp số liệu tổng hợp, chưa có dữ liệu doanh thu theo ngày để vẽ xu hướng.
+            </p>
           </div>
         </div>
 
@@ -604,7 +541,7 @@ export const Dashboard: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-[#94A3B8] truncate">
-                        {log.adminEmail || 'Admin'} {log.targetId ? `• ID: ${log.targetId.slice(0, 8)}` : ''}
+                        {log.adminEmail || '—'} {log.targetId ? `• ID: ${log.targetId.slice(0, 8)}` : ''}
                       </p>
                     </div>
                   </div>
@@ -697,7 +634,7 @@ export const Dashboard: React.FC = () => {
 
                     {/* Gói SKU */}
                     <td className="py-3.5 px-4 font-mono font-semibold text-[#F8FAFC]">
-                      {order.itemSku}
+                      {order.itemSku || '—'}
                     </td>
 
                     {/* Số tiền */}

@@ -4,18 +4,13 @@ import {
   Gift,
   Plus,
   RefreshCw,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
   Copy,
   Check,
-  Calendar,
-  Clock,
   Sparkles,
-  Info,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
 } from 'lucide-react';
 import { billingApi } from '../api/billing.api';
 import { AdminManualGrant } from '../types';
@@ -32,6 +27,8 @@ export const GrantsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [historyUserId, setHistoryUserId] = useState('');
+  const [historyUserIdInput, setHistoryUserIdInput] = useState('');
 
   // Grant Modal State
   const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
@@ -50,19 +47,34 @@ export const GrantsPage: React.FC = () => {
     const qUserId = searchParams.get('userId');
     if (qUserId) {
       setUserIdInput(qUserId);
+      setHistoryUserIdInput(qUserId);
+      setHistoryUserId(qUserId);
       setIsGrantModalOpen(true);
     }
   }, [searchParams]);
 
-  const fetchGrants = async () => {
+  const fetchGrants = async (userId = historyUserId, pageToLoad = page) => {
+    if (!userId) {
+      setGrants([]);
+      setTotalRecords(0);
+      setTotalPages(1);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
+    setGrants([]);
+    setTotalRecords(0);
     try {
-      const res = await billingApi.getGrants({ page, limit: 15 });
+      const res = await billingApi.getGrants({ userId, page: pageToLoad, limit: 15 });
       setGrants(res.data);
       setTotalPages(res.meta.totalPages || 1);
       setTotalRecords(res.meta.total || 0);
     } catch {
-      toast.error('Lỗi khi tải danh sách cấp gói Premium');
+      setGrants([]);
+      setTotalRecords(0);
+      setTotalPages(1);
+      toast.error('Không thể tải lịch sử cấp gói của người dùng này');
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +82,13 @@ export const GrantsPage: React.FC = () => {
 
   useEffect(() => {
     fetchGrants();
-  }, [page]);
+  }, [page, historyUserId]);
+
+  const handleHistorySearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    setHistoryUserId(historyUserIdInput.trim());
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -96,8 +114,9 @@ export const GrantsPage: React.FC = () => {
 
     setIsSubmittingGrant(true);
     try {
+      const userId = userIdInput.trim();
       await billingApi.grantPremium({
-        userId: userIdInput.trim(),
+        userId,
         days: Number(daysInput),
         reason: reasonInput.trim(),
       });
@@ -106,7 +125,10 @@ export const GrantsPage: React.FC = () => {
       setUserIdInput('');
       setDaysInput(14);
       setReasonInput('');
-      fetchGrants();
+      setHistoryUserIdInput(userId);
+      setHistoryUserId(userId);
+      setPage(1);
+      fetchGrants(userId, 1);
     } catch (err: any) {
       toast.error(err.message || 'Lỗi cấp Premium thủ công');
     } finally {
@@ -158,7 +180,8 @@ export const GrantsPage: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchGrants}
+            onClick={() => fetchGrants()}
+            disabled={!historyUserId}
             isLoading={isLoading}
             leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
             className="border border-[#334155] text-xs text-[#F8FAFC]"
@@ -202,6 +225,29 @@ export const GrantsPage: React.FC = () => {
         </div>
       </div>
 
+      <form
+        onSubmit={handleHistorySearch}
+        className="flex flex-col sm:flex-row gap-2 p-4 rounded-2xl bg-[#1E293B] border border-[#334155]"
+      >
+        <input
+          type="text"
+          value={historyUserIdInput}
+          onChange={(e) => setHistoryUserIdInput(e.target.value)}
+          placeholder="Nhập User ID để xem lịch sử cấp gói"
+          aria-label="User ID tra cứu lịch sử cấp gói"
+          className="flex-1 bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-emerald-500 font-mono"
+        />
+        <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          isLoading={isLoading}
+          className="bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs"
+        >
+          Tra cứu lịch sử
+        </Button>
+      </form>
+
       {/* Grants Table */}
       <div className="bg-[#1E293B] border border-[#334155] rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -227,8 +273,12 @@ export const GrantsPage: React.FC = () => {
               ) : grants.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-[#94A3B8]">
-                    <p className="text-sm font-semibold text-[#F8FAFC]">Chưa có lượt cấp gói bù nào</p>
-                    <p className="text-xs mt-1 text-[#94A3B8]">Bấm "Cấp Gói Mới" để tạo lượt tặng/đền bù ngày Premium</p>
+                    <p className="text-sm font-semibold text-[#F8FAFC]">
+                      {historyUserId ? 'Người dùng chưa có lượt cấp gói bù nào' : 'Chưa chọn người dùng'}
+                    </p>
+                    <p className="text-xs mt-1 text-[#94A3B8]">
+                      Nhập User ID để xem lịch sử cấp gói, hoặc bấm "Cấp Gói Mới" để tạo lượt cấp Premium.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -306,7 +356,7 @@ export const GrantsPage: React.FC = () => {
 
                       {/* Admin cấp */}
                       <td className="py-3.5 px-4 font-mono text-[11px] text-[#94A3B8]">
-                        {grant.grantedByAdminId ? `${grant.grantedByAdminId.slice(0, 8)}...` : 'System Admin'}
+                        {grant.grantedByAdminId ? `${grant.grantedByAdminId.slice(0, 8)}...` : '—'}
                       </td>
 
                       {/* Tác nghiệp */}

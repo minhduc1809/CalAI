@@ -9,8 +9,8 @@ export interface AdminUser {
   id: string;
   username: string;
   email: string;
-  name: string;
-  role: 'ADMIN' | 'USER';
+  name: string | null;
+  role: 'ADMIN';
   avatar?: string | null;
 }
 
@@ -22,13 +22,9 @@ export interface LoginResponse {
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
-    const rawInput = (payload.usernameOrEmail || '').trim();
-    // In NestJS, AdminLoginDto requires email
-    const email = rawInput.includes('@') ? rawInput : `${rawInput}@calai.com`;
-
     try {
       const res = await apiClient.post('/admin/auth/login', {
-        email,
+        email: payload.usernameOrEmail.trim(),
         password: payload.password,
       });
 
@@ -40,18 +36,21 @@ export const authApi = {
       if (!accessToken) {
         throw new Error('Không nhận được mã xác thực accessToken');
       }
+      if (!rawUser?.id || !rawUser?.email) {
+        throw new Error('Phản hồi đăng nhập không có thông tin quản trị viên hợp lệ');
+      }
 
-      if (rawUser && rawUser.role !== 'ADMIN') {
+      if (rawUser.role !== 'ADMIN') {
         throw new Error('Chỉ quản trị viên (ADMIN) mới có quyền truy cập');
       }
 
       const adminUser: AdminUser = {
-        id: rawUser?.id || 'admin-id',
-        username: rawUser?.username || rawInput,
-        email: rawUser?.email || email,
-        name: rawUser?.name || 'Administrator',
-        role: rawUser?.role || 'ADMIN',
-        avatar: rawUser?.avatar || null,
+        id: rawUser.id,
+        username: rawUser.username || rawUser.email.split('@')[0],
+        email: rawUser.email,
+        name: rawUser.name ?? null,
+        role: 'ADMIN',
+        avatar: rawUser.avatar ?? null,
       };
 
       return {
@@ -73,25 +72,22 @@ export const authApi = {
   async getProfile(): Promise<AdminUser> {
     const res = await apiClient.get('/admin/auth/me');
     const data = res.data?.data || res.data?.admin || res.data;
+    if (!data?.id || !data?.email || data.role !== 'ADMIN') {
+      throw new Error('Tài khoản hiện tại không có quyền quản trị viên');
+    }
     return {
       id: data.id,
-      username: data.username || 'admin',
-      email: data.email || 'admin@calai.com',
-      name: data.name || 'System Administrator',
-      role: data.role || 'ADMIN',
+      username: data.username || data.email.split('@')[0],
+      email: data.email,
+      name: data.name ?? null,
+      role: 'ADMIN',
       avatar: data.avatar || null,
     };
   },
 
-  async logout(): Promise<void> {
-    try {
-      await apiClient.post('/admin/auth/logout');
-    } catch {
-      // Ignore network errors on logout
-    } finally {
-      localStorage.removeItem('calai_admin_token');
-      localStorage.removeItem('calai_admin_user');
-      localStorage.removeItem('calai_admin_refresh_token');
-    }
+  logout(): void {
+    localStorage.removeItem('calai_admin_token');
+    localStorage.removeItem('calai_admin_user');
+    localStorage.removeItem('calai_admin_refresh_token');
   },
 };

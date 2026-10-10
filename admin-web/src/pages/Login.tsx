@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Sparkles, ArrowRight, ShieldAlert, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Sparkles, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 
 export const Login: React.FC = () => {
-  const [usernameOrEmail, setUsernameOrEmail] = useState('admin@calai.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -35,12 +35,6 @@ export const Login: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setUsernameOrEmail('admin@calai.com');
-    setPassword('Admin@123456');
-    toast.info('Đã điền tài khoản Quản trị viên mẫu');
   };
 
   return (
@@ -86,10 +80,10 @@ export const Login: React.FC = () => {
             <div className="relative">
               <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                type="text"
+                type="email"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="admin@calai.com"
+                placeholder="name@company.com"
                 className="w-full bg-[#0F172A] border border-[#334155] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
                 autoComplete="email"
               />
@@ -134,21 +128,6 @@ export const Login: React.FC = () => {
           </div>
         </form>
 
-        {/* Demo Credentials Helper */}
-        <div className="mt-6 p-3.5 rounded-2xl bg-[#0F172A]/70 border border-[#334155] text-[11px] text-[#94A3B8] flex items-center justify-between">
-          <div>
-            <p className="text-[#F8FAFC] font-semibold">Tài khoản Admin đã kích hoạt:</p>
-            <p className="font-mono text-emerald-400 text-xs mt-0.5">admin@calai.com / Admin@123456</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold transition-colors"
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Điền mẫu</span>
-          </button>
-        </div>
       </div>
     </div>
   );

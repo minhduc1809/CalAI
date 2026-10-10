@@ -6,8 +6,6 @@ import {
   RefreshCw,
   LogOut,
   ShieldCheck,
-  Activity,
-  User,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -120,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh, isRefreshing = false 
                 <p className="text-xs font-bold text-[#F8FAFC] truncate">
                   {user?.name || user?.username || 'Administrator'}
                 </p>
-                <p className="text-[11px] text-[#94A3B8] truncate">{user?.email || 'admin@calai.com'}</p>
+                <p className="text-[11px] text-[#94A3B8] truncate">{user?.email || '—'}</p>
                 <div className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-semibold">
                   <ShieldCheck className="w-3 h-3 text-emerald-400" />
                   Quyền: ADMIN (Toàn quyền hệ thống)

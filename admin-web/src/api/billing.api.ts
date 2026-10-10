@@ -1,6 +1,6 @@
 import { apiClient } from './client';
+import { usersApi } from './users.api';
 import { AdminManualGrant, PaginatedResponse } from '../types';
-import { mockManualGrants } from '../utils/mockData';
 
 export interface GrantPayload {
   userId: string;
@@ -13,75 +13,53 @@ export interface RevokePayload {
   reason: string;
 }
 
-// In-memory mock storage fallback
-let localGrants: AdminManualGrant[] = [...mockManualGrants];
+function normalizeGrant(grant: Record<string, any>, fallbackUserId?: string): AdminManualGrant {
+  if (!grant.id || !(grant.userId ?? fallbackUserId)) {
+    throw new Error('Phản hồi gói Premium không đúng định dạng');
+  }
+
+  return {
+    id: String(grant.id),
+    userId: String(grant.userId ?? fallbackUserId),
+    startsAt: String(grant.startsAt ?? ''),
+    endsAt: String(grant.endsAt ?? ''),
+    reason: String(grant.reason ?? ''),
+    revokedAt: grant.revokedAt ?? null,
+    revokedReason: grant.revokedReason ?? null,
+    grantedByAdminId: grant.grantedByAdminId ?? grant.adminId ?? grant.grantedBy,
+    createdAt: String(grant.createdAt ?? grant.startsAt ?? ''),
+  };
+}
+
+function extractErrorMessage(err: any, fallback: string): string {
+  const message = err.response?.data?.message ?? err.message ?? fallback;
+  return Array.isArray(message) ? message.join(', ') : message;
+}
 
 export const billingApi = {
-  async getGrants(params?: { page?: number; limit?: number; userId?: string }): Promise<PaginatedResponse<AdminManualGrant>> {
-    try {
-      let res;
-      try {
-        res = await apiClient.get('/admin/billing/grants', { params });
-      } catch (err: any) {
-        if (err.response?.status === 404 && params?.userId) {
-          // If direct grants endpoint is not mounted, fetch user's billing to get their grants
-          const billingRes = await apiClient.get(`/admin/users/${params.userId}/billing`);
-          const grants = billingRes.data?.data?.manualGrants || [];
-          return {
-            data: grants,
-            meta: {
-              page: 1,
-              limit: 20,
-              total: grants.length,
-              totalPages: 1,
-            },
-          };
-        }
-        throw err;
-      }
+  async getGrants(params: {
+    page?: number;
+    limit?: number;
+    userId: string;
+  }): Promise<PaginatedResponse<AdminManualGrant>> {
+    const billing = await usersApi.getUserBilling(params.userId);
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 20;
+    const start = (page - 1) * limit;
 
-      const raw = res.data?.data || res.data;
-      const rawItems = Array.isArray(raw) ? raw : (raw?.items || raw?.data || []);
-      const pagination = raw?.pagination || res.data?.pagination || res.data?.meta || {
-        page: params?.page || 1,
-        limit: params?.limit || 20,
-        total: rawItems.length,
-        totalPages: 1,
-      };
-
-      return {
-        data: rawItems,
-        meta: {
-          page: Number(pagination.page || 1),
-          limit: Number(pagination.limit || 20),
-          total: Number(pagination.total || rawItems.length),
-          totalPages: Number(pagination.totalPages || 1),
-        },
-      };
-    } catch {
-      let filtered = [...localGrants];
-      if (params?.userId) {
-        filtered = filtered.filter((g) => g.userId === params.userId);
-      }
-
-      const page = params?.page || 1;
-      const limit = params?.limit || 20;
-      const start = (page - 1) * limit;
-
-      return {
-        data: filtered.slice(start, start + limit),
-        meta: {
-          page,
-          limit,
-          total: filtered.length,
-          totalPages: Math.ceil(filtered.length / limit) || 1,
-        },
-      };
-    }
+    return {
+      data: billing.manualGrants.slice(start, start + limit),
+      meta: {
+        page,
+        limit,
+        total: billing.manualGrants.length,
+        totalPages: Math.ceil(billing.manualGrants.length / limit),
+      },
+    };
   },
 
   async grantPremium(payload: GrantPayload): Promise<AdminManualGrant> {
-    if (payload.days < 1 || payload.days > 90) {
+    if (!Number.isInteger(payload.days) || payload.days < 1 || payload.days > 90) {
       throw new Error('Số ngày cấp phải từ 1 đến 90 ngày (BR-17.3)');
     }
     if (!payload.reason || payload.reason.trim().length < 10) {
@@ -89,56 +67,13 @@ export const billingApi = {
     }
 
     try {
-      let res;
-      try {
-        res = await apiClient.post('/admin/billing/grant', payload);
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          res = await apiClient.post('/admin/billing/grants', payload);
-        } else {
-          throw err;
-        }
-      }
-
-      const raw = res.data?.grant || res.data?.data || res.data;
-      const newGrant: AdminManualGrant = {
-        id: raw.id,
-        userId: raw.userId || payload.userId,
-        startsAt: raw.startsAt,
-        endsAt: raw.endsAt,
-        reason: raw.reason || payload.reason,
-        revokedAt: raw.revokedAt || null,
-        revokedReason: raw.revokedReason || null,
-        grantedByAdminId: raw.adminId || raw.grantedByAdminId,
-        createdAt: raw.createdAt || raw.startsAt,
-      };
-      localGrants.unshift(newGrant);
-      return newGrant;
+      const res = await apiClient.post<{ data: Record<string, any> }>(
+        '/admin/billing/grants',
+        payload,
+      );
+      return normalizeGrant(res.data.data, payload.userId);
     } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        const now = new Date();
-        const ends = new Date(now.getTime() + payload.days * 24 * 60 * 60 * 1000);
-        const newGrant: AdminManualGrant = {
-          id: `grant-${Date.now()}`,
-          userId: payload.userId,
-          startsAt: now.toISOString(),
-          endsAt: ends.toISOString(),
-          reason: payload.reason,
-          revokedAt: null,
-          revokedReason: null,
-          grantedByAdminId: 'admin-id',
-          createdAt: now.toISOString(),
-          user: {
-            id: payload.userId,
-            email: `${payload.userId}@example.com`,
-            name: `User ${payload.userId}`,
-          },
-        };
-        localGrants.unshift(newGrant);
-        return newGrant;
-      }
-      const msg = err.response?.data?.message || err.message || 'Lỗi cấp gói thủ công';
-      throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
+      throw new Error(extractErrorMessage(err, 'Lỗi cấp gói thủ công'));
     }
   },
 
@@ -148,43 +83,13 @@ export const billingApi = {
     }
 
     try {
-      let res;
-      try {
-        res = await apiClient.post('/admin/billing/revoke', payload);
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          res = await apiClient.post(`/admin/billing/grants/${payload.grantId}/revoke`, {
-            reason: payload.reason,
-          });
-        } else {
-          throw err;
-        }
-      }
-
-      const raw = res.data?.grant || res.data?.data || res.data;
-      const idx = localGrants.findIndex((g) => g.id === payload.grantId);
-      if (idx !== -1) {
-        localGrants[idx] = {
-          ...localGrants[idx],
-          revokedAt: raw.revokedAt || new Date().toISOString(),
-          revokedReason: payload.reason,
-        };
-      }
-      return raw;
+      const res = await apiClient.post<{ data: Record<string, any> }>(
+        `/admin/billing/grants/${encodeURIComponent(payload.grantId)}/revoke`,
+        { reason: payload.reason },
+      );
+      return normalizeGrant(res.data.data);
     } catch (err: any) {
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        const idx = localGrants.findIndex((g) => g.id === payload.grantId);
-        if (idx !== -1) {
-          localGrants[idx] = {
-            ...localGrants[idx],
-            revokedAt: new Date().toISOString(),
-            revokedReason: payload.reason,
-          };
-          return localGrants[idx];
-        }
-      }
-      const msg = err.response?.data?.message || err.message || 'Lỗi thu hồi gói';
-      throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
+      throw new Error(extractErrorMessage(err, 'Lỗi thu hồi gói'));
     }
   },
 };
