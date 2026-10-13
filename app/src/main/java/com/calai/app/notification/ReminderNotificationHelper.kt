@@ -19,6 +19,11 @@ import com.calai.app.R
 object ReminderNotificationHelper {
 
     const val CUSTOM_REMINDER_CHANNEL_ID = "custom_reminders"
+    const val DAILY_COMPLETION_CHANNEL_ID = "daily_completion"
+    const val DAILY_COMPLETION_NOTIFICATION_ID = 3_000_001
+    const val ACTION_DAY_COMPLETE = "com.calai.app.action.DAY_COMPLETE"
+    const val ACTION_DAY_INCOMPLETE = "com.calai.app.action.DAY_INCOMPLETE"
+    const val EXTRA_DATE = "date"
 
     /** notificationId ổn định theo id của HabitReminder (hash để không đụng nhau giữa các nhắc nhở). */
     fun customNotificationId(reminderId: String): Int = 2_000_000 + (reminderId.hashCode() and 0x7FFFFFF)
@@ -47,6 +52,44 @@ object ReminderNotificationHelper {
         NotificationManagerCompat.from(context).notify(customNotificationId(reminderId), notification)
     }
 
+    /** Thông báo 21:00 "hôm nay bạn đã ghi đủ chưa?" với hai nút thao tác nhanh (BR-14). */
+    fun showDailyCompletion(context: Context, date: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        val flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        fun actionIntent(action: String, requestCode: Int) = android.app.PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            android.content.Intent(context, DailyCompletionActionReceiver::class.java)
+                .setAction(action)
+                .putExtra(EXTRA_DATE, date),
+            flags
+        )
+        val openApp = android.app.PendingIntent.getActivity(
+            context,
+            DAILY_COMPLETION_NOTIFICATION_ID,
+            context.packageManager.getLaunchIntentForPackage(context.packageName),
+            flags
+        )
+        val text = "Cho NutriWise biết để tính toán chính xác hơn. Ngày ghi chưa đủ sẽ không ảnh hưởng mục tiêu của bạn."
+        val notification = NotificationCompat.Builder(context, DAILY_COMPLETION_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Hôm nay bạn đã ghi đủ bữa ăn chưa?")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(openApp)
+            .addAction(0, "Đủ rồi", actionIntent(ACTION_DAY_COMPLETE, 1))
+            .addAction(0, "Chưa đủ", actionIntent(ACTION_DAY_INCOMPLETE, 2))
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(DAILY_COMPLETION_NOTIFICATION_ID, notification)
+    }
+
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -67,6 +110,15 @@ object ReminderNotificationHelper {
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Nhắc uống nước định kỳ theo chu kỳ giờ đã đặt"
+            }
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                DAILY_COMPLETION_CHANNEL_ID,
+                "Nhắc ghi đủ cuối ngày",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Nhắc xác nhận bạn đã ghi đủ bữa ăn trong ngày"
             }
         )
         manager.createNotificationChannel(
