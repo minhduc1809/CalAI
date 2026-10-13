@@ -25,10 +25,16 @@ interface CalAIRepository {
 
     // --- Authentication ---
     suspend fun login(username: String, password: String): Result<AuthResponseData>
-    suspend fun register(username: String, email: String?, password: String, name: String?): Result<AuthResponseData>
+    suspend fun register(username: String, email: String?, password: String, name: String?, acceptPrivacy: Boolean): Result<AuthResponseData>
+    suspend fun getPrivacyPolicy(): Result<PrivacyPolicyDto>
+    /** Xác thực lại bằng mật khẩu rồi xoá tài khoản và toàn bộ dữ liệu (BR-01.4). Thành công thì xoá token trên máy. */
+    suspend fun deleteAccount(password: String): Result<Unit>
+    suspend fun getSessions(): Result<List<SessionDto>>
+    suspend fun revokeSession(id: String): Result<Unit>
+    suspend fun logoutAll(): Result<Unit>
     suspend fun logout(): Result<Unit>
     suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit>
-    suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData>
+    suspend fun loginWithGoogle(idToken: String, acceptPrivacy: Boolean = false): Result<AuthResponseData>
     suspend fun sendVerificationEmail(): Result<Unit>
     suspend fun verifyEmail(code: String): Result<Unit>
     suspend fun forgotPassword(email: String): Result<Unit>
@@ -58,6 +64,20 @@ interface CalAIRepository {
     suspend fun applyProposedTarget(): Result<Unit>
     suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto>
 
+    suspend fun fetchMacroPreview(): Result<MacroPreviewDto>
+
+    // ── Check-in tuần (BR-06) ──
+    /** Check-in đang chờ quyết định (hoặc thiếu dữ liệu); checkIn = null nếu không có. */
+    suspend fun fetchPendingCheckin(): Result<CheckInWithCoachingDto>
+
+    /** Tạo Check-in của kỳ hiện tại nếu chưa có; đã có thì trả lại nguyên trạng. */
+    suspend fun generateCheckin(): Result<CheckInWithCoachingDto>
+
+    /** action: ACCEPT | DECLINE | SNOOZE | ACKNOWLEDGE. Lỗi là [com.calai.app.data.remote.ApiException]. */
+    suspend fun respondToCheckin(checkinId: String, action: String, mood: String? = null): Result<CheckInDto>
+
+    suspend fun fetchCheckinHistory(limit: Int = 10): Result<List<CheckInDto>>
+
     /** BR-02.4: Onboarding draft */
     suspend fun getOnboardingDraft(): Result<OnboardingDraftData?>
     suspend fun saveOnboardingDraft(step: Int, data: Map<String, Any?>): Result<OnboardingDraftData>
@@ -72,6 +92,9 @@ interface CalAIRepository {
     /** Đánh dấu ngày đã ghi đủ / chưa đủ / để hệ thống quyết định (BR-05.2). */
     suspend fun setDayStatus(date: String, completeness: String): Result<Unit>
 
+    /** Đánh giá ngày hôm qua để sinh thông báo DAY_COMPLETED; lỗi chỉ trả Result, không làm hỏng việc mở app. */
+    suspend fun evaluateYesterday(): Result<Unit>
+
     // --- Notifications ---
     suspend fun getNotifications(): Result<NotificationListDto>
     suspend fun markNotificationRead(id: String): Result<Unit>
@@ -79,6 +102,13 @@ interface CalAIRepository {
     suspend fun deleteNotification(id: String): Result<Unit>
     suspend fun fetchMealsFromRemote(date: String? = null): Result<List<MealResponseDto>>
     suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto>
+
+    // ── Hàng đợi ghi bữa ăn / buổi tập khi mất mạng ──
+    fun observePendingRequests(): kotlinx.coroutines.flow.Flow<List<com.calai.app.data.local.entity.PendingRequestEntity>>
+    suspend fun retryPendingRequest(localId: Long)
+    suspend fun deletePendingRequest(localId: Long)
+    /** Đặt lịch gửi hàng đợi ngay khi có mạng (gọi khi mở app). */
+    fun flushPendingRequests()
     suspend fun updateRemoteMeal(
         mealId: String,
         mealType: String? = null,
@@ -113,6 +143,22 @@ interface CalAIRepository {
     suspend fun fetchMealPlan(days: Int): Result<MealPlanDto>
     suspend fun fetchWorkoutRecommendation(): Result<WorkoutRecommendationData>
     suspend fun fetchExercises(gender: String? = null, level: String? = null): Result<ExerciseListData>
+
+    // ── Lịch sử, thống kê, kỷ lục, mẫu buổi tập (BR-10.3 → 10.8) ──
+    suspend fun fetchWorkoutHistory(month: String? = null): Result<WorkoutHistoryDto>
+    suspend fun fetchLastSets(key: String): Result<LastSetsDto>
+    suspend fun fetchVolumeStats(weeks: Int? = null, key: String? = null, muscle: String? = null): Result<VolumeStatsDto>
+    suspend fun fetchSetsPerMuscle(weeks: Int? = null): Result<SetsPerMuscleDto>
+    suspend fun fetchWorkoutRecords(key: String? = null): Result<RecordsDto>
+    suspend fun fetchLastWorkoutTemplate(): Result<LastTemplateDto>
+    suspend fun fetchActivityCheck(): Result<ActivityCheckDto>
+    suspend fun markActivityCheckHandled(): Result<Unit>
+    suspend fun fetchWorkoutRoutines(): Result<List<RoutineDto>>
+    suspend fun createRoutineFromWorkout(workoutId: String, name: String?): Result<RoutineDto>
+    suspend fun deleteWorkoutRoutine(id: String): Result<Unit>
+    suspend fun fetchCustomExercises(): Result<List<CustomExerciseDto>>
+    suspend fun createCustomExercise(name: String, primaryMuscle: String): Result<CustomExerciseDto>
+    suspend fun deleteCustomExercise(id: String): Result<Unit>
     suspend fun createCustomFood(
         name: String,
         servingSize: String?,
@@ -122,9 +168,12 @@ interface CalAIRepository {
         protein: Float = 0f,
         carb: Float = 0f,
         fat: Float = 0f,
-        ingredients: List<RecipeIngredientDto>? = null
+        ingredients: List<RecipeIngredientDto>? = null,
+        barcode: String? = null
     ): Result<CustomFoodDto>
     suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?>
+    /** Gửi món tự tạo vào kho chung để admin duyệt; trả thông báo hiển thị cho người dùng (BR-08.5). */
+    suspend fun submitFoodToCatalog(customFoodId: String, note: String? = null): Result<String>
     suspend fun fetchCustomFoods(): Result<List<CustomFoodDto>>
     suspend fun deleteCustomFood(id: String): Result<Unit>
 

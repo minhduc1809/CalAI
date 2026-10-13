@@ -22,6 +22,9 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_UNIT_HEIGHT = "pref_unit_height" // "cm", "ft"
         private const val KEY_UNIT_ENERGY = "pref_unit_energy" // "kcal", "kJ"
         private const val KEY_MEAL_STRUCTURE_MODE = "pref_meal_structure_mode" // "TIMELINE", "FIXED_MEALS"
+        private const val KEY_DEFAULT_REST_SEC = "pref_default_rest_sec"
+        private const val KEY_DAILY_COMPLETION_ENABLED = "pref_daily_completion_enabled"
+        private const val KEY_DAILY_COMPLETION_TIME = "pref_daily_completion_time" // "HH:mm"
 
         private const val KG_TO_LB = 2.20462f
 
@@ -93,6 +96,16 @@ class UserPreferencesManager @Inject constructor(
     val mealStructureMode: StateFlow<String> = _mealStructureMode.asStateFlow()
 
     fun getMealStructureMode(): String = _mealStructureMode.value
+
+    /** Nhắc "ghi đủ hôm nay" lúc 21:00 (BR-14): bật mặc định, người dùng tắt hoặc đổi giờ trong Cài đặt. */
+    /** Thời gian nghỉ mặc định giữa set (giây), đồng bộ với server (BR-19.4). */
+    fun getDefaultRestSec(): Int = prefs.getInt(KEY_DEFAULT_REST_SEC, 90)
+    fun setDefaultRestSec(sec: Int) = prefs.edit().putInt(KEY_DEFAULT_REST_SEC, sec.coerceIn(15, 600)).apply()
+
+    fun isDailyCompletionEnabled(): Boolean = prefs.getBoolean(KEY_DAILY_COMPLETION_ENABLED, true)
+    fun setDailyCompletionEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_DAILY_COMPLETION_ENABLED, enabled).apply()
+    fun getDailyCompletionTime(): String = prefs.getString(KEY_DAILY_COMPLETION_TIME, "21:00") ?: "21:00"
+    fun setDailyCompletionTime(time: String) = prefs.edit().putString(KEY_DAILY_COMPLETION_TIME, time).apply()
     fun setMealStructureMode(mode: String) {
         prefs.edit().putString(KEY_MEAL_STRUCTURE_MODE, mode).apply()
         _mealStructureMode.value = mode

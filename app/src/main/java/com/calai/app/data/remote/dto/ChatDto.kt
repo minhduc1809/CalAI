@@ -37,7 +37,9 @@ data class ChatAiResponseDto(
     @SerializedName("quota")
     val quota: ChatQuotaInfoDto? = null,
     @SerializedName("isFallback")
-    val isFallback: Boolean = false
+    val isFallback: Boolean = false,
+    @SerializedName("safetyFlag")
+    val safetyFlag: String? = null
 )
 
 data class ChatMessageDto(
@@ -48,7 +50,10 @@ data class ChatMessageDto(
     @SerializedName("content")
     val content: String,
     @SerializedName("createdAt")
-    val createdAt: String
+    val createdAt: String,
+    /** Có khi tin nhắn thuộc chế độ an toàn (BR-11.6): lời khuyên gặp chuyên gia, không phải tư vấn của AI. */
+    @SerializedName("safetyFlag")
+    val safetyFlag: String? = null
 )
 
 data class ChatHistoryResponseDto(

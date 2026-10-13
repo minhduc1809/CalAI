@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import com.calai.app.data.remote.ApiException
 import retrofit2.HttpException
 import java.io.File
 import java.text.SimpleDateFormat
@@ -34,8 +35,82 @@ import javax.inject.Inject
 class CalAIRepositoryImpl @Inject constructor(
     private val dao: CalAIDao,
     private val api: CalAIApi,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : CalAIRepository {
+
+    private val queueGson = com.google.gson.Gson()
+
+    /** Gọi API trả `data` bắt buộc; lỗi có mã/thông báo của máy chủ được giữ lại qua [ApiException]. */
+    private suspend fun <T> apiData(block: suspend () -> ApiResponse<T>): Result<T> {
+        return try {
+            val response = block()
+            val data = response.data
+            if (response.success && data != null) Result.success(data)
+            else Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(ApiException.from(e))
+        }
+    }
+
+    private suspend fun apiUnit(block: suspend () -> ApiResponse<*>): Result<Unit> {
+        return try {
+            val response = block()
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(ApiException.from(e))
+        }
+    }
+
+    override suspend fun fetchWorkoutHistory(month: String?) = apiData { api.getWorkoutHistory(month) }
+    override suspend fun fetchLastSets(key: String) = apiData { api.getLastSets(key) }
+    override suspend fun fetchVolumeStats(weeks: Int?, key: String?, muscle: String?) =
+        apiData { api.getVolumeStats(weeks, key, muscle) }
+    override suspend fun fetchSetsPerMuscle(weeks: Int?) = apiData { api.getSetsPerMuscle(weeks) }
+    override suspend fun fetchWorkoutRecords(key: String?) = apiData { api.getWorkoutRecords(key) }
+    override suspend fun fetchLastWorkoutTemplate() = apiData { api.getLastWorkoutTemplate() }
+    override suspend fun fetchActivityCheck() = apiData { api.getActivityCheck() }
+    override suspend fun markActivityCheckHandled() = apiUnit { api.markActivityCheckHandled() }
+    override suspend fun fetchWorkoutRoutines() = apiData { api.getWorkoutRoutines() }
+    override suspend fun createRoutineFromWorkout(workoutId: String, name: String?) =
+        apiData { api.createRoutineFromWorkout(workoutId, RoutineFromWorkoutRequest(name)) }
+    override suspend fun deleteWorkoutRoutine(id: String) = apiUnit { api.deleteWorkoutRoutine(id) }
+    override suspend fun fetchCustomExercises() = apiData { api.getCustomExercises() }
+    override suspend fun createCustomExercise(name: String, primaryMuscle: String) =
+        apiData { api.createCustomExercise(CreateCustomExerciseRequest(name, primaryMuscle)) }
+    override suspend fun deleteCustomExercise(id: String) = apiUnit { api.deleteCustomExercise(id) }
+
+    // ── Hàng đợi ghi bữa ăn / buổi tập khi mất mạng (BR-07.5, BR-10.4) ──
+
+    override fun observePendingRequests(): kotlinx.coroutines.flow.Flow<List<com.calai.app.data.local.entity.PendingRequestEntity>> =
+        dao.observePendingRequests()
+
+    override suspend fun retryPendingRequest(localId: Long) {
+        dao.resetPendingRequest(localId)
+        com.calai.app.data.sync.PendingSyncScheduler.schedule(appContext)
+    }
+
+    override suspend fun deletePendingRequest(localId: Long) {
+        dao.deletePendingRequest(localId)
+    }
+
+    override fun flushPendingRequests() {
+        com.calai.app.data.sync.PendingSyncScheduler.schedule(appContext)
+    }
+
+    private suspend fun enqueue(kind: String, clientRequestId: String, payload: Any) {
+        dao.insertPendingRequest(
+            com.calai.app.data.local.entity.PendingRequestEntity(
+                kind = kind,
+                clientRequestId = clientRequestId,
+                payload = queueGson.toJson(payload)
+            )
+        )
+        com.calai.app.data.sync.PendingSyncScheduler.schedule(appContext)
+    }
 
     private fun extractErrorMessage(e: Throwable): String {
         if (e is HttpException) {
@@ -116,7 +191,8 @@ class CalAIRepositoryImpl @Inject constructor(
         username: String,
         email: String?,
         password: String,
-        name: String?
+        name: String?,
+        acceptPrivacy: Boolean
     ): Result<AuthResponseData> {
         return try {
             val response = api.register(
@@ -124,7 +200,8 @@ class CalAIRepositoryImpl @Inject constructor(
                     username = username.trim(),
                     email = if (email.isNullOrBlank()) null else email.trim(),
                     password = password,
-                    name = if (name.isNullOrBlank()) null else name.trim()
+                    name = if (name.isNullOrBlank()) null else name.trim(),
+                    acceptPrivacy = acceptPrivacy
                 )
             )
             if (response.success && response.data != null) {
@@ -144,9 +221,9 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun loginWithGoogle(idToken: String): Result<AuthResponseData> {
+    override suspend fun loginWithGoogle(idToken: String, acceptPrivacy: Boolean): Result<AuthResponseData> {
         return try {
-            val response = api.loginWithGoogle(GoogleLoginRequest(idToken = idToken))
+            val response = api.loginWithGoogle(GoogleLoginRequest(idToken = idToken, acceptPrivacy = acceptPrivacy))
             if (response.success && response.data != null) {
                 tokenManager.saveTokens(response.data.accessToken, response.data.refreshToken)
                 tokenManager.saveUser(
@@ -160,7 +237,8 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(Exception(extractErrorMessage(e)))
+            // Giữ mã lỗi để app biết cần hỏi đồng ý chính sách (PRIVACY_CONSENT_REQUIRED)
+            Result.failure(ApiException.from(e))
         }
     }
 
@@ -190,6 +268,34 @@ class CalAIRepositoryImpl @Inject constructor(
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(Exception(extractErrorMessage(e)))
         }
+    }
+
+    override suspend fun getPrivacyPolicy() = apiData { api.getPrivacyPolicy() }
+
+    override suspend fun deleteAccount(password: String): Result<Unit> {
+        return try {
+            val re = api.reauth(ReauthRequest(password))
+            val token = re.data?.reauthToken ?: return Result.failure(Exception(re.message ?: "Không xác thực lại được"))
+            val r = api.deleteAccount(token)
+            if (r.success) {
+                tokenManager.clear()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(r.message ?: "Không thể xoá tài khoản"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(ApiException.from(e))
+        }
+    }
+
+    override suspend fun getSessions() = apiData { api.getSessions() }
+    override suspend fun revokeSession(id: String) = apiUnit { api.revokeSession(id) }
+
+    override suspend fun logoutAll(): Result<Unit> {
+        val r = apiUnit { api.logoutAll() }
+        if (r.isSuccess) tokenManager.clear()
+        return r
     }
 
     override suspend fun logout(): Result<Unit> {
@@ -422,6 +528,59 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun evaluateYesterday(): Result<Unit> {
+        return try {
+            api.evaluateYesterday()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
+    // ── Check-in tuần (BR-06) ──
+
+    private suspend fun <T> checkinCall(block: suspend () -> ApiResponse<T>, ifNull: () -> T?): Result<T> {
+        return try {
+            val response = block()
+            if (!response.success) {
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
+            } else {
+                val data = response.data ?: ifNull()
+                if (data != null) Result.success(data) else Result.failure(Exception("Máy chủ không trả dữ liệu"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(ApiException.from(e))
+        }
+    }
+
+    override suspend fun fetchPendingCheckin(): Result<CheckInWithCoachingDto> =
+        checkinCall({ api.getPendingCheckin() }, { CheckInWithCoachingDto() })
+
+    override suspend fun generateCheckin(): Result<CheckInWithCoachingDto> =
+        checkinCall({ api.generateCheckin(GenerateCheckinRequest()) }, { CheckInWithCoachingDto() })
+
+    override suspend fun respondToCheckin(checkinId: String, action: String, mood: String?): Result<CheckInDto> =
+        checkinCall({ api.respondToCheckin(checkinId, RespondCheckinRequest(action = action, mood = mood)) }, { null })
+
+    override suspend fun fetchCheckinHistory(limit: Int): Result<List<CheckInDto>> =
+        checkinCall({ api.getCheckinHistory(limit) }, { emptyList() })
+
+    override suspend fun fetchMacroPreview(): Result<MacroPreviewDto> {
+        return try {
+            val response = api.getMacroPreview()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Máy chủ trả về lỗi"))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
     override suspend fun fetchExpenditureStatus(): Result<ExpenditureStatusDto> {
         return try {
             val response = api.getExpenditureStatus()
@@ -577,9 +736,17 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Ghi bữa ăn. Mỗi bữa có `clientRequestId` tạo lúc bấm Lưu; mất mạng hoặc máy chủ tạm lỗi thì lưu vào hàng đợi
+     * (gửi lại tự động, máy chủ chống ghi trùng) và trả bữa tạm với id "pending:..." để màn hình coi như đã lưu.
+     * Máy chủ từ chối hẳn (4xx) thì báo lỗi thật.
+     */
     override suspend fun createRemoteMeal(request: CreateMealRequest): Result<MealResponseDto> {
+        val req = if (request.clientRequestId == null) {
+            request.copy(clientRequestId = java.util.UUID.randomUUID().toString())
+        } else request
         return try {
-            val response = api.createMeal(request)
+            val response = api.createMeal(req)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -587,7 +754,26 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(Exception(extractErrorMessage(e)))
+            when (val outcome = com.calai.app.data.sync.classifyFailure(e)) {
+                is com.calai.app.data.sync.SendOutcome.Retry -> {
+                    enqueue(com.calai.app.data.local.entity.PendingRequestEntity.KIND_MEAL, req.clientRequestId!!, req)
+                    val totals = com.calai.app.data.sync.PendingMealTotals.of(req.items)
+                    Result.success(
+                        MealResponseDto(
+                            id = "pending:${req.clientRequestId}",
+                            userId = "",
+                            mealType = req.mealType,
+                            date = req.date,
+                            totalCalories = totals.calories,
+                            totalProtein = totals.protein,
+                            totalCarb = totals.carb,
+                            totalFat = totals.fat
+                        )
+                    )
+                }
+                is com.calai.app.data.sync.SendOutcome.Rejected -> Result.failure(Exception(outcome.message))
+                com.calai.app.data.sync.SendOutcome.Sent -> Result.failure(e)
+            }
         }
     }
 
@@ -947,7 +1133,8 @@ class CalAIRepositoryImpl @Inject constructor(
         protein: Float,
         carb: Float,
         fat: Float,
-        ingredients: List<RecipeIngredientDto>?
+        ingredients: List<RecipeIngredientDto>?,
+        barcode: String?
     ): Result<CustomFoodDto> {
         val request = CreateCustomFoodRequest(
             name = name,
@@ -958,7 +1145,8 @@ class CalAIRepositoryImpl @Inject constructor(
             protein = protein,
             carb = carb,
             fat = fat,
-            ingredients = ingredients
+            ingredients = ingredients,
+            barcode = barcode
         )
         return try {
             val response = api.createCustomFood(request)
@@ -1001,17 +1189,26 @@ class CalAIRepositoryImpl @Inject constructor(
         return Result.success(food)
     }
 
-    override suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?> {
+    override suspend fun submitFoodToCatalog(customFoodId: String, note: String?): Result<String> {
         return try {
-            val response = api.lookupBarcode(code)
-            if (response.success) {
-                Result.success(response.data)
-            } else {
-                Result.success(null)
-            }
+            val response = api.submitFoodToCatalog(SubmitFoodRequest(customFoodId, note))
+            if (response.success) Result.success(response.message ?: "Đã gửi món để quản trị viên duyệt")
+            else Result.failure(Exception(response.message ?: "Không thể gửi món"))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(null)
+            Result.failure(ApiException.from(e))
+        }
+    }
+
+    override suspend fun lookupBarcode(code: String): Result<BarcodeProductDto?> {
+        // Lỗi thật (hết lượt, mất mạng) phải được báo đúng, không giả làm "không tìm thấy" (BR-08.6, I4)
+        return try {
+            val response = api.lookupBarcode(code)
+            if (response.success) Result.success(response.data)
+            else Result.failure(Exception(response.message ?: "Không thể tra cứu mã vạch lúc này"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(ApiException.from(e))
         }
     }
 
@@ -1355,9 +1552,13 @@ class CalAIRepositoryImpl @Inject constructor(
     }
 
 
+    /** Ghi buổi tập (BR-10.4): cùng cơ chế `clientRequestId` + hàng đợi như bữa ăn. */
     override suspend fun createWorkoutLog(request: CreateWorkoutLogRequest): Result<WorkoutLogDto> {
+        val req = if (request.clientRequestId == null) {
+            request.copy(clientRequestId = java.util.UUID.randomUUID().toString())
+        } else request
         return try {
-            val response = api.createWorkout(request)
+            val response = api.createWorkout(req)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -1365,7 +1566,24 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(e)
+            when (val outcome = com.calai.app.data.sync.classifyFailure(e)) {
+                is com.calai.app.data.sync.SendOutcome.Retry -> {
+                    enqueue(com.calai.app.data.local.entity.PendingRequestEntity.KIND_WORKOUT, req.clientRequestId!!, req)
+                    Result.success(
+                        WorkoutLogDto(
+                            id = "pending:${req.clientRequestId}",
+                            name = req.name,
+                            category = WorkoutCategory.values().firstOrNull { it.apiName == req.category } ?: WorkoutCategory.OTHER,
+                            date = req.date ?: "",
+                            durationMinutes = req.durationMinutes,
+                            caloriesBurned = req.caloriesBurned ?: 0f,
+                            clientRequestId = req.clientRequestId
+                        )
+                    )
+                }
+                is com.calai.app.data.sync.SendOutcome.Rejected -> Result.failure(Exception(outcome.message))
+                com.calai.app.data.sync.SendOutcome.Sent -> Result.failure(e)
+            }
         }
     }
 

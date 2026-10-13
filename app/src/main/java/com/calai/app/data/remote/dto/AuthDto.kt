@@ -17,7 +17,10 @@ data class RegisterRequest(
     @SerializedName("password")
     val password: String,
     @SerializedName("name")
-    val name: String? = null
+    val name: String? = null,
+    /** Đã đọc và đồng ý Chính sách quyền riêng tư (bắt buộc khi đăng ký). */
+    @SerializedName("acceptPrivacy")
+    val acceptPrivacy: Boolean = false
 )
 
 data class RefreshTokenRequest(
@@ -42,7 +45,10 @@ data class AuthUserDto(
 
 data class GoogleLoginRequest(
     @SerializedName("idToken")
-    val idToken: String
+    val idToken: String,
+    /** Bắt buộc true khi Google tạo tài khoản mới (BR-18). */
+    @SerializedName("acceptPrivacy")
+    val acceptPrivacy: Boolean = false
 )
 
 data class VerifyEmailRequest(

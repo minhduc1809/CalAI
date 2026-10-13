@@ -22,7 +22,11 @@ data class CreateMealItemDto(
     @SerializedName("fat")
     val fat: Float = 0f,
     @SerializedName("source")
-    val source: String = "manual"
+    val source: String = "manual",
+    @SerializedName("sourceType")
+    val sourceType: String? = null,
+    @SerializedName("sourceId")
+    val sourceId: String? = null
 )
 
 data class CreateMealRequest(
@@ -32,6 +36,9 @@ data class CreateMealRequest(
     val date: String, // YYYY-MM-DD
     @SerializedName("imageUrl")
     val imageUrl: String? = null,
+    /** Mã tạo lúc bấm Lưu: gửi lại (mất mạng, retry) máy chủ vẫn chỉ ghi một bữa (BR-07.5). */
+    @SerializedName("clientRequestId")
+    val clientRequestId: String? = null,
     @SerializedName("items")
     val items: List<CreateMealItemDto>
 )

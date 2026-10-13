@@ -51,7 +51,22 @@ data class CreateCustomFoodRequest(
     @SerializedName("protein") val protein: Float = 0f,
     @SerializedName("carb") val carb: Float = 0f,
     @SerializedName("fat") val fat: Float = 0f,
-    @SerializedName("ingredients") val ingredients: List<RecipeIngredientDto>? = null
+    @SerializedName("ingredients") val ingredients: List<RecipeIngredientDto>? = null,
+    @SerializedName("barcode") val barcode: String? = null
+)
+
+data class SubmitFoodRequest(
+    @SerializedName("customFoodId") val customFoodId: String,
+    @SerializedName("note") val note: String? = null
+)
+
+data class FoodSubmissionDto(
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("possibleDuplicate") val possibleDuplicate: Boolean = false,
+    @SerializedName("duplicateOfName") val duplicateOfName: String? = null,
+    @SerializedName("rejectReason") val rejectReason: String? = null
 )
 
 data class CustomFoodDto(

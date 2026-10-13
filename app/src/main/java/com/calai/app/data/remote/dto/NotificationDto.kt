@@ -6,7 +6,7 @@ data class NotificationDto(
     @SerializedName("id")
     val id: String,
     @SerializedName("type")
-    val type: String, // MEAL_REMINDER | WATER_REMINDER | GOAL_ACHIEVED | GOAL_EXCEEDED | AI_MESSAGE
+    val type: String, // CHECKIN_READY | DAY_COMPLETED | BILLING_ISSUE | WEEKLY_SUMMARY_READY | FOOD_SUBMISSION_RESULT | GOAL_REACHED
     @SerializedName("title")
     val title: String,
     @SerializedName("message")
