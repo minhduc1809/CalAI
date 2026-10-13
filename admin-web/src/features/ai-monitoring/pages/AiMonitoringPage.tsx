@@ -48,9 +48,8 @@ export default function AiMonitoringPage() {
   return (
     <>
       <PageHeader
-        title="Theo dõi AI"
-        description="Token lấy từ số liệu thật của nhà cung cấp; chi phí là ƯỚC TÍNH theo đơn giá cấu hình, chưa đối soát hoá đơn. Không có nội dung chat, ảnh hay dữ liệu sức khỏe."
-        breadcrumbs={[{ label: 'AI & Vận hành' }, { label: 'Theo dõi AI' }]}
+        title="Giám sát AI"
+        breadcrumbs={[{ label: 'Vận hành' }, { label: 'Giám sát AI' }]}
       />
       <FilterBar activeCount={0} onClear={list.clear}>
         <DateRangeFilter label="Khoảng thời gian" from={from} to={to} onChange={(f, t) => { list.setFilter('from', f); list.setFilter('to', t); }} />

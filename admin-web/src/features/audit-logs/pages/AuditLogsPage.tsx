@@ -46,9 +46,8 @@ export default function AuditLogsPage() {
   return (
     <>
       <PageHeader
-        title="Nhật ký quản trị"
-        description="Mọi thao tác ghi của admin. Chỉ đọc, không sửa hay xoá được."
-        breadcrumbs={[{ label: 'Bảo mật & Quản trị' }, { label: 'Nhật ký quản trị' }]}
+        title="Nhật ký hoạt động"
+        breadcrumbs={[{ label: 'Bảo mật' }, { label: 'Nhật ký hoạt động' }]}
         total={q.data?.pagination.total}
         actions={<ExportButton kind="audit" query={exportQuery} title="Xuất nhật ký quản trị" />}
       />

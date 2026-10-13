@@ -71,9 +71,8 @@ export default function FoodCatalogPage() {
   return (
     <>
       <PageHeader
-        title="Kho món"
-        description="Thêm, sửa, ẩn món. Mỗi món bắt buộc khai báo đủ thẻ an toàn và nguồn số liệu; món thiếu thẻ bị loại khỏi mọi gợi ý. Ẩn thay cho xoá để giữ lịch sử."
-        breadcrumbs={[{ label: 'Nội dung' }, { label: 'Kho món' }]}
+        title="Danh mục món ăn"
+        breadcrumbs={[{ label: 'Danh mục' }, { label: 'Danh mục món ăn' }]}
         total={q.data?.total}
         actions={(
           <>

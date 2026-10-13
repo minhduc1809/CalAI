@@ -130,10 +130,10 @@ export default function DashboardPage() {
 
       {/* Biểu đồ */}
       <div className="grid charts" style={{ marginBottom: 16 }}>
-        <ChartContainer title="Xu hướng người dùng" description="Người dùng mới và người dùng hoạt động theo ngày" loading={series.isLoading} error={series.isError ? errText(series.error) : null} onRetry={() => series.refetch()} empty={!hasUsers}>
+        <ChartContainer title="Xu hướng người dùng" loading={series.isLoading} error={series.isError ? errText(series.error) : null} onRetry={() => series.refetch()} empty={!hasUsers}>
           <TrendLineChart data={chartDays} xKey="label" series={[{ key: 'newUsers', label: 'Người dùng mới' }, { key: 'activeUsers', label: 'Người dùng hoạt động' }]} />
         </ChartContainer>
-        <ChartContainer title="Doanh thu thực nhận" description="Theo ngày, chỉ đơn đã thanh toán" loading={series.isLoading} error={series.isError ? errText(series.error) : null} onRetry={() => series.refetch()} empty={!hasRevenue} emptyText="Chưa có đơn thanh toán trong khoảng này">
+        <ChartContainer title="Doanh thu thực nhận" loading={series.isLoading} error={series.isError ? errText(series.error) : null} onRetry={() => series.refetch()} empty={!hasRevenue} emptyText="Chưa có đơn thanh toán trong khoảng này">
           <SimpleBarChart data={chartDays} xKey="label" series={[{ key: 'revenueVnd', label: 'Doanh thu (VND)' }]} format={(v) => fmtNumber(v)} />
         </ChartContainer>
       </div>
@@ -152,7 +152,6 @@ export default function DashboardPage() {
                   <span style={{ textAlign: 'right' }}><b>{fmtNumber(s.count)}</b>{s.fromPrevPct !== null && <span className="muted"> · {fmtPct(s.fromPrevPct)}</span>}</span>
                 </div>
               ))}
-              <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>{funnel.data.definition}</p>
             </>
           )}
         </div>
@@ -169,7 +168,6 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
-              <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>{retention.data!.definition}</p>
             </>
           )}
         </div>
@@ -191,7 +189,7 @@ export default function DashboardPage() {
       <div className="card">
         <div className="row between" style={{ marginBottom: 8 }}>
           <div className="card-title" style={{ marginBottom: 0 }}><AppIcon name="AIUsage" size={18} /> Chi phí AI và vận hành</div>
-          <div className="row"><Link to="/ai">Theo dõi AI</Link><Link to="/system-health">Sức khỏe hệ thống</Link></div>
+          <div className="row"><Link to="/ai">Giám sát AI</Link><Link to="/system-health">Tình trạng hệ thống</Link></div>
         </div>
         <div className="grid cols-3">
           <div>

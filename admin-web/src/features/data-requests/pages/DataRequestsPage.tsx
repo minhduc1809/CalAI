@@ -57,12 +57,10 @@ export default function DataRequestsPage() {
     <>
       <PageHeader
         title="Yêu cầu quyền dữ liệu"
-        description="Yêu cầu nhận qua email: xuất bản sao, xoá dữ liệu, khiếu nại. Mặc định chỉ hiện yêu cầu đang mở, gần hạn nhất trước."
-        breadcrumbs={[{ label: 'Người dùng & Hỗ trợ' }, { label: 'Yêu cầu dữ liệu' }]}
+        breadcrumbs={[{ label: 'Khách hàng' }, { label: 'Yêu cầu dữ liệu' }]}
         total={q.data?.total}
         actions={(<><ExportButton kind="data-requests" query={{ status: params.filters.status, type: params.filters.type, from: params.filters.from, to: params.filters.to }} title="Xuất yêu cầu dữ liệu" /><Button variant="primary" icon="Plus" onClick={() => setCreating(true)}>Ghi nhận yêu cầu</Button></>)}
       />
-      <Alert kind="info">Xuất dữ liệu và xoá tài khoản do chính người dùng thực hiện trong app (Cài đặt) sau khi bạn xác minh email trùng tài khoản. Admin không xuất hay xem dữ liệu sức khỏe hộ người dùng.</Alert>
       <div style={{ height: 12 }} />
       <FilterBar activeCount={list.activeFilterCount} onClear={list.clear}>
         <FilterField label="Trạng thái"><Select placeholder="Đang mở (Mới + Đang xử lý)" options={(Object.keys(STATUS) as RequestStatus[]).map((v) => ({ value: v, label: STATUS[v].label }))} value={params.filters.status} onChange={(e) => list.setFilter('status', e.target.value)} /></FilterField>

@@ -29,9 +29,8 @@ export default function SystemHealthPage() {
   return (
     <>
       <PageHeader
-        title="Sức khỏe hệ thống"
-        description="Trạng thái chỉ đọc, tự làm mới mỗi phút. Dịch vụ ngoài chỉ báo cấu hình và tỉ lệ lỗi thật, không gọi thử."
-        breadcrumbs={[{ label: 'AI & Vận hành' }, { label: 'Sức khỏe hệ thống' }]}
+        title="Tình trạng hệ thống"
+        breadcrumbs={[{ label: 'Vận hành' }, { label: 'Tình trạng hệ thống' }]}
         actions={<Button icon="Reset" loading={q.isFetching} onClick={() => q.refetch()}>Làm mới</Button>}
       />
       {q.isLoading ? <LoadingState lines={6} /> : q.isError || !h ? <ErrorState message={(q.error as Error)?.message ?? 'Không tải được'} onRetry={() => q.refetch()} /> : (

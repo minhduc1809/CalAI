@@ -57,9 +57,8 @@ export default function ExercisesPage() {
   return (
     <>
       <PageHeader
-        title="Kho bài tập"
-        description="Thêm, sửa, ẩn bài tập. Ẩn thay cho xoá để giữ lịch sử buổi tập. Sửa không ảnh hưởng buổi tập đã ghi."
-        breadcrumbs={[{ label: 'Nội dung' }, { label: 'Kho bài tập' }]}
+        title="Danh mục bài tập"
+        breadcrumbs={[{ label: 'Danh mục' }, { label: 'Danh mục bài tập' }]}
         total={q.data?.total}
         actions={(
           <>
@@ -69,7 +68,6 @@ export default function ExercisesPage() {
           </>
         )}
       />
-      <div style={{ marginBottom: 12 }}><Alert kind="info">Hệ số MET từng loại tập (dùng tính calo) chỉnh ở <Link to="/config?group=T%E1%BA%ADp%20luy%E1%BB%87n%20(MET)">Tham số hệ thống</Link>. Đổi MET chỉ áp cho buổi tập ghi sau đó.</Alert></div>
       <FilterBar query={params.q} onSearch={list.setQuery} searchPlaceholder="Tìm bài (không cần gõ dấu)" activeCount={list.activeFilterCount} onClear={list.clear}>
         <FilterField label="Nhóm cơ"><TextInput value={params.filters.muscle} onChange={(e) => list.setFilter('muscle', e.target.value)} placeholder="Ví dụ: Ngực" style={{ width: 150 }} /></FilterField>
         <FilterField label="Mức độ"><Select placeholder="Tất cả" options={LEVELS} value={params.filters.level} onChange={(e) => list.setFilter('level', e.target.value)} /></FilterField>

@@ -141,7 +141,7 @@ function SessionsCard() {
 export default function SecurityPage() {
   return (
     <>
-      <PageHeader title="Bảo mật tài khoản của tôi" description="Mật khẩu, xác thực hai lớp và các thiết bị đang đăng nhập." breadcrumbs={[{ label: 'Bảo mật & Quản trị' }, { label: 'Bảo mật tài khoản' }]} />
+      <PageHeader title="Bảo mật tài khoản" breadcrumbs={[{ label: 'Bảo mật' }, { label: 'Bảo mật tài khoản' }]} />
       <div className="stack">
         <ChangePasswordCard />
         <TotpCard />

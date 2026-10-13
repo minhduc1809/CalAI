@@ -47,7 +47,7 @@ export default function UserDetailPage() {
     },
   });
 
-  const crumbs = [{ label: 'Người dùng & Hỗ trợ' }, { label: 'Danh sách người dùng', to: '/users' }, { label: 'Chi tiết' }];
+  const crumbs = [{ label: 'Khách hàng' }, { label: 'Người dùng', to: '/users' }, { label: 'Chi tiết' }];
   if (detail.isLoading) return (<><PageHeader title="Chi tiết người dùng" breadcrumbs={crumbs} /><LoadingState lines={8} /></>);
   if (detail.isError || !detail.data) return (<><PageHeader title="Chi tiết người dùng" breadcrumbs={crumbs} /><ErrorState message={(detail.error as Error)?.message ?? 'Không tải được'} onRetry={() => detail.refetch()} /></>);
 

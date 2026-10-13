@@ -55,9 +55,8 @@ export default function PremiumGrantsPage() {
   return (
     <>
       <PageHeader
-        title="Quyền Premium cấp tay"
-        description="Quyền do admin cấp hoặc sinh ra từ đơn QR. Quyền đến từ Google Play không thu hồi ở đây."
-        breadcrumbs={[{ label: 'Doanh thu & Thanh toán' }, { label: 'Quyền Premium cấp tay' }]}
+        title="Cấp Premium thủ công"
+        breadcrumbs={[{ label: 'Thanh toán' }, { label: 'Cấp Premium thủ công' }]}
         total={q.data?.pagination.total}
         actions={<Button variant="primary" icon="Plus" onClick={() => setGranting(true)}>Cấp Premium</Button>}
       />
@@ -89,7 +88,6 @@ export default function PremiumGrantsPage() {
           onClose={() => setRevoking(null)}
         />
       )}
-      <Alert kind="info">Cấp vượt trần số ngày cần chỉnh tham số <code>admin.maxGrantDays</code> ở mục Tham số hệ thống (có lý do, ghi nhật ký).</Alert>
     </>
   );
 }

@@ -55,9 +55,8 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Danh sách người dùng"
-        description="Chỉ thông tin tài khoản, gói và trạng thái. Không có dữ liệu sức khỏe của người dùng."
-        breadcrumbs={[{ label: 'Người dùng & Hỗ trợ' }, { label: 'Danh sách người dùng' }]}
+        title="Người dùng"
+        breadcrumbs={[{ label: 'Khách hàng' }, { label: 'Người dùng' }]}
         total={q.data?.pagination.total}
         actions={<ExportButton kind="users" query={exportQuery} title="Xuất danh sách người dùng" />}
       />

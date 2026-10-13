@@ -67,9 +67,8 @@ export default function QrOrdersPage() {
   return (
     <>
       <PageHeader
-        title="Đơn chuyển khoản QR"
-        description="Đối chiếu nội dung chuyển khoản, số tiền và thời điểm với sao kê ngân hàng rồi mới duyệt."
-        breadcrumbs={[{ label: 'Doanh thu & Thanh toán' }, { label: 'Đơn chuyển khoản QR' }]}
+        title="Đơn thanh toán QR"
+        breadcrumbs={[{ label: 'Thanh toán' }, { label: 'Đơn thanh toán QR' }]}
         total={q.data?.pagination.total}
         actions={<ExportButton kind="orders" query={exportQuery} title="Xuất danh sách đơn QR" />}
       />

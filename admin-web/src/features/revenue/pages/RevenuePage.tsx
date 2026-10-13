@@ -40,8 +40,7 @@ export default function RevenuePage() {
     <>
       <PageHeader
         title="Đối soát và doanh thu"
-        description="Chỉ cộng đơn đã thanh toán theo thời điểm thanh toán. Đơn đang chờ, hết hạn hoặc huỷ không được tính vào doanh thu."
-        breadcrumbs={[{ label: 'Doanh thu & Thanh toán' }, { label: 'Đối soát & doanh thu' }]}
+        breadcrumbs={[{ label: 'Thanh toán' }, { label: 'Báo cáo doanh thu' }]}
         actions={<ExportButton kind="revenue" query={{ from, to }} title="Xuất báo cáo đối soát" />}
       />
       <FilterBar activeCount={0} onClear={list.clear}>

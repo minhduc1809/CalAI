@@ -45,9 +45,8 @@ export default function FoodSubmissionsPage() {
   return (
     <>
       <PageHeader
-        title="Món người dùng gửi"
-        description="Hàng đợi duyệt món người dùng đề xuất vào kho chung. Cũ nhất hiển thị trước. Duyệt bắt buộc khai báo nhóm món và thẻ an toàn; từ chối bắt buộc ghi lý do."
-        breadcrumbs={[{ label: 'Nội dung' }, { label: 'Món người dùng gửi' }]}
+        title="Món người dùng đề xuất"
+        breadcrumbs={[{ label: 'Danh mục' }, { label: 'Món người dùng đề xuất' }]}
         total={q.data?.total}
       />
       <FilterBar query={params.q} onSearch={list.setQuery} searchPlaceholder="Tìm theo tên món" activeCount={list.activeFilterCount} onClear={list.clear}>

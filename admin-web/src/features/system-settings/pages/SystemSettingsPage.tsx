@@ -48,9 +48,8 @@ export default function SystemSettingsPage() {
   return (
     <>
       <PageHeader
-        title="Tham số hệ thống"
-        description={`Sửa không hồi tố: chỉ áp cho lần tính tiếp theo, không đổi mục tiêu của người dùng hiện có. Phiên bản cấu hình: ${q.data?.configVersion ?? '—'}.`}
-        breadcrumbs={[{ label: 'Cấu hình' }, { label: 'Tham số hệ thống' }]}
+        title="Cấu hình hệ thống"
+        breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Cấu hình hệ thống' }]}
         total={q.data?.items.length}
       />
       <FilterBar query={params.q} onSearch={list.setQuery} searchPlaceholder="Tìm theo tên hoặc mô tả tham số" activeCount={list.activeFilterCount} onClear={list.clear}>
