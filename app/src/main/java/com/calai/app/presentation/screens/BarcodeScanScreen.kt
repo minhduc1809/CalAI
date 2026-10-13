@@ -128,6 +128,30 @@ fun BarcodeScanScreen(
                     }
                 }
 
+                uiState.lookupError != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                        Text(uiState.lookupError!!, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
+                        if (!uiState.lookupQuotaExceeded) {
+                            Button(onClick = { viewModel.resetScan() }, colors = ButtonDefaults.buttonColors(containerColor = VividOrange)) { Text("Quét lại") }
+                        }
+                    }
+                }
+
+                uiState.notFound && uiState.showCreateForm -> {
+                    BarcodeCreateForm(
+                        code = uiState.scannedCode.orEmpty(),
+                        isCreating = uiState.isCreating,
+                        error = uiState.errorMessage,
+                        onCancel = viewModel::closeCreateForm,
+                        onCreate = viewModel::createFoodForBarcode
+                    )
+                }
+
                 uiState.notFound -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center).padding(32.dp),
@@ -135,13 +159,14 @@ fun BarcodeScanScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
-                        Text("Không tìm thấy sản phẩm với mã vạch này", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
+                        Text("Không tìm thấy sản phẩm. Tạo món mới với mã vạch này?", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
                         Button(
-                            onClick = { viewModel.resetScan() },
+                            onClick = { viewModel.openCreateForm() },
                             colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
                         ) {
-                            Text("Quét lại")
+                            Text("Tạo món với mã vạch này")
                         }
+                        TextButton(onClick = { viewModel.resetScan() }) { Text("Quét lại") }
                     }
                 }
 
@@ -431,5 +456,53 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
         TextButton(onClick = { viewModel.resetScan() }, modifier = Modifier.fillMaxWidth()) {
             Text("Quét sản phẩm khác", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+
+@Composable
+private fun BarcodeCreateForm(
+    code: String,
+    isCreating: Boolean,
+    error: String?,
+    onCancel: () -> Unit,
+    onCreate: (String, Float, Float, Float, Float) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var kcal by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carb by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
+    val kcalValue = kcal.replace(',', '.').toFloatOrNull()
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Tạo món cho mã vạch $code", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+        Text("Số liệu cho một phần ăn. Lần sau quét mã này sẽ tìm thấy ngay.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        androidx.compose.material3.OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tên sản phẩm") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        androidx.compose.material3.OutlinedTextField(value = kcal, onValueChange = { kcal = it }, label = { Text("Calo (kcal)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(Triple("Đạm (g)", protein, { v: String -> protein = v }), Triple("Tinh bột (g)", carb, { v: String -> carb = v }), Triple("Béo (g)", fat, { v: String -> fat = v })).forEach { (label, value, set) ->
+                androidx.compose.material3.OutlinedTextField(value = value, onValueChange = set, label = { Text(label, fontSize = 11.sp) }, singleLine = true, modifier = Modifier.weight(1f),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+            }
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+        Button(
+            onClick = {
+                onCreate(
+                    name, kcalValue ?: 0f,
+                    protein.replace(',', '.').toFloatOrNull() ?: 0f,
+                    carb.replace(',', '.').toFloatOrNull() ?: 0f,
+                    fat.replace(',', '.').toFloatOrNull() ?: 0f
+                )
+            },
+            enabled = name.isNotBlank() && kcalValue != null && !isCreating,
+            colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (isCreating) "Đang tạo…" else "Tạo và dùng món này") }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Huỷ") }
     }
 }

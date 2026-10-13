@@ -65,6 +65,14 @@ fun AddMealScreen(
     // Quick Add tự hiển thị lỗi ngay trong dialog của nó; các lỗi khác (vd. tạo món ăn riêng
     // đã đóng dialog trước khi biết kết quả) hiện qua Toast để không bị "biến mất trong im lặng".
     val context = LocalContext.current
+    val infoContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(uiState.infoMessage) {
+        uiState.infoMessage?.let {
+            android.widget.Toast.makeText(infoContext, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearInfo()
+        }
+    }
+
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null && !showQuickAddDialog) {
             Toast.makeText(context, uiState.errorMessage, Toast.LENGTH_LONG).show()
@@ -413,7 +421,8 @@ fun AddMealScreen(
                         food = food,
                         isDark = isDarkTheme,
                         onAdd = { viewModel.addFoodToMeal(food.toFoodItemDto()) },
-                        onDelete = { viewModel.deleteCustomFood(food.id) }
+                        onDelete = { viewModel.deleteCustomFood(food.id) },
+                        onSubmit = { viewModel.submitCustomFood(food.id) }
                     )
                 }
             }
@@ -572,6 +581,40 @@ private fun SelectedFoodServingCard(
                 ServingMacroChip(label = "Fat", value = "${scaledF}g", color = if (isDark) FatGradientStart else PastelFatLight, isDark = isDark)
             }
 
+            // BR-08.2: khi biết số gram của khẩu phần, cho nhập thẳng số gram (đổi sang số phần)
+            val servingGrams = com.calai.app.domain.util.ServingGrams.parse(item.servingSize)
+            if (servingGrams != null) {
+                var gramsText by androidx.compose.runtime.remember(item.quantity) {
+                    androidx.compose.runtime.mutableStateOf(
+                        com.calai.app.domain.util.ServingGrams.gramsForPortions(servingGrams, item.quantity)
+                            ?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() }.orEmpty()
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Nhập theo gram", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.material3.OutlinedTextField(
+                        value = gramsText,
+                        onValueChange = { v ->
+                            val clean = v.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)
+                            gramsText = clean
+                            clean.toFloatOrNull()
+                                ?.let { g -> com.calai.app.domain.util.ServingGrams.portionsForGrams(servingGrams, g) }
+                                ?.let(onQuantityChange)
+                        },
+                        singleLine = true,
+                        suffix = { Text("g") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                        ),
+                        modifier = Modifier.width(120.dp)
+                    )
+                }
+            }
+
             // Stepper & Quick Multipliers
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -661,7 +704,8 @@ private fun CustomFoodRow(
     food: CustomFoodDto,
     isDark: Boolean,
     onAdd: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onSubmit: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -692,6 +736,9 @@ private fun CustomFoodRow(
                     color = VividOrange,
                     modifier = Modifier.padding(end = 4.dp)
                 )
+                IconButton(onClick = onSubmit, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Share, contentDescription = "Gửi vào kho chung", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Delete, contentDescription = "Xóa món riêng", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }

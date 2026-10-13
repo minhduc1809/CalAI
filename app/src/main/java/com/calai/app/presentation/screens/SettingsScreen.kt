@@ -39,6 +39,9 @@ import com.calai.app.presentation.components.DuotoneSunIcon
 import com.calai.app.presentation.components.TactileThemeSwitch
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.ProfileViewModel
+import com.calai.app.presentation.viewmodel.checkinDayName
+import com.calai.app.domain.DailyCompletionRule
+import com.calai.app.notification.DailyCompletionScheduler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +50,8 @@ fun SettingsScreen(
     isDarkTheme: Boolean = true,
     onToggleTheme: (Boolean) -> Unit = {},
     onOpenGoalSetup: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onAccountDeleted: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -69,7 +74,11 @@ fun SettingsScreen(
     var showReminderSheet by remember { mutableStateOf(false) }
     var showUnitDialog by remember { mutableStateOf(false) }
     var showMealStructureDialog by remember { mutableStateOf(false) }
+    var showCheckinDaySheet by remember { mutableStateOf(false) }
+    var showRestDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showSessionsDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var showEmailVerifySheet by remember { mutableStateOf(false) }
 
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
@@ -84,6 +93,18 @@ fun SettingsScreen(
                 Toast.makeText(context, "Đã đổi đơn vị cân nặng sang $unitLabel", Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showUnitDialog = false }
+        )
+    }
+
+    if (showCheckinDaySheet) {
+        CheckinDayModalSheet(
+            currentDay = uiState.profile?.checkinDay ?: 1,
+            onSelectDay = { day ->
+                viewModel.setCheckinDay(day) { _, message ->
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { showCheckinDaySheet = false }
         )
     }
 
@@ -325,8 +346,100 @@ fun SettingsScreen(
                     title = "Nhắc nhở bữa ăn & Uống nước",
                     subtitle = "Sáng 07:30 • Trưa 12:00 • Tối 19:00",
                     isDark = isDarkTheme,
-                    isLast = true,
+                    isLast = false,
                     onClick = { showReminderSheet = true }
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.EventRepeat,
+                    title = "Nhắc ghi đủ cuối ngày",
+                    subtitle = "Lúc ${uiState.dailyCompletionTime}, hỏi bạn hôm nay đã ghi đủ bữa ăn chưa",
+                    checked = uiState.dailyCompletionEnabled,
+                    isDark = isDarkTheme,
+                    isLast = !uiState.dailyCompletionEnabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setDailyCompletionEnabled(enabled)
+                        DailyCompletionScheduler.sync(context, enabled, uiState.dailyCompletionTime)
+                    }
+                )
+                if (uiState.dailyCompletionEnabled) {
+                    SettingsActionRow(
+                        icon = Icons.Default.Schedule,
+                        title = "Giờ nhắc ghi đủ",
+                        subtitle = uiState.dailyCompletionTime,
+                        isDark = isDarkTheme,
+                        isLast = true,
+                        onClick = {
+                            val (hour, minute) = DailyCompletionRule.parseTime(uiState.dailyCompletionTime)
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, h, m ->
+                                    val time = DailyCompletionRule.formatTime(h, m)
+                                    viewModel.setDailyCompletionTime(time)
+                                    DailyCompletionScheduler.sync(context, true, time)
+                                },
+                                hour,
+                                minute,
+                                true
+                            ).show()
+                        }
+                    )
+                }
+            }
+
+            // 3b. LOẠI THÔNG BÁO TRONG APP (BR-19.4): tắt loại nào thì máy chủ không tạo loại đó nữa
+            SettingsSectionHeader(title = "Loại thông báo trong app", isDark = isDarkTheme)
+            SettingsGroupCard(isDark = isDarkTheme) {
+                val toggles = com.calai.app.data.sync.SettingsSync.TOGGLEABLE_NOTIFICATIONS
+                toggles.forEachIndexed { index, (type, label) ->
+                    SettingsSwitchRow(
+                        icon = Icons.Default.NotificationsActive,
+                        title = label,
+                        subtitle = if (type in uiState.disabledNotifications) "Đã tắt" else "Đang bật",
+                        checked = type !in uiState.disabledNotifications,
+                        isDark = isDarkTheme,
+                        isLast = index == toggles.lastIndex,
+                        onCheckedChange = { enabled -> viewModel.setNotificationEnabled(type, enabled) }
+                    )
+                }
+            }
+            Text(
+                "Thông báo về thanh toán luôn được gửi.",
+                fontSize = 11.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 6.dp, top = 6.dp)
+            )
+
+            // 3c. TẬP LUYỆN: thời gian nghỉ mặc định giữa set
+            SettingsSectionHeader(title = "Tập luyện", isDark = isDarkTheme)
+            SettingsGroupCard(isDark = isDarkTheme) {
+                SettingsActionRow(
+                    icon = Icons.Default.Schedule,
+                    title = "Nghỉ mặc định giữa set",
+                    subtitle = "${uiState.defaultRestSec} giây",
+                    isDark = isDarkTheme,
+                    isLast = true,
+                    onClick = { showRestDialog = true }
+                )
+            }
+            if (showRestDialog) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showRestDialog = false },
+                    title = { Text("Nghỉ mặc định giữa set") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(45, 60, 90, 120, 180, 240).forEach { sec ->
+                                androidx.compose.material3.TextButton(onClick = {
+                                    viewModel.setDefaultRestSec(sec)
+                                    showRestDialog = false
+                                }) {
+                                    Text(if (sec == uiState.defaultRestSec) "$sec giây (đang dùng)" else "$sec giây")
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { showRestDialog = false }) { Text("Đóng") }
+                    }
                 )
             }
 
@@ -359,8 +472,16 @@ fun SettingsScreen(
                     title = "Hiển thị Nhật ký ăn uống",
                     subtitle = mealModeLabel,
                     isDark = isDarkTheme,
-                    isLast = true,
+                    isLast = false,
                     onClick = { showMealStructureDialog = true }
+                )
+                SettingsActionRow(
+                    icon = Icons.Default.EventRepeat,
+                    title = "Ngày Check-in hằng tuần",
+                    subtitle = "${checkinDayName(uiState.profile?.checkinDay)} • Nhìn lại tuần và điều chỉnh mục tiêu",
+                    isDark = isDarkTheme,
+                    isLast = true,
+                    onClick = { showCheckinDaySheet = true }
                 )
             }
 
@@ -440,11 +561,40 @@ fun SettingsScreen(
                     subtitle = "Bảo vệ thông tin sinh trắc học và dữ liệu bữa ăn",
                     isDark = isDarkTheme,
                     isLast = true,
-                    onClick = {
-                        // Chưa có trang/điều khoản thật để mở — trước đây hiện 1 câu thông tin
-                        // kỹ thuật không liên quan (RFC5322/JWT) thay vì nội dung chính sách
-                        // thật, dễ gây hiểu lầm đây là toàn bộ nội dung điều khoản.
-                        Toast.makeText(context, "Trang Chính sách bảo mật & Điều khoản đang được soạn thảo, sẽ cập nhật sớm.", Toast.LENGTH_LONG).show()
+                    onClick = onOpenPrivacy
+                )
+            }
+
+            // 7. TÀI KHOẢN & DỮ LIỆU (BR-01.3, BR-01.4)
+            SettingsSectionHeader(title = "Tài khoản & Dữ liệu", isDark = isDarkTheme)
+            SettingsGroupCard(isDark = isDarkTheme) {
+                SettingsActionRow(
+                    icon = Icons.Default.Info,
+                    title = "Thiết bị đăng nhập",
+                    subtitle = "Xem và đăng xuất từng thiết bị",
+                    isDark = isDarkTheme,
+                    isLast = false,
+                    onClick = { showSessionsDialog = true }
+                )
+                SettingsActionRow(
+                    icon = Icons.Default.PrivacyTip,
+                    title = "Xoá tài khoản",
+                    subtitle = "Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu",
+                    isDark = isDarkTheme,
+                    isLast = true,
+                    onClick = { showDeleteDialog = true }
+                )
+            }
+            if (showSessionsDialog) {
+                SessionsDialog(viewModel = viewModel, onDismiss = { showSessionsDialog = false })
+            }
+            if (showDeleteDialog) {
+                DeleteAccountDialog(
+                    viewModel = viewModel,
+                    onDismiss = { showDeleteDialog = false },
+                    onDeleted = {
+                        showDeleteDialog = false
+                        onAccountDeleted()
                     }
                 )
             }
@@ -1018,3 +1168,234 @@ private fun clearAppCache(context: android.content.Context): Long {
     return deleteRecursively(context.cacheDir) + deleteRecursively(context.externalCacheDir)
 }
 
+
+
+/** Chọn ngày Check-in hằng tuần (BR-06.1). Đổi ngày có hiệu lực ngay, kỳ dữ liệu luôn là 7 ngày trước ngày đó. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CheckinDayModalSheet(
+    currentDay: Int,
+    onSelectDay: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val days = listOf(1 to "T2", 2 to "T3", 3 to "T4", 4 to "T5", 5 to "T6", 6 to "T7", 7 to "CN")
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Text(
+                text = "Ngày Check-in hằng tuần",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Vào ngày này mỗi tuần, NutriWise nhìn lại 7 ngày vừa qua của bạn và đề xuất điều chỉnh mục tiêu. Chọn ngày bạn hay rảnh để xem lại.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                days.forEach { (day, label) ->
+                    val selected = day == currentDay
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (selected) androidx.compose.ui.graphics.Brush.linearGradient(listOf(LavenderGradientStart, LavenderGradientEnd))
+                                else androidx.compose.ui.graphics.Brush.linearGradient(
+                                    listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant)
+                                )
+                            )
+                            .border(
+                                1.dp,
+                                if (selected) LavenderGradientStart else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable { onSelectDay(day) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                            color = if (selected) TextDeepInk else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "Đang chọn: ${checkinDayName(currentDay)}",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            AppButton(
+                text = "Xong",
+                onClick = onDismiss,
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            )
+        }
+    }
+}
+
+
+/** Dòng cài đặt có công tắc bật/tắt, cùng kiểu với [SettingsActionRow]. */
+@Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    isDark: Boolean,
+    isLast: Boolean = false,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isDark) PastelLavender else VividOrange,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+                Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+    if (!isLast) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 18.dp)
+        )
+    }
+}
+
+
+/** Danh sách thiết bị đang đăng nhập; đăng xuất từng thiết bị hoặc tất cả (BR-01.3). */
+@Composable
+private fun SessionsDialog(viewModel: ProfileViewModel, onDismiss: () -> Unit) {
+    var sessions by remember { mutableStateOf<List<com.calai.app.data.remote.dto.SessionDto>?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    fun load() = viewModel.loadSessions { result ->
+        sessions = result
+        failed = result == null
+    }
+    LaunchedEffect(Unit) { load() }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Thiết bị đăng nhập") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                when {
+                    failed -> Text("Không tải được danh sách. Kiểm tra kết nối rồi thử lại.")
+                    sessions == null -> Text("Đang tải…")
+                    sessions!!.isEmpty() -> Text("Không có thiết bị nào.")
+                    else -> sessions!!.forEach { s ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(s.deviceName?.takeIf { it.isNotBlank() } ?: "Thiết bị không rõ tên", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Dùng gần nhất: " + (s.lastUsedAt?.take(16)?.replace('T', ' ') ?: "—"),
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            androidx.compose.material3.TextButton(onClick = { viewModel.revokeSession(s.id) { load() } }) { Text("Đăng xuất") }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Đóng") } }
+    )
+}
+
+/**
+ * Xoá tài khoản (BR-01.4). Ba bước: đọc cảnh báo, nhập mật khẩu để xác thực lại, gõ "XOA" để xác nhận cuối.
+ * Gói Premium trên Google Play không tự huỷ nên phải nhắc người dùng.
+ */
+@Composable
+private fun DeleteAccountDialog(viewModel: ProfileViewModel, onDismiss: () -> Unit, onDeleted: () -> Unit) {
+    val context = LocalContext.current
+    var password by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text("Xoá tài khoản?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Toàn bộ dữ liệu của bạn (bữa ăn, cân nặng, tập luyện, mục tiêu...) sẽ bị xoá vĩnh viễn và không khôi phục được. Bạn nên xuất dữ liệu trước nếu muốn giữ bản sao.")
+                Text(
+                    "Gói Premium trên Google Play không tự huỷ. Hãy huỷ trong Play Store để không bị trừ tiền. Gói mua qua QR sẽ mất quyền còn lại và không hoàn tiền.",
+                    fontSize = 12.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                androidx.compose.material3.TextButton(onClick = {
+                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/account/subscriptions")))
+                }) { Text("Mở trang quản lý gói trên Google Play") }
+                androidx.compose.material3.OutlinedTextField(
+                    value = password, onValueChange = { password = it }, label = { Text("Mật khẩu hiện tại") }, singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = confirm, onValueChange = { confirm = it }, label = { Text("Gõ XOA để xác nhận") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.5.sp) }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = !busy && password.isNotBlank() && confirm.trim().uppercase() == "XOA",
+                onClick = {
+                    busy = true
+                    error = null
+                    viewModel.deleteAccount(password) { ok, msg ->
+                        busy = false
+                        if (ok) onDeleted() else error = msg
+                    }
+                }
+            ) { Text(if (busy) "Đang xoá…" else "Xoá vĩnh viễn", color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(enabled = !busy, onClick = onDismiss) { Text("Huỷ") } }
+    )
+}

@@ -410,9 +410,12 @@ private fun MessageBubble(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
+        val isSafety = !message.isUser && message.safetyFlag != null
         Surface(
             color = if (message.isUser) {
                 PastelLavender
+            } else if (isSafety) {
+                PastelRose.copy(alpha = 0.22f)
             } else {
                 MaterialTheme.colorScheme.surface
             },
@@ -425,18 +428,28 @@ private fun MessageBubble(
             border = if (!message.isUser) {
                 androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline
+                    color = if (isSafety) PastelRose else MaterialTheme.colorScheme.outline
                 )
             } else null,
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            Text(
-                text = message.text,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = if (message.isUser) MaterialTheme.colorScheme.background else (MaterialTheme.colorScheme.onBackground),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                if (isSafety) {
+                    Text(
+                        text = "Lời khuyên an toàn",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                Text(
+                    text = message.text,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = if (message.isUser) MaterialTheme.colorScheme.background else (MaterialTheme.colorScheme.onBackground)
+                )
+            }
         }
     }
 }

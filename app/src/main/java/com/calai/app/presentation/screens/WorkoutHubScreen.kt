@@ -150,7 +150,7 @@ fun WorkoutHubScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(CtaSolidOrange)
                         .clickable {
-                            workoutViewModel.resetForm()
+                            workoutViewModel.startBlank()
                             onNavigateToLogWorkout()
                         }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -212,7 +212,7 @@ fun WorkoutHubScreen(
                         workoutData = suggestionsUiState.workout,
                         isDark = isDarkTheme,
                         onStartWorkoutDay = { dayTitle, exerciseNames ->
-                            workoutViewModel.prefillFromProgram(dayTitle, exerciseNames)
+                            workoutViewModel.startFromProgram(dayTitle, exerciseNames)
                             onNavigateToLogWorkout()
                         }
                     )
@@ -224,7 +224,16 @@ fun WorkoutHubScreen(
                         summary = workoutUiState.summary,
                         isDark = isDarkTheme,
                         onSelectDetail = { selectedWorkoutForDetail = it },
-                        onDelete = { workoutViewModel.deleteWorkout(it.id) }
+                        onDelete = { workoutViewModel.deleteWorkout(it.id) },
+                        progressSection = {
+                            val ctx = androidx.compose.ui.platform.LocalContext.current
+                            WorkoutProgressSection(
+                                ui = workoutUiState,
+                                vm = workoutViewModel,
+                                onToast = { android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show() },
+                                onOpenWorkout = workoutViewModel::openWorkoutById
+                            )
+                        }
                     )
                 }
 
@@ -233,9 +242,7 @@ fun WorkoutHubScreen(
                         exercises = suggestionsUiState.exercises,
                         isDark = isDarkTheme,
                         onLogExercise = { ex ->
-                            workoutViewModel.resetForm()
-                            workoutViewModel.setWorkoutName("Buổi tập ${ex.name}")
-                            workoutViewModel.addExercise(ex.name)
+                            workoutViewModel.startFromExercise(ex.name, "CATALOG", ex.id, ex.targetMuscle.substringBefore(',').trim())
                             onNavigateToLogWorkout()
                         }
                     )
@@ -470,7 +477,8 @@ fun HistoryTabContent(
     summary: com.calai.app.data.remote.dto.WorkoutSummaryDto?,
     isDark: Boolean = true,
     onSelectDetail: (WorkoutLogDto) -> Unit,
-    onDelete: (WorkoutLogDto) -> Unit
+    onDelete: (WorkoutLogDto) -> Unit,
+    progressSection: @Composable () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -481,6 +489,7 @@ fun HistoryTabContent(
             .padding(bottom = 90.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        progressSection()
         // Summary Widget Hôm nay (Active Calo + Minutes + Workouts)
         Box(
             modifier = Modifier
@@ -509,7 +518,7 @@ fun HistoryTabContent(
                 ) {
                     Column {
                         Text(
-                            text = "${summary?.totalActiveCalories ?: 420}",
+                            text = "${summary?.totalActiveCalories ?: 0}",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = VividOrange

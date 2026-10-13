@@ -26,7 +26,14 @@ data class BarcodeScanUiState(
     val mealType: String = MealTimeHelper.detectMealType(),
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** Mã vạch vừa quét nhưng không tìm thấy, để mở form tạo món gắn mã này (BR-08.6). */
+    val scannedCode: String? = null,
+    /** Lỗi tra cứu (hết lượt, mất mạng); khác "không tìm thấy". */
+    val lookupError: String? = null,
+    val lookupQuotaExceeded: Boolean = false,
+    val showCreateForm: Boolean = false,
+    val isCreating: Boolean = false
 )
 
 @HiltViewModel
@@ -42,14 +49,51 @@ class BarcodeScanViewModel @Inject constructor(
         val state = _uiState.value
         if (state.isLookingUp || state.product != null || state.notFound) return
 
-        _uiState.update { it.copy(isLookingUp = true) }
+        if (state.lookupError != null) return
+
+        _uiState.update { it.copy(isLookingUp = true, scannedCode = code) }
         viewModelScope.launch {
             repository.lookupBarcode(code).onSuccess { product ->
                 _uiState.update {
                     it.copy(isLookingUp = false, product = product, notFound = product == null)
                 }
-            }.onFailure {
-                _uiState.update { it.copy(isLookingUp = false, notFound = true) }
+            }.onFailure { e ->
+                val quota = (e as? com.calai.app.data.remote.ApiException)?.isQuotaExceeded == true
+                _uiState.update {
+                    it.copy(
+                        isLookingUp = false,
+                        lookupQuotaExceeded = quota,
+                        lookupError = if (quota) (e.message ?: "Bạn đã dùng hết lượt tra mã vạch hôm nay")
+                        else "Không thể tra cứu lúc này. Kiểm tra kết nối rồi quét lại"
+                    )
+                }
+            }
+        }
+    }
+
+    fun openCreateForm() = _uiState.update { it.copy(showCreateForm = true, errorMessage = null) }
+    fun closeCreateForm() = _uiState.update { it.copy(showCreateForm = false) }
+
+    /** Tạo món tự tạo gắn mã vạch vừa quét; lần quét sau tra món này trước, không tốn lượt (BR-08.6). */
+    fun createFoodForBarcode(name: String, kcal: Float, protein: Float, carb: Float, fat: Float) {
+        val code = _uiState.value.scannedCode ?: return
+        _uiState.update { it.copy(isCreating = true, errorMessage = null) }
+        viewModelScope.launch {
+            repository.createCustomFood(
+                name = name.trim(), servingSize = "1 phần", servingAmount = 1f, servingUnit = "PORTION",
+                calories = kcal, protein = protein, carb = carb, fat = fat, barcode = code
+            ).onSuccess { food ->
+                _uiState.update {
+                    it.copy(
+                        isCreating = false, showCreateForm = false, notFound = false,
+                        product = BarcodeProductDto(
+                            barcode = code, name = food.name, servingSize = "1 phần", servingAmount = 1f,
+                            servingUnit = "PORTION", calories = kcal, protein = protein, carb = carb, fat = fat
+                        )
+                    )
+                }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isCreating = false, errorMessage = e.message ?: "Không thể tạo món") }
             }
         }
     }
@@ -69,7 +113,10 @@ class BarcodeScanViewModel @Inject constructor(
                 product = null,
                 notFound = false,
                 quantity = 1f,
-                errorMessage = null
+                errorMessage = null,
+                lookupError = null,
+                lookupQuotaExceeded = false,
+                showCreateForm = false
             )
         }
     }

@@ -42,6 +42,9 @@ import java.util.Locale
 @Composable
 fun NotificationScreen(
     onBack: () -> Unit,
+    onOpenCheckin: () -> Unit = {},
+    onOpenGoalSetup: () -> Unit = {},
+    onOpenWeeklySummary: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
@@ -119,7 +122,14 @@ fun NotificationScreen(
                                 shadowColor = shadowColor,
                                 textPrimary = textPrimary,
                                 textSecondary = textSecondary,
-                                onClick = { if (!item.isRead) viewModel.markRead(item.id) },
+                                onClick = {
+                                    if (!item.isRead) viewModel.markRead(item.id)
+                                    // Thông báo Check-in sẵn sàng (BR-06.7) mở thẳng màn Check-in
+                                    if (item.type == "CHECKIN_READY") onOpenCheckin()
+                                    // Chạm cân đích: gợi ý chuyển sang Duy trì nằm ở màn thiết lập mục tiêu
+                                    if (item.type == "GOAL_REACHED") onOpenGoalSetup()
+                                    if (item.type == "WEEKLY_SUMMARY_READY") onOpenWeeklySummary()
+                                },
                                 onDelete = { viewModel.delete(item.id) }
                             )
                         }
@@ -135,9 +145,10 @@ fun NotificationScreen(
 @Composable
 private fun NotificationTypeIcon(type: String, modifier: Modifier = Modifier) {
     when (type) {
-        "WATER_REMINDER" -> DuotoneWaterIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
-        "AI_MESSAGE" -> DuotoneSparkleIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
-        "MEAL_REMINDER" -> DuotoneDietIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
+        "CHECKIN_READY" -> DuotoneSparkleIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
+        "WEEKLY_SUMMARY_READY", "GOAL_REACHED", "FOOD_SUBMISSION_RESULT", "PAYMENT_SUCCESS" ->
+            DuotoneSparkleIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
+        "DAY_COMPLETED" -> DuotoneDietIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
         else -> DuotoneFlameIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
     }
 }

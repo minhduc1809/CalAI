@@ -61,13 +61,35 @@ fun HomeScreen(
     onOpenSuggestions: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
+    onOpenCheckin: () -> Unit = {},
+    onOpenWeeklySummary: () -> Unit = {},
     isDarkTheme: Boolean = true,
     onThemeChanged: (Boolean) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
+    checkinViewModel: com.calai.app.presentation.viewmodel.CheckinBannerViewModel = hiltViewModel(),
     reminderViewModel: HabitReminderViewModel = hiltViewModel(),
     waterViewModel: WaterViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val pendingCheckin by checkinViewModel.pending.collectAsState()
+    val pendingSync by viewModel.pendingRequests.collectAsState()
+    var confirmDeleteWholeMeal by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    confirmDeleteWholeMeal?.let { mealId ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDeleteWholeMeal = null },
+            title = { Text("Xoá cả bữa này?") },
+            text = { Text("Đây là món cuối của bữa. Gỡ món này sẽ xoá luôn cả bữa ăn.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteMeal(mealId)
+                    confirmDeleteWholeMeal = null
+                }) { Text("Xoá cả bữa") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDeleteWholeMeal = null }) { Text("Giữ lại") }
+            }
+        )
+    }
     val reminderState by reminderViewModel.listState.collectAsState()
     val water by waterViewModel.water.collectAsState()
     val waterError by waterViewModel.error.collectAsState()
@@ -85,6 +107,7 @@ fun HomeScreen(
                 viewModel.loadData(selectedDateIso)
                 reminderViewModel.loadReminders()
                 waterViewModel.refresh()
+                checkinViewModel.refresh()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -163,25 +186,51 @@ fun HomeScreen(
                 // ── 3. HERO CALORIES ───────────────────────────────────────────────
                 item {
                     val summary = uiState.dailySummary?.summary
+                    // Bữa đang chờ gửi vẫn được cộng tạm vào "Đã ăn" (BR-07.5)
+                    val pend = com.calai.app.data.sync.pendingMealTotalsFor(pendingSync, selectedDateIso)
                     CalorieHeroCard(
-                        consumed = summary?.consumedCalories?.toInt(),
+                        consumed = summary?.consumedCalories?.let { (it + pend.calories).toInt() },
                         target = summary?.targetCalories?.toInt(),
-                        remaining = summary?.remainingCalories?.toInt(),
+                        remaining = summary?.remainingCalories?.let { (it - pend.calories).toInt() },
                         isDarkTheme = isDarkTheme
                     )
+                }
+
+                // ── 3a. HÀNG ĐỢI GỬI LẠI: bữa ăn/buổi tập chưa lên được máy chủ ──────────
+                if (pendingSync.isNotEmpty()) {
+                    item {
+                        PendingSyncBanner(
+                            items = pendingSync,
+                            onRetry = viewModel::retryPending,
+                            onDelete = viewModel::deletePending
+                        )
+                    }
+                }
+
+                // ── 3b. CHECK-IN TUẦN: chỉ hiện khi đang có Check-in chờ (BR-06) ──────────
+                pendingCheckin?.let { pending ->
+                    item {
+                        CheckinEntryCard(checkIn = pending, onClick = onOpenCheckin)
+                    }
+                }
+
+                // ── 3c. TỔNG KẾT TUẦN ────────────────────────────────────────────────────
+                item {
+                    WeeklySummaryEntryCard(onClick = onOpenWeeklySummary)
                 }
 
                 // ── 4. 4 Ô THÔNG SỐ: Nước / Cân nặng / Calories / Đa lượng (dữ liệu thật từ BE) ──
                 item {
                     val summary = uiState.dailySummary?.summary
                     val macros = summary?.macros
+                    val pend = com.calai.app.data.sync.pendingMealTotalsFor(pendingSync, selectedDateIso)
                     DashboardStatTiles(
                         stats = DashboardStats(
                             weightText = uiState.weightText, targetWeightText = uiState.targetWeightText,
                             weightProgress = uiState.weightProgress,
-                            proteinG = macros?.protein?.consumed?.toInt(), proteinTarget = macros?.protein?.target?.toInt(),
-                            carbG = macros?.carb?.consumed?.toInt(), carbTarget = macros?.carb?.target?.toInt(),
-                            fatG = macros?.fat?.consumed?.toInt(), fatTarget = macros?.fat?.target?.toInt()
+                            proteinG = macros?.protein?.consumed?.let { (it + pend.protein).toInt() }, proteinTarget = macros?.protein?.target?.toInt(),
+                            carbG = macros?.carb?.consumed?.let { (it + pend.carb).toInt() }, carbTarget = macros?.carb?.target?.toInt(),
+                            fatG = macros?.fat?.consumed?.let { (it + pend.fat).toInt() }, fatTarget = macros?.fat?.target?.toInt()
                         ),
                         isDarkTheme = isDarkTheme
                     )
@@ -237,8 +286,14 @@ fun HomeScreen(
                                 onDelete = { viewModel.deleteMeal(meal.id) },
                                 onChangeMealType = { newType -> viewModel.changeMealType(meal.id, newType) },
                                 onCopy = { targetDate -> viewModel.copyMeal(meal.id, targetDate) },
-                                onUpdateItemQuantity = { itemId, qty -> viewModel.updateMealItemQuantity(meal, itemId, qty) },
-                                onRemoveItem = { itemId -> viewModel.removeMealItem(meal, itemId) }
+                                onUpdateItemQuantity = { itemId, qty ->
+                                    if (viewModel.wouldEmptyMeal(meal, itemId, qty)) confirmDeleteWholeMeal = meal.id
+                                    else viewModel.updateMealItemQuantity(meal, itemId, qty)
+                                },
+                                onRemoveItem = { itemId ->
+                                    if (viewModel.wouldEmptyMeal(meal, itemId)) confirmDeleteWholeMeal = meal.id
+                                    else viewModel.removeMealItem(meal, itemId)
+                                }
                             )
                         }
                     }
@@ -1090,5 +1145,55 @@ private fun DayCompletenessCard(
                 onSelect(if (completeness == "INCOMPLETE") "AUTO" else "INCOMPLETE")
             }
         }
+    }
+}
+
+
+@Composable
+private fun PendingSyncBanner(
+    items: List<com.calai.app.data.local.entity.PendingRequestEntity>,
+    onRetry: (Long) -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    val failed = items.filter { it.status == com.calai.app.data.local.entity.PendingRequestEntity.STATUS_FAILED }
+    val waiting = items.size - failed.size
+    var showFailed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (failed.isNotEmpty()) Color(0xFFFFE3E0) else Color(0xFFFFF1D6))
+            .clickable(enabled = failed.isNotEmpty()) { showFailed = true }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Text(
+            if (failed.isNotEmpty()) "${failed.size} mục chưa gửi được. Chạm để xem" else "$waiting mục đang chờ gửi khi có mạng",
+            fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3A2A1A)
+        )
+        Text(
+            "Dữ liệu đã lưu trên máy, không bị mất.",
+            fontSize = 11.5.sp, color = Color(0xFF3A2A1A).copy(alpha = 0.7f)
+        )
+    }
+    if (showFailed) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showFailed = false },
+            title = { Text("Mục chưa gửi được") },
+            text = {
+                androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                    failed.forEach { f ->
+                        androidx.compose.foundation.layout.Column {
+                            Text(if (f.kind == "MEAL") "Bữa ăn" else "Buổi tập", fontWeight = FontWeight.Bold)
+                            Text(f.lastError ?: "Máy chủ từ chối", fontSize = 12.sp)
+                            androidx.compose.foundation.layout.Row {
+                                androidx.compose.material3.TextButton(onClick = { onRetry(f.localId) }) { Text("Gửi lại") }
+                                androidx.compose.material3.TextButton(onClick = { onDelete(f.localId) }) { Text("Xoá") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { showFailed = false }) { Text("Đóng") } }
+        )
     }
 }

@@ -3,6 +3,7 @@ package com.calai.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.calai.app.data.remote.dto.ExpenditureStatusDto
+import com.calai.app.data.remote.dto.MacroStylePreviewDto
 import com.calai.app.data.remote.dto.UpdateProfileRequest
 import com.calai.app.data.remote.dto.UserProfileDto
 import com.calai.app.domain.repository.CalAIRepository
@@ -22,6 +23,8 @@ data class GoalSetupUiState(
     // Giá trị gốc từ server, dùng để phát hiện có thay đổi hay không (Goal Change cần xác nhận)
     val original: UserProfileDto? = null,
     val expenditure: ExpenditureStatusDto? = null,
+    // Tỉ lệ thực tế của từng phong cách ăn (BR-03.7); rỗng khi chưa tải được hoặc hồ sơ chưa đủ
+    val macroPreview: List<MacroStylePreviewDto> = emptyList(),
     // Giá trị đang chỉnh sửa trên màn hình
     val goal: String = "MAINTAIN",
     val targetWeightKg: String = "",
@@ -40,6 +43,7 @@ class GoalSetupViewModel @Inject constructor(
     init {
         loadProfile()
         loadExpenditure()
+        loadMacroPreview()
     }
 
     private fun loadProfile() {
@@ -65,6 +69,14 @@ class GoalSetupViewModel @Inject constructor(
         viewModelScope.launch {
             repository.fetchExpenditureStatus().onSuccess { result ->
                 _uiState.update { it.copy(expenditure = result) }
+            }
+        }
+    }
+
+    private fun loadMacroPreview() {
+        viewModelScope.launch {
+            repository.fetchMacroPreview().onSuccess { result ->
+                _uiState.update { it.copy(macroPreview = result.styles) }
             }
         }
     }
@@ -110,6 +122,7 @@ class GoalSetupViewModel @Inject constructor(
             repository.updateProfile(request).onSuccess { updated ->
                 _uiState.update { it.copy(isSaving = false, isSaveSuccess = true, original = updated) }
                 loadExpenditure()
+                loadMacroPreview() // calo đổi sau khi lưu nên tỉ lệ thực tế cũng đổi
             }.onFailure { e ->
                 _uiState.update { it.copy(isSaving = false, errorMessage = e.message ?: "Không thể lưu mục tiêu") }
             }

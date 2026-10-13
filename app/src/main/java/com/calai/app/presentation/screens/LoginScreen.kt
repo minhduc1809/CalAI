@@ -57,12 +57,30 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     onLoginSuccess: (isNewRegistration: Boolean) -> Unit,
     onForgotPassword: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    if (uiState.pendingGoogleConsent) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.cancelGoogleConsent() },
+            title = { Text("Tạo tài khoản mới") },
+            text = { Text("Để tạo tài khoản bằng Google, bạn cần đọc và đồng ý Chính sách quyền riêng tư của NutriWise.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { viewModel.confirmGoogleConsent() }) { Text("Tôi đồng ý") }
+            },
+            dismissButton = {
+                Row {
+                    androidx.compose.material3.TextButton(onClick = onOpenPrivacy) { Text("Đọc chính sách") }
+                    androidx.compose.material3.TextButton(onClick = { viewModel.cancelGoogleConsent() }) { Text("Huỷ") }
+                }
+            }
+        )
+    }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -413,6 +431,29 @@ fun LoginScreen(
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
+            }
+
+            // Đồng ý Chính sách quyền riêng tư — bắt buộc khi đăng ký (BR-18)
+            if (!uiState.isLoginMode) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = uiState.acceptPrivacy,
+                        onCheckedChange = { viewModel.onAcceptPrivacyChange(it) }
+                    )
+                    Text(
+                        text = "Tôi đã đọc và đồng ý với ",
+                        fontSize = 12.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Chính sách quyền riêng tư",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = VividOrange,
+                        modifier = Modifier.clickable { onOpenPrivacy() }
+                    )
+                }
             }
 
             // Liên kết "Quên mật khẩu?" — chỉ hiện ở tab Đăng Nhập

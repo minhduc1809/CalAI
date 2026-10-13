@@ -488,6 +488,26 @@ fun CameraScanScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
+                            // Danh sách món nhận diện: nhãn "Ước tính" và đổi món khi AI nhận sai (BR-11.1)
+                            food.items.forEachIndexed { index, item ->
+                                RecognizedItemRow(
+                                    item = item,
+                                    onPickAlternative = { alt -> viewModel.swapRecognizedItem(index, alt) }
+                                )
+                                if (index < food.items.lastIndex) Spacer(modifier = Modifier.height(10.dp))
+                            }
+
+                            if (food.unrecognized.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Chưa ước tính được: ${food.unrecognized.joinToString(", ")}. Bạn có thể tìm món này trong kho món để thêm thủ công.",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             // Lời khuyên sức khỏe
                             if (food.healthTip.isNotBlank()) {
                                 Surface(
@@ -616,6 +636,15 @@ fun CameraScanScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                         }
 
+                        menu.disclaimer?.takeIf { it.isNotBlank() }?.let { note ->
+                            Text(
+                                text = note,
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 10.dp)
+                            )
+                        }
+
                         if (uiState.selectedMenuItemIndices.isNotEmpty()) {
                             AppButton(
                                 text = "Lưu ${uiState.selectedMenuItemIndices.size} Món Đã Chọn",
@@ -653,16 +682,20 @@ private fun MenuItemCard(
     isSelected: Boolean,
     onToggleSelect: () -> Unit
 ) {
+    val hasNutrition = item.nutritionAvailable != false
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(
-            if (isSelected) 1.5.dp else if (item.isRecommended) 1.5.dp else 1.dp,
-            if (isSelected) MintJade else if (item.isRecommended) VividOrange else MaterialTheme.colorScheme.outline
+            if (isSelected) 1.5.dp else if (item.isRecommended || item.warning != null) 1.5.dp else 1.dp,
+            if (item.warning != null) CrimsonError
+            else if (isSelected) MintJade
+            else if (item.isRecommended) VividOrange
+            else MaterialTheme.colorScheme.outline
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isSaving) { onToggleSelect() }
+            .clickable(enabled = !isSaving && hasNutrition) { onToggleSelect() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -674,7 +707,7 @@ private fun MenuItemCard(
                     Checkbox(
                         checked = isSelected,
                         onCheckedChange = { onToggleSelect() },
-                        enabled = !isSaving,
+                        enabled = !isSaving && hasNutrition,
                         colors = CheckboxDefaults.colors(checkedColor = MintJade)
                     )
                     Column {
@@ -686,6 +719,14 @@ private fun MenuItemCard(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text("Gợi ý", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VividOrange, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+                        if (item.isEstimate) {
+                            Surface(
+                                color = PastelLavender.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("Ước tính", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         }
                     }
@@ -700,22 +741,52 @@ private fun MenuItemCard(
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        "${item.estimatedCalories} kcal",
-                        fontSize = 14.sp,
+                        if (hasNutrition) "${item.estimatedCalories} kcal" else "Chưa có số liệu",
+                        fontSize = if (hasNutrition) 14.sp else 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VividOrange,
+                        color = if (hasNutrition) VividOrange else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("P: ${item.protein}g", fontSize = 12.sp, color = PastelLavender, fontWeight = FontWeight.Medium)
-                Text("C: ${item.carbs}g", fontSize = 12.sp, color = PastelButtercup, fontWeight = FontWeight.Medium)
-                Text("F: ${item.fat}g", fontSize = 12.sp, color = PastelRose, fontWeight = FontWeight.Medium)
+            if (hasNutrition) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("P: ${item.protein}g", fontSize = 12.sp, color = PastelLavender, fontWeight = FontWeight.Medium)
+                    Text("C: ${item.carbs}g", fontSize = 12.sp, color = PastelButtercup, fontWeight = FontWeight.Medium)
+                    Text("F: ${item.fat}g", fontSize = 12.sp, color = PastelRose, fontWeight = FontWeight.Medium)
+                }
+                item.servingSize?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        "Theo khẩu phần chuẩn: $it (khẩu phần ở quán có thể khác)",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            } else {
+                Text(
+                    "Bạn có thể tìm món này trong kho món để thêm thủ công.",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+
+            item.warning?.let { warning ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(color = CrimsonError.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        warning,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = CrimsonError,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
             }
 
             item.recommendationReason?.let { reason ->
@@ -744,4 +815,97 @@ private fun createTempPictureUri(context: Context): Uri {
         deleteOnExit()
     }
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+}
+
+/**
+ * Một món trong kết quả nhận diện ảnh. Món không có trong kho mang nhãn "Ước tính"; món có trong kho cho phép đổi
+ * sang tối đa 3 món gần nhất khi AI nhận sai.
+ */
+@Composable
+private fun RecognizedItemRow(
+    item: com.calai.app.data.remote.dto.FoodItemRecognitionDto,
+    onPickAlternative: (com.calai.app.data.remote.dto.FoodAlternativeDto) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        item.name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (item.isEstimate) {
+                        Surface(
+                            color = VividOrange.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Ước tính",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = VividOrange
+                            )
+                        }
+                    }
+                }
+                Text(
+                    item.servingSize.orEmpty(),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                "${item.calories.toInt()} kcal",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        if (item.isEstimate) {
+            Text(
+                "Món chưa có trong kho nên số liệu chỉ là ước tính, độ chính xác thấp hơn.",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (item.alternatives.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Nhận sai? Chọn món khác:",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item.alternatives.forEach { alt ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { onPickAlternative(alt) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            "${alt.name} · ${alt.calories.toInt()} kcal",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
