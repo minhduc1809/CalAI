@@ -70,7 +70,7 @@ fun NotificationScreen(
                 actions = {
                     if (uiState.unreadCount > 0) {
                         TextButton(onClick = { viewModel.markAllRead() }) {
-                            Text("Đọc tất cả", color = VividOrange, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Đọc tất cả", color = PrimaryStrong, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 },
@@ -95,7 +95,7 @@ fun NotificationScreen(
                     ) {
                         Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = CrimsonError, modifier = Modifier.size(40.dp))
                         Text(uiState.errorMessage ?: "", color = textSecondary, fontSize = 13.sp)
-                        TextButton(onClick = { viewModel.refresh() }) { Text("Thử lại", color = VividOrange) }
+                        TextButton(onClick = { viewModel.refresh() }) { Text("Thử lại", color = PrimaryStrong) }
                     }
                 }
                 uiState.items.isEmpty() -> {

@@ -17,7 +17,7 @@ class UserPreferencesManager @Inject constructor(
         context.getSharedPreferences("calai_user_preferences", Context.MODE_PRIVATE)
 
     companion object {
-        private const val KEY_THEME_MODE = "pref_theme_mode" // "DARK", "LIGHT", "SYSTEM"
+        private const val KEY_THEME_MODE = "pref_theme_mode" // "DARK", "LIGHT"
         private const val KEY_UNIT_WEIGHT = "pref_unit_weight" // "kg", "lb"
         private const val KEY_UNIT_HEIGHT = "pref_unit_height" // "cm", "ft"
         private const val KEY_UNIT_ENERGY = "pref_unit_energy" // "kcal", "kJ"
@@ -45,20 +45,16 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
-    private val _isDarkTheme = MutableStateFlow(
-        prefs.getString(KEY_THEME_MODE, "DARK") != "LIGHT"
-    )
-    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
-
+    /** "LIGHT" | "DARK". Giá trị cũ "SYSTEM" (đã bỏ) và cài mới đều là Sáng. */
     private val _themeMode = MutableStateFlow(
-        prefs.getString(KEY_THEME_MODE, "DARK") ?: "DARK"
+        prefs.getString(KEY_THEME_MODE, "LIGHT")?.takeIf { it == "DARK" } ?: "LIGHT"
     )
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
     fun setThemeMode(mode: String) {
-        prefs.edit().putString(KEY_THEME_MODE, mode).apply()
-        _themeMode.value = mode
-        _isDarkTheme.value = (mode != "LIGHT")
+        val safe = if (mode == "DARK") "DARK" else "LIGHT"
+        prefs.edit().putString(KEY_THEME_MODE, safe).apply()
+        _themeMode.value = safe
     }
 
     fun toggleTheme(isDark: Boolean) {

@@ -353,7 +353,7 @@ private fun BarcodeCameraPreview(
         )
 
         if (isLookingUp) {
-            CircularProgressIndicator(color = VividOrange, modifier = Modifier.align(Alignment.Center))
+            CircularProgressIndicator(color = PrimaryStrong, modifier = Modifier.align(Alignment.Center))
         }
     }
 }
@@ -412,7 +412,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
                     ) {
                         Text(
                             "${mult}x",
-                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.5.sp,
                             textAlign = TextAlign.Center,

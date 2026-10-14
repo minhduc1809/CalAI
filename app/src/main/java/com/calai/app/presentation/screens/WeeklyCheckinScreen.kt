@@ -103,7 +103,7 @@ internal val RoseSoft = FatGradientStart
 internal val RoseLight = FatGradientEnd
 internal val LavenderSoft = LavenderGradientStart
 internal val LavenderLight = LavenderGradientEnd
-internal val SkySoft = Color(0xFF9CC7F5)
+internal val SkySoft = Color(0xFF9DC6F0)
 internal val SkyLight = Color(0xFFCBE3FB)
 
 private val CardShape = RoundedCornerShape(26.dp)
@@ -585,7 +585,7 @@ private fun ComplianceRing(pct: Double?) {
                 )
                 if (pct != null) {
                     drawArc(
-                        color = Color(0xFF1FA67A),
+                        color = Color(0xFF2E9E6B),
                         startAngle = -90f, sweepAngle = 360f * progress, useCenter = false,
                         topLeft = Offset(inset, inset), size = arcSize,
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
@@ -619,7 +619,7 @@ private fun GoalProgress(pct: Double?) {
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(50)),
-            color = Color(0xFFE59A1F),
+            color = Color(0xFFE09A2B),
             trackColor = Color.White.copy(alpha = 0.6f),
             strokeCap = StrokeCap.Round
         )

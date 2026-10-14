@@ -63,21 +63,9 @@ fun CameraScanScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var showCamera by remember { mutableStateOf(false) }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && tempPhotoUri != null) {
-            viewModel.onImageCapturedOrSelected(tempPhotoUri!!, context)
-        }
-    }
-
-    val launchCamera = {
-        val uri = createTempPictureUri(context)
-        tempPhotoUri = uri
-        cameraLauncher.launch(uri)
-    }
+    val launchCamera = { showCamera = true }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -99,6 +87,18 @@ fun CameraScanScreen(
         uri?.let {
             viewModel.onImageCapturedOrSelected(it, context)
         }
+    }
+
+    if (showCamera) {
+        androidx.activity.compose.BackHandler { showCamera = false }
+        com.calai.app.presentation.components.InAppCamera(
+            onCaptured = { uri ->
+                showCamera = false
+                viewModel.onImageCapturedOrSelected(uri, context)
+            },
+            onClose = { showCamera = false },
+        )
+        return
     }
 
     LaunchedEffect(uiState.isSaveSuccess) {
@@ -159,14 +159,14 @@ fun CameraScanScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 DuotoneDietIcon(
                                     size = 16.dp,
-                                    outlineColor = if (isFood) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    accentColor = if (isFood) TextWhite else VividOrange
+                                    outlineColor = if (isFood) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    accentColor = if (isFood) OnPrimary else PrimaryStrong
                                 )
                                 Text(
                                     text = "Đĩa Món Ăn",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isFood) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isFood) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -182,14 +182,14 @@ fun CameraScanScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 DuotoneMenuListIcon(
                                     size = 16.dp,
-                                    outlineColor = if (isMenu) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    accentColor = if (isMenu) TextWhite else VividOrange
+                                    outlineColor = if (isMenu) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    accentColor = if (isMenu) OnPrimary else PrimaryStrong
                                 )
                                 Text(
                                     text = "Thực Đơn",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isMenu) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isMenu) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -245,7 +245,7 @@ fun CameraScanScreen(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = if (uiState.isQuotaExhausted) CrimsonError else VividOrange,
+                            tint = if (uiState.isQuotaExhausted) CrimsonError else PrimaryStrong,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
@@ -284,7 +284,7 @@ fun CameraScanScreen(
                             Icon(
                                 if (uiState.scanMode == ScanMode.FOOD) Icons.Default.CameraAlt else Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = null,
-                                tint = VividOrange,
+                                tint = PrimaryStrong,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -299,7 +299,7 @@ fun CameraScanScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = if (uiState.scanMode == ScanMode.FOOD)
-                                "Gemini AI sẽ nhận diện món ăn và tính toán calo chuẩn xác"
+                                "NutriWise nhận diện món ăn và ước tính calo từ ảnh"
                             else
                                 "AI sẽ bóc tách danh sách món và gợi ý món tối ưu nhất cho calo hôm nay của bạn",
                             fontSize = 12.sp,
@@ -331,7 +331,7 @@ fun CameraScanScreen(
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
-                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = TextWhite) },
+                        leadingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = OnPrimary) },
                         modifier = Modifier.weight(1f),
                         height = 54.dp,
                         shape = RoundedCornerShape(18.dp)
@@ -434,7 +434,7 @@ fun CameraScanScreen(
                         CuteLoadingIndicator(rawResId = R.raw.loading_general, size = 96.dp)
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = if (uiState.scanMode == ScanMode.FOOD) "Gemini AI đang phân tích món ăn..." else "AI đang đọc thực đơn quán ăn...",
+                            text = if (uiState.scanMode == ScanMode.FOOD) "NutriWise đang nhận diện món ăn..." else "NutriWise đang đọc thực đơn...",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -469,7 +469,7 @@ fun CameraScanScreen(
                                         "${food.totalCalories.toInt()} kcal",
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                         fontWeight = FontWeight.Bold,
-                                        color = VividOrange,
+                                        color = PrimaryStrong,
                                         fontSize = 16.sp
                                     )
                                 }
@@ -548,7 +548,7 @@ fun CameraScanScreen(
                                             .clickable { viewModel.onMealTypeSelect(type) }
                                             .padding(horizontal = 14.dp, vertical = 8.dp)
                                     ) {
-                                        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -718,7 +718,7 @@ private fun MenuItemCard(
                                 color = VividOrange.copy(alpha = 0.2f),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Text("Gợi ý", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VividOrange, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Text("Gợi ý", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         }
                         if (item.isEstimate) {
@@ -851,7 +851,7 @@ private fun RecognizedItemRow(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = VividOrange
+                                color = PrimaryStrong
                             )
                         }
                     }

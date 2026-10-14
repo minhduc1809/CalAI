@@ -91,44 +91,7 @@ fun StatisticsScreen(
                 letterSpacing = (-0.5).sp
             )
 
-            // Card Xanh Mint Banner với Shadow nổi khối
             val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = if (isDarkTheme) 4.dp else 8.dp,
-                        shape = RoundedCornerShape(22.dp),
-                        ambientColor = shadowColor,
-                        spotColor = shadowColor
-                    )
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(if (isDarkTheme) PastelMint else ProteinGradientStartLight)
-                    .border(
-                        width = 1.dp,
-                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.6f), Color.Transparent)
-                        ),
-                        shape = RoundedCornerShape(22.dp)
-                    )
-                    .padding(18.dp)
-            ) {
-                Column {
-                    Text(
-                        text = "Phân tích dinh dưỡng tuần này",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDeepInk
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Theo dõi quy luật calo, nhận diện thói quen để kiểm soát vóc dáng bền vững.",
-                        fontSize = 13.sp,
-                        color = TextDeepInk.copy(alpha = 0.75f),
-                        lineHeight = 18.sp
-                    )
-                }
-            }
 
             // Segmented Pill Toggle: 5 preset thời gian (Tuần/Tháng/Quý/Năm/Tất cả)
             Row(
@@ -162,7 +125,7 @@ fun StatisticsScreen(
                             text = period.label,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -396,6 +359,7 @@ private fun InsightCard(insights: List<InsightDto>, isDarkTheme: Boolean = true)
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
             .background(if (isDarkTheme) PastelButtercup.copy(alpha = 0.18f) else CarbGradientStartLight.copy(alpha = 0.35f))
             .border(1.dp, if (isDarkTheme) PastelButtercup.copy(alpha = 0.35f) else CarbGradientStartLight, RoundedCornerShape(20.dp))
             .padding(14.dp),
@@ -444,31 +408,25 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                 spotColor = shadowColor
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(if (isDarkTheme) PastelLavender else LavenderGradientStartLight)
-            .border(
-                width = 1.dp,
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.65f), Color.Transparent)
-                ),
-                shape = RoundedCornerShape(24.dp)
-            )
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
             .padding(18.dp)
     ) {
         Column {
             Text(
-                text = "Xu hướng Calo (Calorie Trends)",
+                text = "Xu hướng calo",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextDeepInk
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (uiState.errorMessage != null) uiState.errorMessage!!
                 else if (uiState.completeDays == 0) "Chưa có ngày ghi đủ để tính trung bình"
-                else "Trung bình: ${uiState.averageCalories} kcal/ngày (${uiState.completeDays}/${uiState.loggedDays} ngày ghi đủ)" +
-                    if (uiState.targetCalories > 0) " · Mục tiêu ${uiState.targetCalories} kcal" else "",
+                else "Trung bình ${uiState.averageCalories} kcal/ngày · ${uiState.completeDays}/${uiState.loggedDays} ngày ghi đủ" +
+                    if (uiState.targetCalories > 0) " · Mục tiêu ${uiState.targetCalories}" else "",
                 fontSize = 13.sp,
-                color = TextDeepInk.copy(alpha = 0.65f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -486,6 +444,8 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         drawProgress.animateTo(1f, animationSpec = tween(durationMillis = CHART_DRAW_ANIMATION_MS, easing = LinearEasing))
                     }
 
+                    val lineColor = VividOrange
+                    val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val width = size.width
                         val height = size.height
@@ -505,7 +465,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         if (hasTarget) {
                             val targetY = yFor(uiState.targetCalories)
                             drawLine(
-                                color = TextDeepInk.copy(alpha = 0.25f),
+                                color = guideColor,
                                 start = Offset(0f, targetY),
                                 end = Offset(width, targetY),
                                 strokeWidth = 2.dp.toPx()
@@ -544,7 +504,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                         drawPath(
                             path = fillPath,
                             brush = Brush.verticalGradient(
-                                colors = listOf(TextDeepInk.copy(alpha = 0.20f), Color.Transparent),
+                                colors = listOf(lineColor.copy(alpha = 0.28f), Color.Transparent),
                                 startY = 0f,
                                 endY = height
                             )
@@ -552,14 +512,14 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
 
                         drawPath(
                             path = animatedPath,
-                            color = TextDeepInk,
+                            color = lineColor,
                             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                         )
 
                         // Vẽ các điểm mút đã "lộ ra" theo tiến độ animate
                         val visibleCount = (points.size * drawProgress.value).toInt().coerceIn(0, points.size)
                         points.take(visibleCount).forEach { pt ->
-                            drawCircle(color = TextDeepInk, radius = 4.dp.toPx(), center = pt)
+                            drawCircle(color = lineColor, radius = 4.dp.toPx(), center = pt)
                         }
                     }
                 }
@@ -573,7 +533,7 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 uiState.weeklyStats.forEach { day ->
-                    Text(day.dayLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDeepInk.copy(alpha = 0.5f))
+                    Text(day.dayLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -588,13 +548,13 @@ private fun CalorieTrendsCard(uiState: StatisticsUiState, isDarkTheme: Boolean =
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(TextDeepInk)
+                        .background(VividOrange)
                 )
                 Text(
                     text = "${uiState.daysUnderGoal} ngày đạt dưới calo mục tiêu",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextDeepInk
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -619,7 +579,7 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
                 width = 1.dp,
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -629,16 +589,10 @@ private fun MacroDistributionCard(uiState: StatisticsUiState, isDarkTheme: Boole
     ) {
         Column {
             Text(
-                text = "Phân bổ nhóm chất dinh dưỡng",
+                text = "Phân bổ dinh dưỡng",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Duy trì tỉ lệ đạm cao giúp bảo vệ khối cơ bắp khi thâm hụt calo.",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -729,7 +683,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 width = 1.dp,
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -802,8 +756,8 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                         path.cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
                     }
 
-                    drawPath(path = path, color = VividOrange, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-                    drawCircle(color = VividOrange, radius = 4.dp.toPx(), center = points.last())
+                    drawPath(path = path, color = PrimaryStrong, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+                    drawCircle(color = PrimaryStrong, radius = 4.dp.toPx(), center = points.last())
                 }
                 Spacer(modifier = Modifier.height(14.dp))
             }
@@ -823,7 +777,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Hiện tại", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(currentWeightDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = VividOrange)
+                    Text(currentWeightDisplay, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryStrong)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Mục tiêu", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -846,7 +800,7 @@ private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = t
                 text = "Xem lịch sử →",
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = VividOrange,
+                color = PrimaryStrong,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onNavigateToHistory),

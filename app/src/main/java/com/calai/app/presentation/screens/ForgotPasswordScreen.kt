@@ -48,6 +48,7 @@ import com.calai.app.R
 import com.calai.app.presentation.components.AppButton
 import com.calai.app.presentation.components.AppTextField
 import com.calai.app.presentation.theme.VividOrange
+import com.calai.app.presentation.theme.PrimaryStrong
 import com.calai.app.presentation.viewmodel.ForgotPasswordStep
 import com.calai.app.presentation.viewmodel.ForgotPasswordViewModel
 
@@ -74,12 +75,7 @@ fun ForgotPasswordScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.bg_auth),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        com.calai.app.presentation.components.AuthBackdrop()
 
         Column(
             modifier = Modifier
@@ -90,12 +86,7 @@ fun ForgotPasswordScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.logo_nutriwise),
-                contentDescription = "NutriWise",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.width(160.dp)
-            )
+            com.calai.app.presentation.components.AuthLogo(width = 160.dp)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Trợ lý dinh dưỡng cá nhân thông minh",
@@ -117,6 +108,7 @@ fun ForgotPasswordScreen(
                             spotColor = Color.Black.copy(alpha = 0.15f)
                         )
                         .clip(RoundedCornerShape(30.dp))
+                        .background(MaterialTheme.colorScheme.surface)
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -325,7 +317,7 @@ private fun EnterCodeContent(
     Spacer(modifier = Modifier.height(12.dp))
 
     TextButton(onClick = onResend, enabled = !isLoading) {
-        Text("Gửi lại mã", color = VividOrange, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Text("Gửi lại mã", color = PrimaryStrong, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
     }
 
     TextButton(onClick = onChangeEmail, enabled = !isLoading) {
@@ -338,7 +330,7 @@ private fun ResetDoneContent(onBack: () -> Unit) {
     Icon(
         imageVector = Icons.Default.CheckCircle,
         contentDescription = null,
-        tint = VividOrange,
+        tint = PrimaryStrong,
         modifier = Modifier.size(56.dp)
     )
     Spacer(modifier = Modifier.height(12.dp))

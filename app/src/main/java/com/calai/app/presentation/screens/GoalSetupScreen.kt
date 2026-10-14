@@ -105,7 +105,7 @@ fun GoalSetupScreen(
     ) { padding ->
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = VividOrange)
+                CircularProgressIndicator(color = PrimaryStrong)
             }
             return@Scaffold
         }
@@ -128,7 +128,7 @@ fun GoalSetupScreen(
                         "${profile.targetCalories?.toInt() ?: 0} kcal/ngày",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
-                        color = VividOrange
+                        color = PrimaryStrong
                     )
                     Text(
                         "P ${profile.targetProtein?.toInt() ?: 0}g · C ${profile.targetCarb?.toInt() ?: 0}g · F ${profile.targetFat?.toInt() ?: 0}g",

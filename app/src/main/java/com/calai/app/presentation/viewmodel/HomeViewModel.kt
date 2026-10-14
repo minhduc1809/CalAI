@@ -43,6 +43,8 @@ data class HomeUiState(
     val incompleteDates: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val username: String = "",
+    val avatar: String? = null,
+    val displayName: String? = null,
     val dailySummary: DailyNutritionSummaryData? = null,
     val meals: List<MealResponseDto> = emptyList(),
     val mealStructureMode: String = "TIMELINE",
@@ -165,6 +167,8 @@ class HomeViewModel @Inject constructor(
                 val target = profile.targetWeightKg
                 _uiState.update {
                     it.copy(
+                        avatar = profile.avatar,
+                        displayName = profile.name,
                         weightText = current?.let { kg -> preferencesManager.formatWeight(kg) },
                         targetWeightText = target?.let { kg -> preferencesManager.formatWeight(kg) },
                         // Độ gần mục tiêu: min/max giữa cân nặng hiện tại và mục tiêu (1.0 = đã đạt)

@@ -69,6 +69,13 @@ interface CalAIApi {
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfileDto>
 
+    @Multipart
+    @POST("users/me/avatar")
+    suspend fun uploadAvatar(@Part file: MultipartBody.Part): ApiResponse<AvatarDto>
+
+    @DELETE("users/me/avatar")
+    suspend fun removeAvatar(): ApiResponse<AvatarDto>
+
     /** BR-04 (E5): áp dụng mục tiêu tính lại từ hồ sơ hiện tại sau khi người dùng xác nhận. */
     @POST("users/me/target/apply")
     suspend fun applyProposedTarget(): ApiResponse<Any?>
@@ -461,14 +468,22 @@ interface CalAIApi {
                     || Build.HARDWARE.contains("ranchu"))
 
         const val EMULATOR_HOST = "10.0.2.2"
-        const val PC_LAN_IP = "172.16.10.170"
+        const val PC_LAN_IP = "192.168.1.101"
         const val USB_REVERSE_HOST = "127.0.0.1"
 
         /**
          * Mặc định sử dụng 10.0.2.2 (cho Android Emulator).
          * Khi chạy trên máy thật (qua cáp USB với adb reverse hoặc qua Wi-Fi),
-         * DynamicHostInterceptor sẽ tự động chuyển hướng sang 127.0.0.1 hoặc 172.16.10.170.
+         * DynamicHostInterceptor sẽ tự động chuyển hướng sang 127.0.0.1 hoặc 192.168.1.101.
          */
         const val BASE_URL = "http://$EMULATOR_HOST:3000/api/v1/"
+
+        /**
+         * Máy chủ của chính NutriWise. Mọi địa chỉ khác (ví dụ kho ảnh đám mây) KHÔNG được gắn token đăng nhập
+         * và KHÔNG bị đổi host khi dò kết nối.
+         */
+        fun isApiHost(host: String): Boolean =
+            host == EMULATOR_HOST || host == USB_REVERSE_HOST || host == PC_LAN_IP
+
     }
 }

@@ -110,6 +110,11 @@ private fun TileTexts(
         if (hasDecimal) "%.1f".format(animated) else "${animated.toInt()}"
     } else rawNumber
 
+    // Ô có chiều cao cố định (156dp): giới hạn phóng chữ hệ thống ở 1,15× để tên ô và nhãn % không đẩy nhau, số không tràn.
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, minOf(density.fontScale, 1.15f))
+    ) {
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -129,7 +134,7 @@ private fun TileTexts(
                     .background(if (dark) accent.copy(alpha = 0.18f) else Color.White)
                     .border(1.dp, accent.copy(alpha = if (dark) 0f else 0.9f), RoundedCornerShape(999.dp))
                     .padding(horizontal = 9.dp, vertical = 3.dp)
-            ) { Text(pillText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (dark) ink else accent) }
+            ) { Text(pillText, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = ink) }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -147,6 +152,7 @@ private fun TileTexts(
             maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
+    }
 }
 
 @Composable
@@ -156,24 +162,24 @@ fun DashboardStatTiles(stats: DashboardStats, isDarkTheme: Boolean) {
             MacroGaugeTile(
                 "Protein", TileArt.PROTEIN, stats.proteinG?.let { "$it g" },
                 stats.proteinTarget?.let { "Mục tiêu $it g" }, ratioOf(stats.proteinG, stats.proteinTarget),
-                Color(0xFF7FBF98), Color(0xFFE8F4EC), Color(0xFF2E4A3B), isDarkTheme, Modifier.weight(1f)
+                Color(0xFF4FBFA5), Color(0xFFE2F5EF), Color(0xFF1E4A40), isDarkTheme, Modifier.weight(1f)
             )
             MacroGaugeTile(
                 "Carbs", TileArt.CARBS, stats.carbG?.let { "$it g" },
                 stats.carbTarget?.let { "Mục tiêu $it g" }, ratioOf(stats.carbG, stats.carbTarget),
-                Color(0xFFEDB56B), Color(0xFFFCF1DF), Color(0xFF5A4325), isDarkTheme, Modifier.weight(1f)
+                Color(0xFFF2C265), Color(0xFFFFF2D9), Color(0xFF5A4520), isDarkTheme, Modifier.weight(1f)
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MacroGaugeTile(
                 "Chất béo", TileArt.FAT, stats.fatG?.let { "$it g" },
                 stats.fatTarget?.let { "Mục tiêu $it g" }, ratioOf(stats.fatG, stats.fatTarget),
-                Color(0xFFEE9DB0), Color(0xFFFBE9EE), Color(0xFF5A2E3C), isDarkTheme, Modifier.weight(1f)
+                Color(0xFFF28C82), Color(0xFFFFE5DF), Color(0xFF5A2A25), isDarkTheme, Modifier.weight(1f)
             )
             MacroGaugeTile(
                 "Cân nặng", TileArt.WEIGHT, stats.weightText,
                 stats.targetWeightText?.let { "Mục tiêu $it" } ?: "Chưa đặt mục tiêu", stats.weightProgress ?: 0f,
-                Color(0xFF9E8EE0), Color(0xFFEEEAFB), Color(0xFF3A3265), isDarkTheme, Modifier.weight(1f)
+                Color(0xFFE58AA3), Color(0xFFF9E8ED), Color(0xFF5A2E3C), isDarkTheme, Modifier.weight(1f)
             )
         }
     }
@@ -226,8 +232,20 @@ private fun MacroGaugeTile(
     // Mực sóng: luôn còn một dải sóng mỏng ở đáy (trang trí), phần dâng lên tỉ lệ thuận với % thật.
     val level = 0.13f + 0.25f * progress
 
-    TileFrame(if (dark) accent.copy(alpha = 0.14f) else lightBg, modifier, isDarkTheme = dark) {
-        Canvas(Modifier.fillMaxSize()) {
+    TileFrame(if (dark) androidx.compose.material3.MaterialTheme.colorScheme.surface else lightBg, modifier, isDarkTheme = dark) {
+        if (dark) {
+            // Dark Mode: không sóng trang trí; chỉ một thanh tiến độ tối giản thể hiện đúng % theo mục tiêu
+            Box(
+                Modifier.matchParentSize()
+                    .border(1.dp, androidx.compose.material3.MaterialTheme.colorScheme.outline, TileShape)
+            )
+            Box(
+                Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
+                    .height(6.dp).clip(CircleShape).background(accent.copy(alpha = 0.22f))
+            ) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f)).clip(CircleShape).background(accent))
+            }
+        } else Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
             fun layer(top: Float, amp: Float, freq: Float, ph: Float, color: Color) {
@@ -286,11 +304,11 @@ fun CalorieHeroCard(
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val accent = Color(0xFFFF6B3D)
+    val accent = com.calai.app.presentation.theme.VividOrange
     val ratio = if (consumed != null && target != null && target > 0) (consumed.toFloat() / target).coerceIn(0f, 1f) else 0f
     val progress by animateFloatAsState(ratio, tween(900), label = "hero_cal_p")
-    val ink = if (isDarkTheme) Color.White else Color(0xFF14151C)
-    val muted = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color(0xFF7B7F92)
+    val ink = if (isDarkTheme) Color.White else Color(0xFF302B2A)
+    val muted = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color(0xFF817674)
     val shape = RoundedCornerShape(28.dp)
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     fun fmt(v: Int?) = v?.let { "%,d".format(java.util.Locale("vi", "VN"), it) } ?: "--"
@@ -318,7 +336,7 @@ fun CalorieHeroCard(
                 .fillMaxWidth()
                 .shadow(elevation = 10.dp, shape = shape, ambientColor = shadowColor, spotColor = shadowColor)
                 .clip(shape)
-                .background(if (isDarkTheme) androidx.compose.material3.MaterialTheme.colorScheme.surface else Color.White)
+                .background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
                 .border(1.dp, if (isDarkTheme) Color.White.copy(alpha = 0.06f) else PearlBorder, shape)
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
@@ -335,7 +353,7 @@ fun CalorieHeroCard(
                 Modifier.clip(RoundedCornerShape(14.dp)).background(accent.copy(alpha = 0.16f))
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                Text("Đã nạp: ${consumed ?: "--"} kcal", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accent)
+                Text("Đã nạp: ${consumed ?: "--"} kcal", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = com.calai.app.presentation.theme.PrimaryStrong)
             }
         }
 

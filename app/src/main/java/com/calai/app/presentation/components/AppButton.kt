@@ -44,7 +44,7 @@ import com.calai.app.presentation.theme.ShadowLightL2Ambient
 import com.calai.app.presentation.theme.ShadowLightL2Spot
 import com.calai.app.presentation.theme.ShadowDarkL2Ambient
 import com.calai.app.presentation.theme.ShadowDarkL2Spot
-import com.calai.app.presentation.theme.TextWhite
+import com.calai.app.presentation.theme.OnPrimary
 
 /**
  * CTA chính "tactile" dùng chung cho toàn app (Part 4.1 — CalAI_FINAL_Design_Code_Rules v3):
@@ -68,7 +68,7 @@ fun AppButton(
     leadingIcon: (@Composable () -> Unit)? = null,
     gradientColors: List<Color> = listOf(CtaSolidOrange, CtaSolidOrange),
     glowColor: Color = ShadowCtaAmbient,
-    contentColor: Color = TextWhite,
+    contentColor: Color = OnPrimary,
     shape: RoundedCornerShape = RoundedCornerShape(18.dp),
     height: androidx.compose.ui.unit.Dp = 54.dp,
 ) {

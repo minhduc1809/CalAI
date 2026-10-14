@@ -40,7 +40,7 @@ enum class DockTab {
     HOME,
     STATISTICS,
     SCAN,
-    CHAT,
+    WORKOUT,
     PROFILE
 }
 
@@ -82,7 +82,7 @@ fun FloatingBottomDock(
                     width = 1.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                            if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                             MaterialTheme.colorScheme.outline
                         )
                     ),
@@ -111,10 +111,10 @@ fun FloatingBottomDock(
                 onClick = { onTabSelected(DockTab.SCAN) }
             )
             DockItem(
-                icon = Icons.Default.AutoAwesome,
-                isSelected = currentTab == DockTab.CHAT,
+                icon = Icons.Default.DirectionsRun,
+                isSelected = currentTab == DockTab.WORKOUT,
                 isDarkTheme = isDarkTheme,
-                onClick = { onTabSelected(DockTab.CHAT) }
+                onClick = { onTabSelected(DockTab.WORKOUT) }
             )
             DockItem(
                 icon = Icons.Default.Person,
@@ -140,7 +140,7 @@ private fun RowScope.DockItem(
     )
     val iconColor by animateColorAsState(
         targetValue = when {
-            isSelected -> Color.White
+            isSelected -> OnPrimary
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
         animationSpec = tween(durationMillis = 200),
@@ -231,7 +231,7 @@ private fun RowScope.HeroCameraItem(
             Icon(
                 imageVector = Icons.Default.CameraAlt,
                 contentDescription = "Quét AI",
-                tint = Color.White,
+                tint = OnPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }

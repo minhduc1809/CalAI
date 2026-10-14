@@ -517,6 +517,30 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun uploadAvatar(file: java.io.File): Result<String?> {
+        return try {
+            val body = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            val part = okhttp3.MultipartBody.Part.createFormData("file", file.name, body)
+            val response = api.uploadAvatar(part)
+            if (response.success) Result.success(response.data?.avatar)
+            else Result.failure(Exception(response.message ?: "Không thể cập nhật ảnh đại diện"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
+    override suspend fun removeAvatar(): Result<Unit> {
+        return try {
+            val response = api.removeAvatar()
+            if (response.success) Result.success(Unit)
+            else Result.failure(Exception(response.message ?: "Không thể xoá ảnh đại diện"))
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Result.failure(Exception(extractErrorMessage(e)))
+        }
+    }
+
     override suspend fun applyProposedTarget(): Result<Unit> {
         return try {
             val response = api.applyProposedTarget()

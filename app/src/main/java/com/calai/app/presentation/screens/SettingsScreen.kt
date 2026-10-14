@@ -36,7 +36,6 @@ import com.calai.app.presentation.components.AppTextField
 import com.calai.app.presentation.components.AppToggle
 import com.calai.app.presentation.components.DuotoneMoonIcon
 import com.calai.app.presentation.components.DuotoneSunIcon
-import com.calai.app.presentation.components.TactileThemeSwitch
 import com.calai.app.presentation.theme.*
 import com.calai.app.presentation.viewmodel.ProfileViewModel
 import com.calai.app.presentation.viewmodel.checkinDayName
@@ -48,7 +47,8 @@ import com.calai.app.notification.DailyCompletionScheduler
 fun SettingsScreen(
     onBack: () -> Unit,
     isDarkTheme: Boolean = true,
-    onToggleTheme: (Boolean) -> Unit = {},
+    themeMode: String = "LIGHT",
+    onThemeModeChange: (String) -> Unit = {},
     onOpenGoalSetup: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onAccountDeleted: () -> Unit = {},
@@ -198,10 +198,10 @@ fun SettingsScreen(
                         text = "Phiên bản: 1.2.0 (Build 2026)",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = VividOrange
+                        color = PrimaryStrong
                     )
                     Text(
-                        text = "Ứng dụng trợ lý AI dinh dưỡng & thể hình cá nhân hóa với Google Gemini 2.0 Flash Vision, tính năng theo dõi vĩ mô và cân nặng thích ứng.",
+                        text = "Ứng dụng trợ lý AI dinh dưỡng & thể hình cá nhân hóa với trí tuệ nhân tạo nhận diện món ăn, tính năng theo dõi vĩ mô và cân nặng thích ứng.",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
@@ -215,7 +215,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
-                    Text("Đóng", color = VividOrange, fontWeight = FontWeight.Bold)
+                    Text("Đóng", color = PrimaryStrong, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -257,20 +257,13 @@ fun SettingsScreen(
                     )
                 }
 
-                Column {
-                    Text(
-                        text = "Cài Đặt Hệ Thống",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = (-0.5).sp
-                    )
-                    Text(
-                        text = "Giao diện, nhắc nhở & dữ liệu",
-                        fontSize = 12.5.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "Cài đặt",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = (-0.5).sp
+                )
             }
 
             // 2. PHẦN GIAO DIỆN & THEME (Spec 133)
@@ -290,50 +283,14 @@ fun SettingsScreen(
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else VividOrangeSoft)
-                                .border(1.dp, if (isDarkTheme) MaterialTheme.colorScheme.outline else VividOrange.copy(alpha = 0.3f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isDarkTheme) {
-                                DuotoneMoonIcon(size = 22.dp, outlineColor = PastelLavender, accentColor = LavenderGradientEnd)
-                            } else {
-                                DuotoneSunIcon(size = 22.dp, outlineColor = VividOrange, accentColor = CarbGradientStart)
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = if (isDarkTheme) "Chế độ tối (Dark Luxury)" else "Chế độ sáng (Ivory Light)",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = if (isDarkTheme) "Tông nền Obsidian bảo vệ mắt ban đêm" else "Tông nền Ivory nhã nhặn, sang trọng",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    TactileThemeSwitch(
-                        isDarkTheme = isDarkTheme,
-                        onThemeChanged = { onToggleTheme(it) }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Giao diện",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
+                    com.calai.app.presentation.components.ThemeModeSelector(mode = themeMode, onModeChange = onThemeModeChange)
                 }
             }
 
@@ -604,13 +561,16 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsSectionHeader(title: String, isDark: Boolean) {
-    Text(
-        text = title,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        color = VividOrange,
-        letterSpacing = 0.5.sp
-    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+        Box(Modifier.width(4.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(VividOrange))
+        Text(
+            text = title,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
 }
 
 @Composable
@@ -622,15 +582,9 @@ private fun SettingsGroupCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = if (isDark) 6.dp else 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = shadowColor,
-                spotColor = shadowColor
-            )
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
     ) {
         Column(content = content)
     }
@@ -662,13 +616,13 @@ private fun SettingsActionRow(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(VividOrangeSoft),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isDark) PastelLavender else VividOrange,
+                    tint = PrimaryStrong,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -871,7 +825,7 @@ fun EmailVerificationModalSheet(
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 if (isSending) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = VividOrange, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = PrimaryStrong, strokeWidth = 2.dp)
                 } else {
                     Text("Gửi mã xác thực", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 }
@@ -1215,14 +1169,14 @@ fun CheckinDayModalSheet(
                             .height(52.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (selected) androidx.compose.ui.graphics.Brush.linearGradient(listOf(LavenderGradientStart, LavenderGradientEnd))
+                                if (selected) androidx.compose.ui.graphics.Brush.linearGradient(listOf(VividOrange, VividOrange))
                                 else androidx.compose.ui.graphics.Brush.linearGradient(
                                     listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant)
                                 )
                             )
                             .border(
                                 1.dp,
-                                if (selected) LavenderGradientStart else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                if (selected) VividOrange else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                                 RoundedCornerShape(16.dp)
                             )
                             .clickable { onSelectDay(day) },
@@ -1232,7 +1186,7 @@ fun CheckinDayModalSheet(
                             label,
                             fontSize = 13.sp,
                             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                            color = if (selected) TextDeepInk else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (selected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -1288,7 +1242,7 @@ private fun SettingsSwitchRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isDark) PastelLavender else VividOrange,
+                    tint = PrimaryStrong,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1297,7 +1251,18 @@ private fun SettingsSwitchRow(
                 Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = if (NwTheme.isDark) OnPrimary else Color.White,
+                checkedTrackColor = PrimaryStrong,
+                checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
     }
     if (!isLast) {
         HorizontalDivider(

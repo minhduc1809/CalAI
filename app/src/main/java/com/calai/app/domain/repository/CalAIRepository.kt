@@ -59,6 +59,8 @@ interface CalAIRepository {
     // --- User Profile ---
     suspend fun fetchRemoteProfile(): Result<UserProfileDto>
     suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfileDto>
+    suspend fun uploadAvatar(file: java.io.File): Result<String?>
+    suspend fun removeAvatar(): Result<Unit>
 
     /** Áp dụng mục tiêu đề xuất sau khi người dùng bấm "Áp dụng" (BR-04, E5). */
     suspend fun applyProposedTarget(): Result<Unit>

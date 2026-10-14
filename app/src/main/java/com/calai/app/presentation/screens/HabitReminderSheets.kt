@@ -95,8 +95,8 @@ private fun WhiteCard(
             .fillMaxWidth()
             .shadow(elevation = 2.dp, shape = RoundedCornerShape(18.dp), spotColor = Color.Black.copy(alpha = 0.08f))
             .clip(RoundedCornerShape(18.dp))
-            .background(Color.White)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
             .padding(padding),
         content = content
     )
@@ -149,8 +149,8 @@ internal fun WheelTimePicker(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(Icons.Default.AccessTime, contentDescription = null, tint = VividOrange, modifier = Modifier.size(14.dp))
-                        Text("Kéo để chọn", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = VividOrange)
+                        Icon(Icons.Default.AccessTime, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(14.dp))
+                        Text("Kéo để chọn", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = PrimaryStrong)
                     }
                 }
             }
@@ -163,7 +163,7 @@ internal fun WheelTimePicker(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF6F3EC))
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             ) {
                 // Center highlight strip
@@ -187,7 +187,7 @@ internal fun WheelTimePicker(
                         range = 0..23,
                         formatLabel = { "%02d".format(it) },
                         itemHeight = 52.dp, visibleItemCount = 5,
-                        isDarkTheme = false,
+                        isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(1f)
                     )
                     Text(":", fontSize = 30.sp, fontWeight = FontWeight.Black, color = CtaSolidOrange,
@@ -198,7 +198,7 @@ internal fun WheelTimePicker(
                         range = 0..59,
                         formatLabel = { "%02d".format(it) },
                         itemHeight = 52.dp, visibleItemCount = 5,
-                        isDarkTheme = false,
+                        isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -278,14 +278,14 @@ fun HabitReminderCenterSheet(
                             }
                         },
                         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = Color(0xFFF6F3EC),
-                            scrolledContainerColor = Color(0xFFF6F3EC)
+                            containerColor = MaterialTheme.colorScheme.background,
+                            scrolledContainerColor = MaterialTheme.colorScheme.background
                         )
                     )
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
                 }
             },
-            containerColor = Color(0xFFF6F3EC)
+            containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 when (page) {
@@ -383,7 +383,7 @@ private fun HabitReminderListContent(
 
     if (isLoading && reminders.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = VividOrange, strokeWidth = 2.5.dp)
+            CircularProgressIndicator(color = PrimaryStrong, strokeWidth = 2.5.dp)
         }
         return
     }
@@ -396,7 +396,7 @@ private fun HabitReminderListContent(
         ) {
             Icon(Icons.Default.WifiOff, contentDescription = null, tint = TextInkSecondary, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Không tải được danh sách nhắc nhở", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+            Text("Không tải được danh sách nhắc nhở", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(4.dp))
             Text(errorMessage, fontSize = 12.sp, color = TextInkSecondary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Spacer(modifier = Modifier.height(16.dp))
@@ -430,9 +430,9 @@ private fun HabitReminderListContent(
             shape = RoundedCornerShape(14.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = VividOrange, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Thêm nhắc nhở mới", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+            Text("Thêm nhắc nhở mới", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
         }
 
         AppButton(text = "Xong", onClick = onDone, modifier = Modifier.height(48.dp), shape = RoundedCornerShape(14.dp))
@@ -471,7 +471,7 @@ private fun HabitReminderListRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(reminder.label, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+                        Text(reminder.label, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                         if (badge != null) {
                             Box(
                                 modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(badge.second.copy(alpha = 0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)
@@ -497,12 +497,12 @@ private fun HabitReminderListRow(
                         reminder.timeOfDay,
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Black,
-                        color = if (reminder.enabled) TextDeepInk else TextInkSecondary.copy(alpha = 0.6f)
+                        color = if (reminder.enabled) MaterialTheme.colorScheme.onBackground else TextInkSecondary.copy(alpha = 0.6f)
                     )
                     TextButton(onClick = onEdit, contentPadding = PaddingValues(horizontal = 6.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = null, tint = VividOrange, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(3.dp))
-                        Text("Sửa", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+                        Text("Sửa", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
                     }
                     if (!reminder.enabled) {
                         Text("Đang tắt", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextInkSecondary.copy(alpha = 0.6f))
@@ -510,7 +510,7 @@ private fun HabitReminderListRow(
                     if (reminder.foods.isNotEmpty()) {
                         val foodNames = reminder.foods.joinToString(", ") { it.name.substringBefore(" (") }
                         val totalKcal = reminder.foods.sumOf { it.calories.toInt() }
-                        Box(modifier = Modifier.weight(1f, fill = false).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF3F1EA)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Box(modifier = Modifier.weight(1f, fill = false).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 8.dp, vertical = 4.dp)) {
                             Text(foodNames, fontSize = 10.5.sp, color = TextInkSecondary, maxLines = 1)
                         }
                         Spacer(modifier = Modifier.width(6.dp))
@@ -560,10 +560,10 @@ private fun HabitReminderEditContent(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(VividOrange))
-                Text("Chỉnh sửa ${reminder.label}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDeepInk)
+                Text("Chỉnh sửa ${reminder.label}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
             }
-            Box(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(Color.White).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                Text("${form.timeOfDay} Hôm nay", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+            Box(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.surface).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                Text("${form.timeOfDay} Hôm nay", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
             }
         }
 
@@ -576,7 +576,7 @@ private fun HabitReminderEditContent(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(reminder.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+                            Text(reminder.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                             Box(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(EmeraldSuccess.copy(alpha = 0.15f)).padding(horizontal = 7.dp, vertical = 2.dp)) {
                                 Text("Tối nay", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = EmeraldSuccess)
                             }
@@ -598,10 +598,10 @@ private fun HabitReminderEditContent(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.Spa, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(16.dp))
-                            Text(tip, fontSize = 11.5.sp, color = TextDeepInk, lineHeight = 15.sp)
+                            Text(tip, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onBackground, lineHeight = 15.sp)
                         }
                         Box(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(EmeraldSuccess).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Text("+50 Điểm", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                            Text("+50 Điểm", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OnPrimary)
                         }
                     }
                 }
@@ -642,8 +642,8 @@ private fun HabitReminderEditContent(
             WhiteCard(modifier = Modifier.clickable(onClick = onOpenFoods)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
-                        Text("Món ăn đã gắn (${reminder.foods.size})", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = TextDeepInk)
+                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
+                        Text("Món ăn đã gắn (${reminder.foods.size})", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                     }
                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextInkSecondary)
                 }
@@ -654,8 +654,8 @@ private fun HabitReminderEditContent(
         WhiteCard(modifier = Modifier.clickable(onClick = onOpenRepeatSettings)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
-                    Text("Lap lai & Am bao", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = TextDeepInk)
+                    Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
+                    Text("Lap lai & Am bao", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                 }
                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextInkSecondary)
             }
@@ -697,17 +697,17 @@ private fun HabitReminderFoodsContent(
             WhiteCard {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = VividOrange, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(14.dp))
                         Text("NHẮC NHỞ KHẨU PHẦN", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = TextInkSecondary)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("$totalCalories / $targetMax kcal", fontSize = 16.sp, fontWeight = FontWeight.Black, color = VividOrange)
+                        Text("$totalCalories / $targetMax kcal", fontSize = 16.sp, fontWeight = FontWeight.Black, color = PrimaryStrong)
                         val remaining = (targetMax - totalCalories).coerceAtLeast(0)
                         Text("Còn thiếu $remaining kcal", fontSize = 11.sp, color = TextInkSecondary)
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF0EEE6))) {
+                Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                     Box(modifier = Modifier.fillMaxWidth(progress).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(CtaSolidOrange))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -741,7 +741,7 @@ private fun HabitReminderFoodsContent(
                             Icon(Icons.Default.RiceBowl, contentDescription = null, tint = TextDeepInk, modifier = Modifier.size(18.dp))
                         }
                         Column {
-                            Text(food.name, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+                            Text(food.name, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                             Text(
                                 text = "${food.servingSize ?: ""} • ${food.calories.toInt()} kcal • P:${food.protein.toInt()}g C:${food.carb.toInt()}g F:${food.fat.toInt()}g",
                                 fontSize = 10.8.sp, color = TextInkSecondary
@@ -756,21 +756,21 @@ private fun HabitReminderFoodsContent(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = VividOrange, modifier = Modifier.size(15.dp))
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(15.dp))
             Text("Gợi ý Ăn Sạch cho ${reminder.label}", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = TextInkSecondary)
         }
         if (isLoadingSuggestions) {
-            CircularProgressIndicator(modifier = Modifier.size(28.dp), color = VividOrange, strokeWidth = 2.5.dp)
+            CircularProgressIndicator(modifier = Modifier.size(28.dp), color = PrimaryStrong, strokeWidth = 2.5.dp)
         }
         suggestions.forEach { suggestion ->
             WhiteCard {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(suggestion.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+                        Text(suggestion.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                         Text("${suggestion.calories} kcal • P:${suggestion.protein}g C:${suggestion.carbs}g F:${suggestion.fat}g", fontSize = 11.sp, color = TextInkSecondary)
                     }
                     IconButton(onClick = { onAddFood(suggestion) }, modifier = Modifier.size(30.dp).clip(CircleShape).background(CtaSolidOrange)) {
-                        Icon(Icons.Default.Add, contentDescription = "Thêm vào nhắc nhở", tint = TextWhite, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Add, contentDescription = "Thêm vào nhắc nhở", tint = OnPrimary, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -781,7 +781,7 @@ private fun HabitReminderFoodsContent(
 @Composable
 private fun MacroStat(label: String, grams: Int, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFF6F5F0)).padding(vertical = 10.dp, horizontal = 8.dp),
+        modifier = modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 10.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -815,7 +815,7 @@ private fun HabitReminderRepeatContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Mục tiêu & Nhắc nhở", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDeepInk)
+            Text("Mục tiêu & Nhắc nhở", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -828,7 +828,7 @@ private fun HabitReminderRepeatContent(
 
         WhiteCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Default.FavoriteBorder, contentDescription = null, tint = VividOrange, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.FavoriteBorder, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(18.dp))
                 Text("Nhắc nhở đúng chuẩn giúp duy trì nhịp sống lành mạnh và chuẩn bị bữa ăn thong thả hơn.", fontSize = 12.sp, color = TextInkSecondary)
             }
         }
@@ -849,7 +849,7 @@ private fun HabitReminderRepeatContent(
                                     spotColor = CtaSolidOrange.copy(alpha = 0.35f)
                                 )
                                 .clip(CircleShape)
-                                .background(if (isSelected) CtaSolidOrange else Color(0xFFF0EEE6))
+                                .background(if (isSelected) CtaSolidOrange else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable {
                                     val updated = if (isSelected) form.repeatDays - isoDay else form.repeatDays + isoDay
                                     onFormChange(form.copy(repeatDays = updated.sorted()))
@@ -857,7 +857,7 @@ private fun HabitReminderRepeatContent(
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(ISO_DAY_LABELS[isoDay - 1], fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else TextInkSecondary)
+                            Text(ISO_DAY_LABELS[isoDay - 1], fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (isSelected) OnPrimary else TextInkSecondary)
                         }
                     }
                 }
@@ -884,7 +884,7 @@ private fun HabitReminderRepeatContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (isSelected) VividOrangeSoft else Color(0xFFF6F5F0))
+                            .background(if (isSelected) VividOrangeSoft else MaterialTheme.colorScheme.surfaceVariant)
                             .border(width = if (isSelected) 1.5.dp else 0.dp, color = if (isSelected) VividOrange else Color.Transparent, shape = RoundedCornerShape(14.dp))
                             .clickable { onFormChange(form.copy(advanceNoticeMinutes = option.minutes)) }
                             .padding(14.dp),
@@ -893,10 +893,10 @@ private fun HabitReminderRepeatContent(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(option.title, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = TextDeepInk)
+                                Text(option.title, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                                 if (option.recommended) {
                                     Box(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(CtaSolidOrange).padding(horizontal = 7.dp, vertical = 2.dp)) {
-                                        Text("KHUYẾN DÙNG", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                        Text("KHUYẾN DÙNG", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = OnPrimary)
                                     }
                                 }
                             }

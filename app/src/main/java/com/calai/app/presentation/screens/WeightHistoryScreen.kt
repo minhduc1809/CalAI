@@ -263,7 +263,7 @@ fun WeightHistoryScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.startAdd() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Ghi cân nặng", tint = VividOrange)
+                        Icon(Icons.Default.Add, contentDescription = "Ghi cân nặng", tint = PrimaryStrong)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = bg)
@@ -273,7 +273,7 @@ fun WeightHistoryScreen(
             FloatingActionButton(
                 onClick = { viewModel.startAdd() },
                 containerColor = VividOrange,
-                contentColor = TextWhite,
+                contentColor = OnPrimary,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(

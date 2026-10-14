@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.calai.app.data.local.TokenManager
@@ -112,20 +113,25 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
-            var isDarkTheme by remember(isDarkThemePref) { mutableStateOf(isDarkThemePref) }
+            val themeMode by preferencesManager.themeMode.collectAsState()
+            val userDark = themeMode == "DARK"
 
-            fun onThemeChanged(newTheme: Boolean) {
-                isDarkTheme = newTheme
-                preferencesManager.toggleTheme(newTheme)
-            }
+            val navController = rememberNavController()
+            // Các màn TRƯỚC khi vào Home (Chào mừng, Đăng nhập, Quên mật khẩu, Onboarding, và Chính sách mở từ đó) luôn sáng;
+            // Sáng/Tối theo lựa chọn người dùng chỉ áp dụng bên trong hệ thống.
+            val navEntry by navController.currentBackStackEntryAsState()
+            val route = navEntry?.destination?.route
+            val prevRoute = navController.previousBackStackEntry?.destination?.route
+            val preHome = route in setOf(
+                Screen.Welcome.route, Screen.Login.route, Screen.ForgotPassword.route, Screen.Onboarding.route
+            ) || (route == Screen.PrivacyPolicy.route && prevRoute in setOf(Screen.Login.route, Screen.Onboarding.route))
+            val isDarkTheme = userDark && !preHome
 
             CalAITheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
 
                     // Tự động điều hướng về Login khi TokenAuthenticator phát hiện session
                     // hết hạn/không thể refresh (401 mà refresh cũng fail hoặc hết lượt retry) —
@@ -147,7 +153,7 @@ class MainActivity : ComponentActivity() {
                             DockTab.HOME -> Screen.Home.route
                             DockTab.STATISTICS -> Screen.Statistics.route
                             DockTab.SCAN -> Screen.CameraScan.route
-                            DockTab.CHAT -> Screen.Chat.route
+                            DockTab.WORKOUT -> Screen.WorkoutHub.route
                             DockTab.PROFILE -> Screen.Profile.route
                         }
                         navController.navigate(targetRoute) {
@@ -222,6 +228,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val backStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = backStackEntry?.destination?.route
+                    val showChatFab = currentRoute in setOf(
+                        Screen.Home.route, Screen.Statistics.route, Screen.WorkoutHub.route
+                    )
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Welcome.route
@@ -295,6 +307,9 @@ class MainActivity : ComponentActivity() {
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
                                 },
+                                onOpenWorkoutHub = {
+                                    navController.navigate(Screen.WorkoutHub.route)
+                                },
                                 // NEN-01: nút Tìm kiếm trên Trang chủ mở màn Thêm bữa ăn (có ô tìm món), không còn là nút chết
                                 onSearchClick = {
                                     navController.navigate(Screen.AddMeal.route)
@@ -308,8 +323,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenWeeklySummary = {
                                     navController.navigate(Screen.WeeklySummary.route)
                                 },
-                                isDarkTheme = isDarkTheme,
-                                onThemeChanged = { onThemeChanged(it) }
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
@@ -374,6 +388,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
                                 },
+                                onNavigateTab = { tab -> navigateToTab(tab) },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -448,9 +463,7 @@ class MainActivity : ComponentActivity() {
                         // 6. Màn hình Trợ lý Dinh dưỡng AI (Chatbot Coach)
                         composable(Screen.Chat.route) {
                             ChatbotScreen(
-                                onNavigateTab = { tab ->
-                                    navigateToTab(tab)
-                                },
+                                onBack = { navController.popBackStack() },
                                 onOpenPremium = { navController.navigate(Screen.Premium.route) },
                                 isDarkTheme = isDarkTheme
                             )
@@ -468,7 +481,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { onThemeChanged(it) },
+                                themeMode = themeMode,
+                                onThemeModeChange = { preferencesManager.setThemeMode(it) },
                                 onOpenGoalSetup = {
                                     navController.navigate(Screen.GoalSetup.route)
                                 },
@@ -506,7 +520,8 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { onThemeChanged(it) },
+                                themeMode = themeMode,
+                                onThemeModeChange = { preferencesManager.setThemeMode(it) },
                                 onOpenGoalSetup = {
                                     navController.navigate(Screen.GoalSetup.route)
                                 },
@@ -526,6 +541,15 @@ class MainActivity : ComponentActivity() {
                                 isDarkTheme = isDarkTheme
                             )
                         }
+                    }
+                    if (showChatFab) {
+                        com.calai.app.presentation.components.ChatbotFab(
+                            onClick = { navController.navigate(Screen.Chat.route) { launchSingleTop = true } },
+                            modifier = Modifier
+                                .align(androidx.compose.ui.Alignment.BottomEnd)
+                                .padding(end = 14.dp, bottom = 100.dp)
+                        )
+                    }
                     }
 
                 }

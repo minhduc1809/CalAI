@@ -33,12 +33,7 @@ import com.calai.app.presentation.theme.TextInkSecondary
 fun WelcomeScreen(onGetStarted: () -> Unit) {
     MaterialTheme(colorScheme = CalAILightColorScheme) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(id = R.drawable.bg_auth),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            com.calai.app.presentation.components.AuthBackdrop()
 
             Column(
                 modifier = Modifier
@@ -50,12 +45,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Logo thương hiệu (đã tách nền trong suốt)
-                Image(
-                    painter = painterResource(id = R.drawable.logo_nutriwise),
-                    contentDescription = "NutriWise",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.width(220.dp)
-                )
+                com.calai.app.presentation.components.AuthLogo(width = 220.dp)
 
                 // Ảnh minh hoạ hero (linh vật cáo)
                 Image(

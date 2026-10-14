@@ -278,3 +278,9 @@ data class MacroPreviewDto(
     val currentStyle: String? = null,
     val styles: List<MacroStylePreviewDto> = emptyList()
 )
+
+
+data class AvatarDto(
+    @SerializedName("avatar")
+    val avatar: String? = null
+)

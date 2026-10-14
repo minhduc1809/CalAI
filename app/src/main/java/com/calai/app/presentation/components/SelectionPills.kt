@@ -65,7 +65,7 @@ fun SelectionPill(
             label,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (MaterialTheme.colorScheme.onSurfaceVariant)
+            color = if (isSelected) OnPrimary else (MaterialTheme.colorScheme.onSurfaceVariant)
         )
     }
 }
@@ -99,7 +99,7 @@ fun RateSelectionPill(
             "$rate kg",
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) TextWhite else (MaterialTheme.colorScheme.onSurfaceVariant)
+            color = if (isSelected) OnPrimary else (MaterialTheme.colorScheme.onSurfaceVariant)
         )
     }
 }
@@ -131,7 +131,8 @@ fun IconOptionRow(
                 spotColor    = if (isSelected) accentColor.copy(alpha = 0.38f) else inactiveSpot
             )
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isSelected) accentColor.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surface) // nền ĐẶC dưới lớp màu trong suốt: nếu không, bóng đổ lộ xuyên qua thành khối trắng
+            .background(if (isSelected) accentColor.copy(alpha = 0.14f) else Color.Transparent)
             .border(
                 if (isSelected) 1.8.dp else 1.dp,
                 if (isSelected) accentColor else MaterialTheme.colorScheme.outline,
@@ -166,7 +167,7 @@ fun IconOptionRow(
                     .background(accentColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = TextWhite, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Check, contentDescription = null, tint = OnPrimary, modifier = Modifier.size(14.dp))
             }
         }
     }
@@ -192,7 +193,8 @@ fun MacroStyleOptionRow(
                 spotColor    = if (isSelected) ShadowCtaSpot    else inactiveSpot
             )
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isSelected) VividOrangeSoft else (MaterialTheme.colorScheme.surface))
+            .background(MaterialTheme.colorScheme.surface) // nền ĐẶC dưới lớp màu trong suốt (xem IconOptionRow)
+            .background(if (isSelected) VividOrangeSoft else Color.Transparent)
             .border(1.dp, if (isSelected) VividOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),

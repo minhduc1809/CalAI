@@ -59,6 +59,7 @@ fun HomeScreen(
     onNavigateTab: (DockTab) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenSuggestions: () -> Unit = {},
+    onOpenWorkoutHub: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenCheckin: () -> Unit = {},
@@ -122,7 +123,7 @@ fun HomeScreen(
                 if (isDarkTheme) {
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF161924),
+                            Color(0xFF0A0A0A),
                             ObsidianBackground
                         ),
                         radius = 1200f
@@ -132,7 +133,7 @@ fun HomeScreen(
                     // vào nền) — giờ sáng/sạch hơn, card nổi rõ nhờ chênh lệch độ sáng + shadow mạnh hơn.
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFFFAFBFD),
+                            Color(0xFFFFFFFF),
                             IvoryBackground
                         ),
                         radius = 1400f
@@ -163,7 +164,8 @@ fun HomeScreen(
                 // ── 1. HEADER ───────────────────────────────────────────────────────
                 item {
                     DashboardHeader(
-                        username = uiState.username,
+                        username = uiState.displayName ?: uiState.username,
+                        avatar = uiState.avatar,
                         isDarkTheme = isDarkTheme,
                         onSearchClick = onSearchClick,
                         onOpenNotifications = onOpenNotifications
@@ -349,6 +351,7 @@ fun HomeScreen(
 @Composable
 private fun DashboardHeader(
     username: String,
+    avatar: String? = null,
     isDarkTheme: Boolean,
     onSearchClick: () -> Unit,
     onOpenNotifications: () -> Unit
@@ -383,12 +386,16 @@ private fun DashboardHeader(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = username.take(1).uppercase(),
-                    fontWeight = FontWeight.Black,
-                    fontSize = 19.sp,
-                    color = Color.White
-                )
+                if (avatar != null) {
+                    com.calai.app.presentation.components.UserAvatar(avatar = avatar, displayName = username, size = 46.dp, fontSize = 19)
+                } else {
+                    Text(
+                        text = username.take(1).uppercase(),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 19.sp,
+                        color = OnPrimary
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -528,14 +535,14 @@ private fun FoodDiaryHeader(onAddMealClick: () -> Unit) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = OnPrimary,
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
                     text = "Thêm món",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = OnPrimary
                 )
             }
         }
@@ -642,7 +649,7 @@ private fun EmptyMealState(isDarkTheme: Boolean, onCameraClick: () -> Unit) {
                     Icon(
                         Icons.Default.Restaurant,
                         contentDescription = null,
-                        tint = VividOrange,
+                        tint = PrimaryStrong,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -690,14 +697,14 @@ private fun EmptyMealState(isDarkTheme: Boolean, onCameraClick: () -> Unit) {
                     Icon(
                         Icons.Default.CameraAlt,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = OnPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = "Quét món ăn bằng AI",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = OnPrimary
                     )
                 }
             }
@@ -717,10 +724,10 @@ private val MEAL_TYPE_LABELS = listOf(
 )
 
 private fun mealTypeColor(mealType: String): Color = when (mealType) {
-    "BREAKFAST" -> Color(0xFFFBBF24) // amber
-    "LUNCH" -> Color(0xFF34D399)      // mint
-    "DINNER" -> Color(0xFF60A5FA)     // blue
-    else -> Color(0xFFA78BFA)         // purple for snack
+    "BREAKFAST" -> Color(0xFFF2C265) // vàng ấm
+    "LUNCH" -> Color(0xFF4FBFA5)      // xanh ngọc
+    "DINNER" -> Color(0xFF6FB1F0)     // xanh dương
+    else -> Color(0xFFB69AE8)         // tím nhạt cho bữa phụ
 }
 
 @Composable
@@ -783,7 +790,7 @@ private fun MealItemRow(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -1162,7 +1169,7 @@ private fun PendingSyncBanner(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(if (failed.isNotEmpty()) Color(0xFFFFE3E0) else Color(0xFFFFF1D6))
+            .background(if (failed.isNotEmpty()) Color(0xFFFFE3DC) else Color(0xFFFFF1D9))
             .clickable(enabled = failed.isNotEmpty()) { showFailed = true }
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {

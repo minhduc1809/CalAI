@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +49,7 @@ enum class TrainingHubTab(val title: String) {
 fun WorkoutHubScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit,
+    onNavigateTab: (com.calai.app.presentation.components.DockTab) -> Unit = {},
     isDarkTheme: Boolean = true,
     workoutViewModel: WorkoutViewModel = hiltViewModel(),
     suggestionsViewModel: SuggestionsViewModel = hiltViewModel()
@@ -197,7 +199,7 @@ fun WorkoutHubScreen(
                             text = tab.title,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -240,6 +242,9 @@ fun WorkoutHubScreen(
                 TrainingHubTab.LIBRARY -> {
                     LibraryTabContent(
                         exercises = suggestionsUiState.exercises,
+                        isLoading = suggestionsUiState.isLoading,
+                        errorMessage = suggestionsUiState.errorMessage,
+                        onRetry = suggestionsViewModel::reload,
                         isDark = isDarkTheme,
                         onLogExercise = { ex ->
                             workoutViewModel.startFromExercise(ex.name, "CATALOG", ex.id, ex.targetMuscle.substringBefore(',').trim())
@@ -249,6 +254,13 @@ fun WorkoutHubScreen(
                 }
             }
         }
+
+        com.calai.app.presentation.components.FloatingBottomDock(
+            currentTab = com.calai.app.presentation.components.DockTab.WORKOUT,
+            isDarkTheme = isDarkTheme,
+            onTabSelected = { tab -> if (tab != com.calai.app.presentation.components.DockTab.WORKOUT) onNavigateTab(tab) },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         // 4. BOTTOM SHEET XEM CHI TIẾT BUỔI TẬP ĐÃ LƯU
         selectedWorkoutForDetail?.let { workout ->
@@ -521,7 +533,7 @@ fun HistoryTabContent(
                             text = "${summary?.totalActiveCalories ?: 0}",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = VividOrange
+                            color = PrimaryStrong
                         )
                         Text(text = "Calo đã đốt", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -634,7 +646,7 @@ fun HistoryTabContent(
                                     text = "${workout.caloriesBurned.toInt()} kcal",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = VividOrange
+                                    color = PrimaryStrong
                                 )
                             }
                         }
@@ -697,6 +709,9 @@ fun HistoryTabContent(
 @Composable
 fun LibraryTabContent(
     exercises: List<ExerciseGuideDto>,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: () -> Unit = {},
     isDark: Boolean = true,
     onLogExercise: (ExerciseGuideDto) -> Unit
 ) {
@@ -732,6 +747,35 @@ fun LibraryTabContent(
             shape = RoundedCornerShape(16.dp)
         )
 
+        if (exercises.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = PrimaryStrong, modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                    Text("Đang tải kho bài tập...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(
+                        errorMessage ?: "Chưa có bài tập nào trong kho",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(onClick = onRetry) { Text("Thử lại") }
+                }
+            }
+        } else if (filtered.isEmpty()) {
+            Text(
+                "Không có bài tập khớp \"$searchQuery\"",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                textAlign = TextAlign.Center
+            )
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -745,57 +789,64 @@ fun LibraryTabContent(
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                         .padding(14.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(VividOrange.copy(alpha = 0.14f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(PastelMint.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelMint)
-                                }
-
-                                Column {
-                                    Text(
-                                        text = ex.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                    Text(
-                                        text = "${ex.targetMuscle} • ${ex.equipment}",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Icon(Icons.Default.SelfImprovement, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(22.dp))
                             }
-
-                            Button(
-                                onClick = { onLogExercise(ex) },
-                                colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text(text = "+ Ghi tập", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = ex.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = ex.targetMuscle,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            ExerciseChip(exerciseLevelLabel(ex.level))
+                            ExerciseChip(exerciseEquipmentLabel(ex.equipment))
+                            ExerciseChip("${ex.sets} hiệp · ${ex.repsOrDuration}")
                         }
 
                         Text(
                             text = ex.instructions.execution,
-                            fontSize = 12.sp,
+                            fontSize = 12.5.sp,
                             color = (MaterialTheme.colorScheme.onBackground).copy(alpha = 0.8f),
-                            lineHeight = 16.sp
+                            lineHeight = 17.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
                         )
+
+                        Button(
+                            onClick = { onLogExercise(ex) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(text = "Ghi buổi tập với bài này", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = OnPrimary)
+                        }
                     }
                 }
             }
@@ -926,4 +977,35 @@ fun WorkoutDetailSheetContent(
             shape = RoundedCornerShape(14.dp)
         )
     }
+}
+
+
+@Composable
+private fun ExerciseChip(text: String) {
+    Text(
+        text = text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
+}
+
+private fun exerciseLevelLabel(level: String) = when (level) {
+    "BEGINNER" -> "Dễ"
+    "INTERMEDIATE" -> "Vừa"
+    "ADVANCED" -> "Nâng cao"
+    else -> level
+}
+
+private fun exerciseEquipmentLabel(equipment: String) = when (equipment) {
+    "NO_EQUIPMENT" -> "Không dụng cụ"
+    "DUMBBELL" -> "Tạ đơn"
+    "GYM_MACHINE" -> "Máy tập"
+    "RESISTANCE_BAND" -> "Dây kháng lực"
+    else -> equipment
 }

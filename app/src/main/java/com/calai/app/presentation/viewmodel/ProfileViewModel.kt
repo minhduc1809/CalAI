@@ -18,6 +18,7 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val isChangingPassword: Boolean = false,
     val isUpdatingBiometrics: Boolean = false,
+    val isUpdatingAvatar: Boolean = false,
     val isSendingVerificationEmail: Boolean = false,
     val isVerifyingEmail: Boolean = false,
     val profile: UserProfileDto? = null,
@@ -111,6 +112,80 @@ class ProfileViewModel @Inject constructor(
 
     fun setMealStructureMode(mode: String) {
         preferencesManager.setMealStructureMode(mode)
+    }
+
+    /** Chọn ảnh từ thư viện: thu nhỏ về tối đa 512px, nén JPEG rồi tải lên máy chủ. */
+    fun uploadAvatar(context: android.content.Context, uri: android.net.Uri, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingAvatar = true) }
+            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { prepareAvatarFile(context, uri) }
+            if (file == null) {
+                _uiState.update { it.copy(isUpdatingAvatar = false) }
+                onDone(false, "Không đọc được ảnh đã chọn")
+                return@launch
+            }
+            repository.uploadAvatar(file)
+                .onSuccess { path ->
+                    _uiState.update { st -> st.copy(isUpdatingAvatar = false, profile = st.profile?.copy(avatar = path)) }
+                    onDone(true, "Đã cập nhật ảnh đại diện")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingAvatar = false) }
+                    onDone(false, err.message ?: "Không thể cập nhật ảnh đại diện")
+                }
+            file.delete()
+        }
+    }
+
+    fun removeAvatar(onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingAvatar = true) }
+            repository.removeAvatar()
+                .onSuccess {
+                    _uiState.update { st -> st.copy(isUpdatingAvatar = false, profile = st.profile?.copy(avatar = null)) }
+                    onDone(true, "Đã xoá ảnh đại diện")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingAvatar = false) }
+                    onDone(false, err.message ?: "Không thể xoá ảnh đại diện")
+                }
+        }
+    }
+
+    /** Đổi họ tên, giới tính, ngày sinh (YYYY-MM-DD). Máy chủ kiểm tra tuổi 13–100 và tính lại chỉ số liên quan. */
+    fun saveBasicInfo(name: String, gender: String?, dateOfBirth: String?, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingBiometrics = true) }
+            repository.updateProfile(UpdateProfileRequest(name = name.trim(), gender = gender, dateOfBirth = dateOfBirth))
+                .onSuccess { updated ->
+                    _uiState.update { it.copy(isUpdatingBiometrics = false, profile = updated) }
+                    onDone(true, "Đã lưu thông tin cá nhân")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingBiometrics = false) }
+                    onDone(false, err.message ?: "Không thể lưu thông tin")
+                }
+        }
+    }
+
+    private fun prepareAvatarFile(context: android.content.Context, uri: android.net.Uri): java.io.File? {
+        return try {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+            val longest = maxOf(bounds.outWidth, bounds.outHeight)
+            if (longest <= 0) return null
+            var sample = 1
+            while (longest / sample > 1024) sample *= 2
+            val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+            val bitmap = context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, opts) } ?: return null
+            val scale = 512f / maxOf(bitmap.width, bitmap.height)
+            val scaled = if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true) else bitmap
+            val out = java.io.File(context.cacheDir, "avatar_${System.currentTimeMillis()}.jpg")
+            out.outputStream().use { scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, it) }
+            out
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun loadProfile() {

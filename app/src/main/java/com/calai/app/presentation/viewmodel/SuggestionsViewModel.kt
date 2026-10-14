@@ -40,6 +40,9 @@ class SuggestionsViewModel @Inject constructor(
         }
     }
 
+    /** Tải lại gợi ý và kho bài tập (nút Thử lại khi mạng lỗi). */
+    fun reload() = loadAll()
+
     private fun loadAll() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
@@ -51,7 +54,7 @@ class SuggestionsViewModel @Inject constructor(
                     isLoading = false,
                     workout = workoutResult.getOrNull() ?: it.workout,
                     exercises = exercisesResult.getOrNull()?.exercises ?: it.exercises,
-                    errorMessage = if (workoutResult.isFailure && exercisesResult.isFailure) "Không thể tải gợi ý, vui lòng thử lại" else null
+                    errorMessage = if (exercisesResult.isFailure && it.exercises.isEmpty()) "Không tải được kho bài tập, kiểm tra kết nối rồi thử lại" else null
                 )
             }
         }

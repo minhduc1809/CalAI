@@ -30,10 +30,10 @@ import java.util.Locale
 import javax.inject.Inject
 
 /** Kích thước tối đa (px) của cạnh dài ảnh sau khi resize trước khi upload lên server AI */
-private const val MAX_UPLOAD_IMAGE_DIMENSION_PX = 1280
+private const val MAX_UPLOAD_IMAGE_DIMENSION_PX = 1920
 
 /** Chất lượng nén JPEG khi re-encode ảnh trước khi upload (0-100) */
-private const val UPLOAD_JPEG_QUALITY = 85
+private const val UPLOAD_JPEG_QUALITY = 90
 
 enum class ScanMode {
     FOOD,       // Quét ảnh món ăn

@@ -95,7 +95,7 @@ fun ArcCaloriesGauge(
             val trackColor = if (isDarkTheme)
                 Color.White.copy(alpha = 0.08f)
             else
-                Color(0xFF1A2540).copy(alpha = 0.07f)
+                Color(0xFF3B2A22).copy(alpha = 0.08f)
             drawArc(
                 color = trackColor,
                 startAngle = startAngleDeg,
@@ -114,7 +114,7 @@ fun ArcCaloriesGauge(
                         VividOrangeDark,
                         VividOrange,
                         VividOrangeLight,
-                        Color(0xFFFFCCA0)
+                        Color(0xFFFFD9CC)
                     ),
                     center = centerPoint
                 )
@@ -219,7 +219,7 @@ fun ArcCaloriesGauge(
                 text = "Đã nạp $consumedFormatted kcal",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = VividOrange,
+                color = PrimaryStrong,
                 textAlign = TextAlign.Center
             )
         }

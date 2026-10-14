@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
@@ -49,7 +50,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatbotScreen(
-    onNavigateTab: (DockTab) -> Unit,
+    onBack: () -> Unit,
     onOpenPremium: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: ChatbotViewModel = hiltViewModel()
@@ -83,37 +84,41 @@ fun ChatbotScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp)
+                .navigationBarsPadding()
         ) {
             // 1. TOP HEADER: AI Coach Status Bar & Plan Tier Badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = MaterialTheme.colorScheme.onBackground)
+                }
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(PastelLavender.copy(alpha = 0.2f))
-                        .border(1.dp, PastelLavender.copy(alpha = 0.4f), CircleShape),
+                        .background(VividOrangeSoft)
+                        .border(1.dp, VividOrange.copy(alpha = 0.4f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = PastelLavender,
-                        modifier = Modifier.size(24.dp)
+                        tint = PrimaryStrong,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Trợ Lý Dinh Dưỡng NutriWise",
+                        text = "Trợ lý NutriWise",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Row(
@@ -127,7 +132,7 @@ fun ChatbotScreen(
                                 .background(MintJade)
                         )
                         Text(
-                            text = "Trợ lý dinh dưỡng AI • Trực tuyến",
+                            text = "Trực tuyến",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -315,14 +320,14 @@ fun ChatbotScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                if (inputText.isNotBlank()) PastelLavender
+                                if (inputText.isNotBlank()) VividOrange
                                 else (MaterialTheme.colorScheme.outline)
                             )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Gửi",
-                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (inputText.isNotBlank()) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -374,12 +379,6 @@ fun ChatbotScreen(
             )
         }
 
-        // Dock điều hướng
-        FloatingBottomDock(
-            currentTab = DockTab.CHAT,
-            onTabSelected = onNavigateTab,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -397,13 +396,13 @@ private fun MessageBubble(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(PastelLavender.copy(alpha = 0.2f)),
+                    .background(VividOrangeSoft),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = PastelLavender,
+                    tint = PrimaryStrong,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -413,7 +412,7 @@ private fun MessageBubble(
         val isSafety = !message.isUser && message.safetyFlag != null
         Surface(
             color = if (message.isUser) {
-                PastelLavender
+                VividOrange
             } else if (isSafety) {
                 PastelRose.copy(alpha = 0.22f)
             } else {
@@ -444,10 +443,10 @@ private fun MessageBubble(
                     )
                 }
                 Text(
-                    text = message.text,
+                    text = if (message.isUser) androidx.compose.ui.text.AnnotatedString(message.text) else com.calai.app.presentation.components.markdownToAnnotated(message.text),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
-                    color = if (message.isUser) MaterialTheme.colorScheme.background else (MaterialTheme.colorScheme.onBackground)
+                    color = if (message.isUser) OnPrimary else (MaterialTheme.colorScheme.onBackground)
                 )
             }
         }

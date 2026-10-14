@@ -128,12 +128,7 @@ fun LoginScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Nền trang trí pastel dùng chung cho các màn Auth (Welcome/Login/Register/Forgot Password)
-        Image(
-            painter = painterResource(id = R.drawable.bg_auth),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        com.calai.app.presentation.components.AuthBackdrop()
 
         Column(
             modifier = Modifier
@@ -145,12 +140,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Logo thương hiệu (ảnh, đã tách nền trong suốt) thay cho chữ "NutriWise" thuần text.
-            Image(
-                painter = painterResource(id = R.drawable.logo_nutriwise),
-                contentDescription = "NutriWise",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.width(200.dp)
-            )
+            com.calai.app.presentation.components.AuthLogo(width = 200.dp)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Trợ lý dinh dưỡng cá nhân thông minh",
@@ -178,6 +168,7 @@ fun LoginScreen(
                         spotColor = Color.Black.copy(alpha = 0.15f)
                     )
                     .clip(RoundedCornerShape(30.dp))
+                    .background(MaterialTheme.colorScheme.surface) // nền đặc: bóng đổ không lộ xuyên qua lớp trong suốt
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -191,8 +182,8 @@ fun LoginScreen(
                     .shadow(
                         elevation = 4.dp,
                         shape = RoundedCornerShape(26.dp),
-                        ambientColor = Color(0x141A2540),
-                        spotColor = Color(0x1A1A2540)
+                        ambientColor = Color(0x143B2A22),
+                        spotColor = Color(0x1A3B2A22)
                     )
                     .clip(RoundedCornerShape(26.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -226,7 +217,7 @@ fun LoginScreen(
                     Text(
                         text = "Đăng Nhập",
                         fontWeight = if (uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (uiState.isLoginMode) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (uiState.isLoginMode) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -256,7 +247,7 @@ fun LoginScreen(
                     Text(
                         text = "Đăng Ký",
                         fontWeight = if (!uiState.isLoginMode) FontWeight.Bold else FontWeight.Medium,
-                        color = if (!uiState.isLoginMode) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (!uiState.isLoginMode) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -450,7 +441,7 @@ fun LoginScreen(
                         text = "Chính sách quyền riêng tư",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         modifier = Modifier.clickable { onOpenPrivacy() }
                     )
                 }
@@ -461,7 +452,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "Quên mật khẩu?",
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier

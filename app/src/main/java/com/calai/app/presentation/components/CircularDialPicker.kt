@@ -326,7 +326,7 @@ fun CircularDialPicker(
                 text = unit.lowercase(),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = VividOrange,
+                color = PrimaryStrong,
                 letterSpacing = 1.sp
             )
         }
