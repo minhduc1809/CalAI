@@ -585,55 +585,6 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun BioMetricCard(
-    title: String,
-    value: String,
-    unit: String,
-    color: Color,
-    isDark: Boolean = true,
-    modifier: Modifier = Modifier,
-    canEdit: Boolean = false,
-    onClick: (() -> Unit)? = null
-) {
-    Box(
-        modifier = modifier
-            .shadow(
-                elevation = if (isDark) 6.dp else 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = if (isDark) DarkShadow else WarmShadow,
-                spotColor = if (isDark) DarkShadow else WarmShadow
-            )
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
-            .then(
-                if (onClick != null) Modifier.clickable { onClick() } else Modifier
-            )
-            .padding(16.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (canEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Chỉnh sửa $title",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-            Text(text = unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
-        }
-    }
-}
-
-@Composable
 private fun MacroBadgePill(
     label: String,
     amount: String,

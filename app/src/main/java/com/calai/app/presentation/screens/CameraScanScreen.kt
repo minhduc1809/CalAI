@@ -809,14 +809,6 @@ private fun MacroTag(label: String, value: String, color: Color) {
     }
 }
 
-private fun createTempPictureUri(context: Context): Uri {
-    val tempFile = File.createTempFile("camera_${System.currentTimeMillis()}", ".jpg", context.cacheDir).apply {
-        createNewFile()
-        deleteOnExit()
-    }
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
-}
-
 /**
  * Một món trong kết quả nhận diện ảnh. Món không có trong kho mang nhãn "Ước tính"; món có trong kho cho phép đổi
  * sang tối đa 3 món gần nhất khi AI nhận sai.

@@ -9,6 +9,10 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import android.util.Size
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -192,11 +196,8 @@ private fun BarcodeCameraPreview(
     onDetected: (String) -> Unit,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner
 ) {
-    // Zoom mặc định để vùng khung quét chiếm phần lớn khung hình phân tích — mã vạch
-    // decode nhanh hơn nhiều so với để camera quét nguyên khung hình rộng (gốc của defect
-    // "phải căn rất lâu mới quét được" — mã vạch quá nhỏ trong ảnh gửi cho ML Kit).
-    val roiZoomRatio = 0.35f
     var camera by remember { mutableStateOf<Camera?>(null) }
+    var zoomRatio by remember { mutableStateOf(2f) }
     var isTorchOn by remember { mutableStateOf(false) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
@@ -222,10 +223,34 @@ private fun BarcodeCameraPreview(
         label = "scanLineOffset"
     )
 
+    // Lấy nét lại giữa khung mỗi 2 giây: điện thoại hay "ngủ" lấy nét khi mã vạch đứng yên ở khoảng cách gần
+    LaunchedEffect(camera) {
+        val cam = camera ?: return@LaunchedEffect
+        while (true) {
+            val p = SurfaceOrientedMeteringPointFactory(1f, 1f).createPoint(0.5f, 0.5f)
+            cam.cameraControl.startFocusAndMetering(
+                FocusMeteringAction.Builder(p, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
+                    .setAutoCancelDuration(2, TimeUnit.SECONDS).build()
+            )
+            kotlinx.coroutines.delay(2000)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    // Chụm hai ngón để zoom (1×–8×)
+                    detectTransformGestures { _, _, zoom, _ ->
+                        val cam = camera ?: return@detectTransformGestures
+                        if (zoom == 1f) return@detectTransformGestures
+                        val st = cam.cameraInfo.zoomState.value
+                        val next = (zoomRatio * zoom).coerceIn(st?.minZoomRatio ?: 1f, minOf(st?.maxZoomRatio ?: 1f, 8f))
+                        zoomRatio = next
+                        cam.cameraControl.setZoomRatio(next)
+                    }
+                }
                 .pointerInput(Unit) {
                     // Tap-to-focus: khắc phục auto-focus mặc định lấy nét chậm ở khoảng
                     // cách gần (10-15cm), đúng khoảng cách quét mã vạch thực tế.
@@ -259,7 +284,13 @@ private fun BarcodeCameraPreview(
                     val preview = Preview.Builder().build().also {
                         it.setSurfaceProvider(view.surfaceProvider)
                     }
+                    // Mặc định CameraX phân tích ở ~640×480 nên vạch mã bị mờ; yêu cầu Full HD để đọc nét hơn
                     val analysis = ImageAnalysis.Builder()
+                        .setResolutionSelector(
+                            ResolutionSelector.Builder()
+                                .setResolutionStrategy(ResolutionStrategy(Size(1920, 1080), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
+                                .build()
+                        )
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                     analysis.setAnalyzer(analyzerExecutor) { imageProxy ->
@@ -285,7 +316,10 @@ private fun BarcodeCameraPreview(
                         )
                         // Zoom vào vùng trung tâm (khớp khung quét hiển thị) + lấy nét gần
                         // ngay khi mở camera, không đợi người dùng phải tự tap.
-                        boundCamera.cameraControl.setLinearZoom(roiZoomRatio)
+                        val zs = boundCamera.cameraInfo.zoomState.value
+                        val start = zoomRatio.coerceIn(zs?.minZoomRatio ?: 1f, minOf(zs?.maxZoomRatio ?: 1f, 8f))
+                        zoomRatio = start
+                        boundCamera.cameraControl.setZoomRatio(start)
                         val centerFactory = SurfaceOrientedMeteringPointFactory(1f, 1f)
                         val centerPoint = centerFactory.createPoint(0.5f, 0.5f)
                         boundCamera.cameraControl.startFocusAndMetering(
@@ -340,8 +374,38 @@ private fun BarcodeCameraPreview(
             )
         }
 
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 96.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.7f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            listOf(1f, 2f, 3f, 5f).forEach { z ->
+                val active = kotlin.math.abs(zoomRatio - z) < 0.2f
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(if (active) VividOrange else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable {
+                            val cam = camera ?: return@clickable
+                            val st = cam.cameraInfo.zoomState.value
+                            val v = z.coerceIn(st?.minZoomRatio ?: 1f, minOf(st?.maxZoomRatio ?: 1f, 8f))
+                            zoomRatio = v
+                            cam.cameraControl.setZoomRatio(v)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${z.toInt()}×", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (active) OnPrimary else MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        }
+
         Text(
-            "Đưa mã vạch sản phẩm vào khung để quét — chạm để lấy nét",
+            "Đưa mã vạch vào khung — chụm hai ngón hoặc bấm 1×–5× để phóng to",
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
@@ -349,7 +413,10 @@ private fun BarcodeCameraPreview(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 48.dp)
+                .padding(bottom = 32.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         )
 
         if (isLookingUp) {

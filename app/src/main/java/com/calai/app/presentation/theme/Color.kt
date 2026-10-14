@@ -15,7 +15,6 @@ val CharcoalSurface = Color(0xFF1C1C1E)          // Surface — nền section (t
 val CharcoalCard = Color(0xFF282829)             // Nền card chuẩn (tách lớp rõ ràng)
 val CharcoalCardElevated = Color(0xFF323234)     // Card nổi cao hơn (hero card, overlay, toggle track)
 val CharcoalBorder = Color(0xFF3E3E42)           // Viền 1px sắc nét tách bạch
-val CharcoalDock = Color(0xFF282829)             // Floating bottom dock (Final v3 - align to CharcoalCardElevated)
 
 // 2. Bento Pastel — Gradient 2 tông Đã Hiệu Chỉnh Hài Hòa (Spec 10.4)
 // Độ sáng 68-80%, Độ bão hòa 45-60%, êm dịu như bộ macaron cao cấp
@@ -39,17 +38,12 @@ val ProteinBrush = Brush.verticalGradient(listOf(ProteinGradientStart, ProteinGr
 val CarbBrush = Brush.verticalGradient(listOf(CarbGradientStart, CarbGradientEnd))
 val FatBrush = Brush.horizontalGradient(listOf(FatGradientStart, FatGradientEnd))
 val LavenderBrush = Brush.verticalGradient(listOf(LavenderGradientStart, LavenderGradientEnd))
-val CalorieCardBrush = Brush.verticalGradient(listOf(CalorieCardGradientStart, CalorieCardGradientEnd))
 
 // Màu đơn tương thích (Legacy support)
 val PastelLavender: Color get() = if (NwTheme.isDark) LavenderGradientStart else PastelLavenderLight   // sáng: bản đậm để chữ/biểu tượng đủ tương phản
-val PastelLavenderDark = LavenderGradientEnd
 val PastelMint: Color get() = if (NwTheme.isDark) ProteinGradientStart else PastelProteinLight   // sáng: bản đậm để chữ/biểu tượng đủ tương phản
-val PastelMintDark = ProteinGradientEnd
 val PastelButtercup: Color get() = if (NwTheme.isDark) CarbGradientStart else PastelCarbLight   // sáng: bản đậm để chữ/biểu tượng đủ tương phản
-val PastelButtercupDark = CarbGradientEnd
 val PastelRose: Color get() = if (NwTheme.isDark) FatGradientStart else PastelFatLight   // sáng: bản đậm để chữ/biểu tượng đủ tương phản
-val PastelRoseDark = FatGradientEnd
 
 // 3. Điểm nhấn hành động (Accent) — Final v3 Part 3.4
 val VividOrange = Color(0xFFFF9B91)              // CTA chính, icon Quét AI, tab active, glow sau số hero (was #FF6433)
@@ -60,17 +54,14 @@ val VividOrangeGlow = Color(0x1AFF9B91)          // 13% alpha - Halo glow sau s�
 val CtaSolidOrange = Color(0xFFFF9B91)           // Màu ĐẶC duy nhất cho nền nút CTA (AppButton) — không gradient chuyển màu dần
 
 // Final v3 Part 3.4 — new solid semantic accents (NOT gradients; distinct from Bento macro card gradients above)
-val BrandBlue = Color(0xFFFF9B91)                // Navigation/Action, chart: Calories series
 val VividMint = Color(0xFF4FBFA5)                // Protein/Positive, chart: Protein series
 val VividAmber = Color(0xFFF2C265)               // Carbs/Attention, chart: Carbs series
 val VividCoral = Color(0xFF8F9CF2)               // Fat/Warning, chart: Fat series
-val VividPurple = Color(0xFFB69AE8)              // AI/Premium, chart: AI series
 val VividCyan = Color(0xFF6FB1F0)                // Hydration/Secondary, chart: Water series
 
 // 4. Chữ trên nền tối — Final v3 Part 3.3
 val TextWhite = Color(0xFFFFFFFF)                // Tiêu đề, số liệu chính
 val TextLightGrey = Color(0xFFC6C0C0)            // Nội dung phụ
-val TextMuted = Color(0xFF969090)                // Nhãn, placeholder
 val TextDeepInk = Color(0xFF302B2A)              // Chữ chính trên nền thẻ Pastel
 
 // 5. Trạng thái
@@ -88,7 +79,6 @@ val PearlSurface = Color(0xFFFFFDFC)             // LightSurface — trắng tin
 val PearlCard = Color(0xFFFFF5F2)                // LightSurfaceSecondary — nền section phụ (was #FFFFFF)
 val PearlCardElevated = Color(0xFFFFFDFC)        // LightSurfaceElevated — card nổi cao hơn
 val PearlBorder = Color(0xFFF6E7E2)              // LightBorder — viền card 1px (was #E8E2D6)
-val PearlDock = Color(0xFFFFFDFC)                // Floating bottom dock trắng sáng
 val LightDivider = Color(0xFFF8EAE5)             // LightDivider — Final v3 Part 3.2 (new)
 
 // ==========================================
@@ -128,8 +118,6 @@ val ShadowCtaSpot         = Color(0x55FF9B91)    // CtaSolidOrange @ 33% — spo
 val ShadowCtaDisabled     = Color(0x1AFF9B91)    // CtaSolidOrange @ 10% — disabled state
 
 // Secondary / Google button — neutral light shadow
-val ShadowSecondaryAmbient = Color(0x143B2A22)   // L1 ambient
-val ShadowSecondarySpot    = Color(0x1C3B2A22)   // L1 spot, slightly stronger
 
 // Deprecated aliases — kept for callers not yet migrated; do NOT use in new code
 // TODO: remove once all callsites migrate to graduated scale above
@@ -140,13 +128,9 @@ val DarkShadow = ShadowDarkL3Ambient
 
 // Bento Pastel trên nền sáng — Độ bão hòa tươi 55-70% (Spec 10.6 - Không xỉn màu)
 val PastelProteinLight = Color(0xFF2FA58C)       // Xanh ngọc lục bảo tươi
-val PastelProteinTrackLight = Color(0xFFE3F6F1)
 val PastelCarbLight = Color(0xFFD9A441)          // Vàng hổ phách mật ong tươi
-val PastelCarbTrackLight = Color(0xFFFBF1D9)
 val PastelFatLight = Color(0xFF6F7DE0)           // Hồng san hô đậm tươi
-val PastelFatTrackLight = Color(0xFFEDEFFD)
 val PastelLavenderLight = Color(0xFF9C7FDB)      // Tím oải hương tươi
-val PastelLavenderTrackLight = Color(0xFFEFE8FA)
 
 // Gradient 2 tông Bento Macro Light Mode — dùng làm nguồn DUY NHẤT cho brush lẫn màu đơn
 val ProteinGradientStartLight = Color(0xFF9BE0CF)
@@ -162,7 +146,6 @@ val LavenderGradientEndLight = Color(0xFFB69AE8)
 val ProteinBrushLight = Brush.verticalGradient(listOf(ProteinGradientStartLight, ProteinGradientEndLight))
 val CarbBrushLight = Brush.verticalGradient(listOf(CarbGradientStartLight, CarbGradientEndLight))
 val FatBrushLight = Brush.horizontalGradient(listOf(FatGradientStartLight, FatGradientEndLight))
-val LavenderBrushLight = Brush.verticalGradient(listOf(LavenderGradientStartLight, LavenderGradientEndLight))
 
 // Final v3 Part 3.3
 val InkLightPrimary = Color(0xFF302B2A)
@@ -173,18 +156,12 @@ val InkDarkSecondary = Color(0xFFC6C0C0)
 val TextInkSecondary: Color get() = if (NwTheme.isDark) InkDarkSecondary else InkLightSecondary
 val InkLightMuted = Color(0xFF9C918E)
 val InkDarkMuted = Color(0xFF969090)
-val TextInkMuted: Color get() = if (NwTheme.isDark) InkDarkMuted else InkLightMuted
 
 // Semantic text-on-light
-val SuccessTextLight = Color(0xFF1F7A4D)
-val WarningTextLight = Color(0xFFA15C0A)
 val ErrorTextLight = Color(0xFFC23B3B)
 
 // Bí danh tương thích
 val MintJade: Color get() = PastelMint
-val ButtercupYellow: Color get() = PastelButtercup
-val RoseBlush: Color get() = PastelRose
-val TextLightGray = TextLightGrey
 
 
 
@@ -194,7 +171,6 @@ val TextLightGray = TextLightGrey
 /** Accent sáng dùng cho chữ/vòng/biểu tượng nhấn trên nền TỐI (đạt 9:1 trên #151515). Nút bấm vẫn dùng VividOrange cho đồng nhất. */
 val PeachOnDark = Color(0xFFFFADA5)
 /** Chữ/biểu tượng đặt trên mảng PeachOnDark. */
-val InkOnPeach = Color(0xFF2B1B19)
 /** Nền peach rất nhạt (vùng nhấn trên sáng) và nền peach tối (vùng nhấn trên tối). */
 val PeachMist = Color(0xFFFFF5F2)
 val PeachSoft = Color(0xFFFFD8D0)

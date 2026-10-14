@@ -641,22 +641,6 @@ private fun MacroLegendRow(label: String, percent: String, dotColor: Color, isDa
 }
 
 @Composable
-private fun MacroSharePill(label: String, percent: String, color: Color, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(color)
-            .padding(vertical = 12.dp, horizontal = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(percent, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = TextDeepInk)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextDeepInk.copy(alpha = 0.7f))
-        }
-    }
-}
-
-@Composable
 private fun WeightTrendCard(uiState: StatisticsUiState, isDarkTheme: Boolean = true, onNavigateToHistory: () -> Unit = {}) {
     val unitLabel = if (uiState.weightUnit == "lb") "lbs" else "kg"
     val diff = UserPreferencesManager.convertKg(uiState.weightChangedKg, uiState.weightUnit)
