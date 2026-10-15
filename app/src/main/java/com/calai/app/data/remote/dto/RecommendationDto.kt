@@ -72,6 +72,7 @@ data class ExerciseGuideDto(
     @SerializedName("restSeconds") val restSeconds: Int,
     @SerializedName("caloriesBurnedEstimate") val caloriesBurnedEstimate: Float,
     @SerializedName("imageUrl") val imageUrl: String? = null,
+    @SerializedName("videoUrl") val videoUrl: String? = null,
     @SerializedName("instructions") val instructions: ExerciseInstructionsDto
 )
 

@@ -35,9 +35,9 @@ object AppModule {
             CalAIDatabase::class.java,
             "calai_db"
         )
-            // Chưa có Migration thủ công cho các bump version — DB chỉ là cache của dữ liệu server
-            // (meals/weight logs tải lại được, pending queue mới thêm không đáng để giữ qua migration),
-            // nên chấp nhận xoá & tạo lại khi đổi schema thay vì crash app.
+            // Bảng hàng đợi ghi bữa ăn/buổi tập (pending_requests) chứa dữ liệu CHƯA lên máy chủ nên mọi lần đổi
+            // schema từ nay phải có Migration thủ công. Các bản cũ hơn (chỉ là bộ nhớ đệm) vẫn được phép xoá và tạo lại.
+            .addMigrations(CalAIDatabase.MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -56,6 +56,7 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
+        quotaInterceptor: com.calai.app.data.remote.QuotaInterceptor,
         dynamicHostInterceptor: DynamicHostInterceptor,
         tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient {
@@ -66,6 +67,7 @@ object AppModule {
         return OkHttpClient.Builder()
             .addInterceptor(dynamicHostInterceptor)
             .addInterceptor(authInterceptor)
+            .addInterceptor(quotaInterceptor)
             .addInterceptor(loggingInterceptor)
             .authenticator(tokenAuthenticator)
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -78,7 +80,7 @@ object AppModule {
             // consume their own connect/read timeouts, letting a single
             // logical API call take several minutes and making the UI look
             // stuck on its loading spinner forever.
-            .callTimeout(45, TimeUnit.SECONDS)
+            .callTimeout(75, TimeUnit.SECONDS)
             .build()
     }
 
@@ -101,10 +103,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideRepository(
+        @ApplicationContext context: Context,
         dao: CalAIDao,
         api: CalAIApi,
         tokenManager: TokenManager
     ): CalAIRepository {
-        return CalAIRepositoryImpl(dao, api, tokenManager)
+        return CalAIRepositoryImpl(dao, api, tokenManager, context)
     }
 }

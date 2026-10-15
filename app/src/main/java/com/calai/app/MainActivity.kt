@@ -7,6 +7,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -15,11 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.calai.app.data.local.TokenManager
 import com.calai.app.data.local.UserPreferencesManager
 import com.calai.app.domain.repository.CalAIRepository
+import com.calai.app.notification.DailyCompletionScheduler
 import com.calai.app.notification.ReminderScheduler
 import com.calai.app.presentation.components.DockTab
 import com.calai.app.presentation.navigation.Screen
@@ -44,6 +54,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var billingManager: com.calai.app.data.billing.BillingManager
 
+    @Inject
+    lateinit var settingsSync: com.calai.app.data.sync.SettingsSync
+
+    @Inject
+    lateinit var upgradeEvents: com.calai.app.data.billing.UpgradeEvents
+
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* Nếu bị từ chối, worker tự bỏ qua notify() — không cần xử lý thêm ở đây. */ }
@@ -63,6 +79,29 @@ class MainActivity : ComponentActivity() {
         // BR-16.7: khôi phục giao dịch mỗi lần mở app (idempotent ở server), kể cả khi lần trước mất mạng trước khi xác minh
         if (tokenManager.isLoggedIn()) {
             billingManager.restorePurchases()
+            // Gói đang dùng (và banner ân hạn/tạm dừng) phải đúng cả khi không dùng Google Play (thanh toán QR)
+            lifecycleScope.launch { billingManager.refreshEntitlement() }
+        }
+
+        // BR-07.5 / BR-10.4: gửi nốt các bữa ăn, buổi tập còn nằm trong hàng đợi do lần trước mất mạng
+        if (tokenManager.isLoggedIn()) {
+            repository.flushPendingRequests()
+        }
+
+        // BR-14: nhắc "ghi đủ hôm nay" cục bộ theo giờ người dùng chọn (mặc định 21:00)
+        if (tokenManager.isLoggedIn()) {
+            DailyCompletionScheduler.sync(applicationContext, preferencesManager)
+            // BR-19.4: server là nguồn chính của cài đặt; đồng bộ xong thì lên lịch lại theo giá trị mới
+            lifecycleScope.launch {
+                if (settingsSync.sync() != null) {
+                    DailyCompletionScheduler.sync(applicationContext, preferencesManager)
+                }
+            }
+        }
+
+        // BR-13.1: mở app thì đánh giá ngày hôm qua (thông báo DAY_COMPLETED); GET meals/summary không còn làm việc này
+        if (tokenManager.isLoggedIn()) {
+            lifecycleScope.launch { repository.evaluateYesterday() }
         }
 
         if (tokenManager.isLoggedIn()) {
@@ -74,20 +113,25 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val isDarkThemePref by preferencesManager.isDarkTheme.collectAsState()
-            var isDarkTheme by remember(isDarkThemePref) { mutableStateOf(isDarkThemePref) }
+            val themeMode by preferencesManager.themeMode.collectAsState()
+            val userDark = themeMode == "DARK"
 
-            fun onThemeChanged(newTheme: Boolean) {
-                isDarkTheme = newTheme
-                preferencesManager.toggleTheme(newTheme)
-            }
+            val navController = rememberNavController()
+            // Các màn TRƯỚC khi vào Home (Chào mừng, Đăng nhập, Quên mật khẩu, Onboarding, và Chính sách mở từ đó) luôn sáng;
+            // Sáng/Tối theo lựa chọn người dùng chỉ áp dụng bên trong hệ thống.
+            val navEntry by navController.currentBackStackEntryAsState()
+            val route = navEntry?.destination?.route
+            val prevRoute = navController.previousBackStackEntry?.destination?.route
+            val preHome = route in setOf(
+                Screen.Welcome.route, Screen.Login.route, Screen.ForgotPassword.route, Screen.Onboarding.route
+            ) || (route == Screen.PrivacyPolicy.route && prevRoute in setOf(Screen.Login.route, Screen.Onboarding.route))
+            val isDarkTheme = userDark && !preHome
 
             CalAITheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
 
                     // Tự động điều hướng về Login khi TokenAuthenticator phát hiện session
                     // hết hạn/không thể refresh (401 mà refresh cũng fail hoặc hết lượt retry) —
@@ -109,7 +153,7 @@ class MainActivity : ComponentActivity() {
                             DockTab.HOME -> Screen.Home.route
                             DockTab.STATISTICS -> Screen.Statistics.route
                             DockTab.SCAN -> Screen.CameraScan.route
-                            DockTab.CHAT -> Screen.Chat.route
+                            DockTab.WORKOUT -> Screen.WorkoutHub.route
                             DockTab.PROFILE -> Screen.Profile.route
                         }
                         navController.navigate(targetRoute) {
@@ -121,6 +165,75 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // BR-16.9: lời mời nâng cấp theo ngữ cảnh khi hết hạn mức / cần Premium, ở bất kỳ màn nào
+                    var upgradePrompt by remember { mutableStateOf<com.calai.app.data.billing.UpgradePrompt?>(null) }
+                    LaunchedEffect(Unit) { upgradeEvents.events.collect { upgradePrompt = it } }
+                    upgradePrompt?.let { p ->
+                        com.calai.app.presentation.components.NwAlertDialog(
+                            onDismissRequest = { upgradePrompt = null },
+                            title = { androidx.compose.material3.Text(if (p.code == "PREMIUM_REQUIRED") "Tính năng Premium" else "Đã hết lượt") },
+                            text = {
+                                androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                                    androidx.compose.material3.Text(p.message)
+                                    com.calai.app.data.billing.formatResetTime(p.resetsAt)?.let {
+                                        androidx.compose.material3.Text("Làm mới lúc $it", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                if (p.upgrade) {
+                                    androidx.compose.material3.TextButton(onClick = {
+                                        upgradePrompt = null
+                                        navController.navigate(Screen.Premium.route)
+                                    }) { androidx.compose.material3.Text("Xem gói Premium") }
+                                } else {
+                                    androidx.compose.material3.TextButton(onClick = { upgradePrompt = null }) { androidx.compose.material3.Text("Đã hiểu") }
+                                }
+                            },
+                            dismissButton = {
+                                if (p.upgrade) {
+                                    androidx.compose.material3.TextButton(onClick = { upgradePrompt = null }) { androidx.compose.material3.Text("Để sau") }
+                                }
+                            }
+                        )
+                    }
+
+                    // Banner nhẹ duy nhất cho gói đang ân hạn / bị tạm dừng (BR-16.6, BR-16.9)
+                    val entitlementState by billingManager.entitlement.collectAsState()
+                    var bannerDismissed by remember { mutableStateOf(false) }
+                    val bannerKind = entitlementState?.banner
+                    if (bannerKind != null && !bannerDismissed && tokenManager.isLoggedIn()) {
+                        androidx.compose.ui.window.Popup(alignment = Alignment.TopCenter) {
+                            androidx.compose.foundation.layout.Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 36.dp)
+                                    .fillMaxWidth()
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                                    .background(androidx.compose.ui.graphics.Color(0xFFFFF1D6))
+                                    .clickable { navController.navigate(Screen.Premium.route) }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.Text(
+                                    if (bannerKind == "GRACE_PERIOD") "Chưa thu được tiền gia hạn Premium. Chạm để xem cách giữ gói."
+                                    else "Gói Premium đang tạm dừng do chưa thanh toán được. Chạm để xem.",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 12.5.sp,
+                                    color = androidx.compose.ui.graphics.Color(0xFF3A2A1A)
+                                )
+                                androidx.compose.material3.TextButton(onClick = { bannerDismissed = true }) {
+                                    androidx.compose.material3.Text("Ẩn", color = androidx.compose.ui.graphics.Color(0xFF3A2A1A))
+                                }
+                            }
+                        }
+                    }
+
+                    val backStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = backStackEntry?.destination?.route
+                    val showChatFab = currentRoute in setOf(
+                        Screen.Home.route, Screen.Statistics.route, Screen.WorkoutHub.route
+                    )
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Welcome.route
@@ -145,8 +258,14 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onForgotPassword = {
                                     navController.navigate(Screen.ForgotPassword.route)
-                                }
+                                },
+                                onOpenPrivacy = { navController.navigate(Screen.PrivacyPolicy.route) }
                             )
+                        }
+
+                        // Chính sách quyền riêng tư (BR-18): mở được từ màn Đăng ký và Cài đặt
+                        composable(Screen.PrivacyPolicy.route) {
+                            com.calai.app.presentation.screens.PrivacyPolicyScreen(onBack = { navController.popBackStack() })
                         }
 
                         // 1c. Quên mật khẩu — luồng thật qua mã OTP email (auth/forgot-password + auth/reset-password)
@@ -188,18 +307,59 @@ class MainActivity : ComponentActivity() {
                                 onOpenSuggestions = {
                                     navController.navigate(Screen.Suggestions.route)
                                 },
+                                onOpenWorkoutHub = {
+                                    navController.navigate(Screen.WorkoutHub.route)
+                                },
+
+                                // NEN-01: nút Tìm kiếm trên Trang chủ mở màn Thêm bữa ăn (có ô tìm món), không còn là nút chết
+                                onSearchClick = {
+                                    navController.navigate(Screen.AddMeal.route)
+                                },
                                 onOpenNotifications = {
                                     navController.navigate(Screen.Notifications.route)
                                 },
-                                isDarkTheme = isDarkTheme,
-                                onThemeChanged = { onThemeChanged(it) }
+                                onOpenCheckin = {
+                                    navController.navigate(Screen.WeeklyCheckin.route)
+                                },
+                                onOpenWeeklySummary = {
+                                    navController.navigate(Screen.WeeklySummary.route)
+                                },
+                                isDarkTheme = isDarkTheme
                             )
                         }
 
                         // 2a. Màn hình Thông báo
                         composable(Screen.Notifications.route) {
+                            val workoutVmForNudge: com.calai.app.presentation.viewmodel.WorkoutViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                             NotificationScreen(
                                 onBack = { navController.popBackStack() },
+                                onOpenCheckin = { navController.navigate(Screen.WeeklyCheckin.route) },
+                                onOpenGoalSetup = { navController.navigate(Screen.GoalSetup.route) },
+                                onOpenWeeklySummary = { navController.navigate(Screen.WeeklySummary.route) },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
+                                onLogWorkout = {
+                                    workoutVmForNudge.startBlank()
+                                    navController.navigate(Screen.LogWorkout.route)
+                                },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
+
+                        // 2a''. Màn hình Tổng kết tuần (BR-11.7)
+                        composable(Screen.WeeklySummary.route) {
+                            WeeklySummaryScreen(
+                                onBack = { navController.popBackStack() },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
+
+                        // 2a'. Màn hình Check-in tuần (BR-06)
+                        composable(Screen.WeeklyCheckin.route) {
+                            WeeklyCheckinScreen(
+                                onBack = { navController.popBackStack() },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
+                                onOpenGoalSetup = { navController.navigate(Screen.GoalSetup.route) },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -235,6 +395,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogWorkout = {
                                     navController.navigate(Screen.LogWorkout.route)
                                 },
+                                onNavigateTab = { tab -> navigateToTab(tab) },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -289,6 +450,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
                                 },
+                                onOpenCheckin = { navController.navigate(Screen.WeeklyCheckin.route) },
                                 onNavigateToWeightHistory = {
                                     navController.navigate(Screen.WeightHistory.route)
                                 },
@@ -309,9 +471,7 @@ class MainActivity : ComponentActivity() {
                         // 6. Màn hình Trợ lý Dinh dưỡng AI (Chatbot Coach)
                         composable(Screen.Chat.route) {
                             ChatbotScreen(
-                                onNavigateTab = { tab ->
-                                    navigateToTab(tab)
-                                },
+                                onBack = { navController.popBackStack() },
                                 onOpenPremium = { navController.navigate(Screen.Premium.route) },
                                 isDarkTheme = isDarkTheme
                             )
@@ -329,7 +489,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { onThemeChanged(it) },
+                                themeMode = themeMode,
+                                onThemeModeChange = { preferencesManager.setThemeMode(it) },
                                 onOpenGoalSetup = {
                                     navController.navigate(Screen.GoalSetup.route)
                                 },
@@ -367,9 +528,14 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { onThemeChanged(it) },
+                                themeMode = themeMode,
+                                onThemeModeChange = { preferencesManager.setThemeMode(it) },
                                 onOpenGoalSetup = {
                                     navController.navigate(Screen.GoalSetup.route)
+                                },
+                                onOpenPrivacy = { navController.navigate(Screen.PrivacyPolicy.route) },
+                                onAccountDeleted = {
+                                    navController.navigate(Screen.Welcome.route) { popUpTo(0) { inclusive = true } }
                                 }
                             )
                         }
@@ -383,6 +549,15 @@ class MainActivity : ComponentActivity() {
                                 isDarkTheme = isDarkTheme
                             )
                         }
+                    }
+                    if (showChatFab) {
+                        com.calai.app.presentation.components.ChatbotFab(
+                            onClick = { navController.navigate(Screen.Chat.route) { launchSingleTop = true } },
+                            modifier = Modifier
+                                .align(androidx.compose.ui.Alignment.BottomEnd)
+                                .padding(end = 14.dp, bottom = 100.dp)
+                        )
+                    }
                     }
 
                 }

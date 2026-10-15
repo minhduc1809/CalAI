@@ -94,7 +94,7 @@ fun AppFormDialog(
                         spotColor = dialogSpot
                     )
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background((if (com.calai.app.presentation.theme.NwTheme.isDark) MaterialTheme.colorScheme.surface else Color.White))
                     .border(
                         width = 1.dp,
                         brush = highlightBrush,

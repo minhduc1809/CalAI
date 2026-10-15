@@ -1,0 +1,31 @@
+/* Design tokens (BR giao diện quản trị): xanh dương làm màu thương hiệu, nền sáng, card trắng. */
+:root {
+  --primary: #3b6fc4;
+  --primary-hover: #315ca6;
+  --primary-dark: #2f4f86;
+  --primary-light: #eef3fa;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --text: #111827;
+  --text-2: #6b7280;
+  --border: #e5e7eb;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --info: #0ea5e9;
+  --info-bg: #f0f9ff;
+
+  --radius-card: 12px;
+  --radius-btn: 9px;
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-2: 0 8px 24px rgba(16, 24, 40, 0.10);
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 68px;
+  --topbar-h: 60px;
+  --ease: 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

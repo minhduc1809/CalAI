@@ -4,12 +4,32 @@ import androidx.room.*
 import com.calai.app.data.local.entity.MealEntity
 import com.calai.app.data.local.entity.PendingCustomFoodEntity
 import com.calai.app.data.local.entity.PendingFavoriteEntity
+import com.calai.app.data.local.entity.PendingRequestEntity
 import com.calai.app.data.local.entity.UserEntity
 import com.calai.app.data.local.entity.WeightLogEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CalAIDao {
+    // ── Hàng đợi ghi bữa ăn / buổi tập khi mất mạng ──
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPendingRequest(entity: PendingRequestEntity): Long
+
+    @Query("SELECT * FROM pending_requests WHERE status = :status ORDER BY createdAt ASC")
+    suspend fun getPendingRequests(status: String): List<PendingRequestEntity>
+
+    @Query("SELECT * FROM pending_requests ORDER BY createdAt ASC")
+    fun observePendingRequests(): Flow<List<PendingRequestEntity>>
+
+    @Update
+    suspend fun updatePendingRequest(entity: PendingRequestEntity)
+
+    @Query("DELETE FROM pending_requests WHERE localId = :localId")
+    suspend fun deletePendingRequest(localId: Long)
+
+    @Query("UPDATE pending_requests SET status = 'PENDING_SYNC', attempts = 0, lastError = NULL WHERE localId = :localId")
+    suspend fun resetPendingRequest(localId: Long)
+
     @Query("SELECT * FROM users WHERE userId = :userId")
     fun getUser(userId: String): Flow<UserEntity?>
 

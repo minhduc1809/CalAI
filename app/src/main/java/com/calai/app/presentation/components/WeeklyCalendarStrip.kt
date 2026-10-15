@@ -55,6 +55,11 @@ fun WeeklyCalendarStrip(
     }
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
+    // Ô lịch có kích thước cố định (dp): giữ cỡ chữ mặc định (không phóng) để số ngày không đè lên mặt gấu khi người dùng bật chữ lớn
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, minOf(density.fontScale, 1.0f))
+    ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -67,7 +72,7 @@ fun WeeklyCalendarStrip(
             .clip(RoundedCornerShape(22.dp))
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
-            .padding(horizontal = 8.dp, vertical = 10.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -83,6 +88,7 @@ fun WeeklyCalendarStrip(
                 )
             }
         }
+    }
     }
 }
 
@@ -115,12 +121,12 @@ private fun DayPill(
 
     val pillShadowColor = if (isDarkTheme) DarkShadow else WarmShadow
     val pillShape = RoundedCornerShape(20.dp)
-    val pillHeight = if (isSelected) 76.dp else 74.dp
+    val pillHeight = if (isSelected) 80.dp else 76.dp
 
     Box(
         modifier = Modifier
-            .width(42.dp)
-            .height(94.dp),
+            .width(34.dp)
+            .height(98.dp),
         contentAlignment = Alignment.TopCenter
     ) {
         // Chấm cảnh báo: ngày đã có bữa ăn nhưng chưa được tính là đầy đủ (BR-07.6)
@@ -137,15 +143,15 @@ private fun DayPill(
         // Tai gấu ôm sát 2 góc trên của ô (không phải đầu tròn nổi tách rời) — đúng yêu cầu "ôm vào ô".
         if (isSelected) {
             BearEars(
-                pillWidth = 42.dp,
+                pillWidth = 34.dp,
                 modifier = Modifier.offset(y = (liftY + 10).dp)
             )
         }
 
         Box(
             modifier = Modifier
-                .padding(top = 18.dp)
-                .width(42.dp)
+                .padding(top = 16.dp)
+                .width(34.dp)
                 .height(pillHeight)
                 .scale(scale)
                 .offset(y = liftY.dp)
@@ -179,23 +185,23 @@ private fun DayPill(
                 .clickable { onClick() }
         ) {
             Column(
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 9.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = day.dayOfWeek,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White
+                    color = if (isSelected) OnPrimary
                     else if (day.isToday) VividOrange
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = day.dayOfMonth,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                    color = if (isSelected) Color.White
+                    color = if (isSelected) OnPrimary
                     else if (day.isToday) VividOrange
                     else MaterialTheme.colorScheme.onBackground
                 )

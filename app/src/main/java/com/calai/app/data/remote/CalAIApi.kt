@@ -29,6 +29,27 @@ interface CalAIApi {
     @POST("auth/google")
     suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): ApiResponse<AuthResponseData>
 
+    @GET("auth/privacy-policy")
+    suspend fun getPrivacyPolicy(): ApiResponse<PrivacyPolicyDto>
+
+    @POST("auth/reauth")
+    suspend fun reauth(@Body request: ReauthRequest): ApiResponse<ReauthResponse>
+
+    @HTTP(method = "DELETE", path = "auth/me", hasBody = true)
+    suspend fun deleteAccount(
+        @Header("X-Reauth-Token") reauthToken: String,
+        @Body body: Map<String, String> = emptyMap()
+    ): ApiResponse<Any?>
+
+    @GET("auth/sessions")
+    suspend fun getSessions(): ApiResponse<List<SessionDto>>
+
+    @DELETE("auth/sessions/{id}")
+    suspend fun revokeSession(@Path("id") id: String): ApiResponse<Any?>
+
+    @POST("auth/logout-all")
+    suspend fun logoutAll(): ApiResponse<Any?>
+
     @POST("auth/send-verification-email")
     suspend fun sendVerificationEmail(): ApiResponse<Any?>
 
@@ -48,12 +69,39 @@ interface CalAIApi {
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfileDto>
 
+    @Multipart
+    @POST("users/me/avatar")
+    suspend fun uploadAvatar(@Part file: MultipartBody.Part): ApiResponse<AvatarDto>
+
+    @DELETE("users/me/avatar")
+    suspend fun removeAvatar(): ApiResponse<AvatarDto>
+
     /** BR-04 (E5): áp dụng mục tiêu tính lại từ hồ sơ hiện tại sau khi người dùng xác nhận. */
     @POST("users/me/target/apply")
     suspend fun applyProposedTarget(): ApiResponse<Any?>
 
     @GET("users/me/expenditure")
     suspend fun getExpenditureStatus(): ApiResponse<ExpenditureStatusDto>
+
+    // ── Check-in tuần (BR-06) ──
+    @POST("checkins/generate")
+    suspend fun generateCheckin(@Body request: GenerateCheckinRequest): ApiResponse<CheckInWithCoachingDto>
+
+    @GET("checkins/pending")
+    suspend fun getPendingCheckin(): ApiResponse<CheckInWithCoachingDto>
+
+    @PATCH("checkins/{id}/respond")
+    suspend fun respondToCheckin(
+        @Path("id") checkinId: String,
+        @Body request: RespondCheckinRequest
+    ): ApiResponse<CheckInDto>
+
+    @GET("checkins")
+    suspend fun getCheckinHistory(@Query("limit") limit: Int = 10): ApiResponse<List<CheckInDto>>
+
+    /** BR-03.5/03.7: tỉ lệ đạm/tinh bột/béo thực tế của 4 phong cách ăn với mức calo hiện tại. */
+    @GET("users/me/macro-preview")
+    suspend fun getMacroPreview(): ApiResponse<MacroPreviewDto>
 
     /** BR-02.4: Lưu và lấy bản nháp Onboarding */
     @GET("users/me/onboarding-draft")
@@ -84,6 +132,10 @@ interface CalAIApi {
         @Path("date") date: String,
         @Body request: SetDayStatusRequest
     ): ApiResponse<Any?>
+
+    /** BR-13.1: đánh giá ngày hôm qua (thông báo DAY_COMPLETED); app gọi một lần khi mở app, GET không còn tác dụng phụ. */
+    @POST("daily-status/evaluate")
+    suspend fun evaluateYesterday(): ApiResponse<Any?>
 
     @GET("meals/week-summary")
     suspend fun getWeekSummary(@Query("startDate") startDate: String): ApiResponse<List<WeekDaySummaryDto>>
@@ -191,6 +243,17 @@ interface CalAIApi {
     @DELETE("recommendations/custom-foods/{id}")
     suspend fun deleteCustomFood(@Path("id") id: String): ApiResponse<Any?>
 
+    // Cài đặt cá nhân đồng bộ giữa các thiết bị (BR-19.4)
+    @GET("users/me/settings")
+    suspend fun getSettings(): ApiResponse<UserSettingsDto>
+
+    @PATCH("users/me/settings")
+    suspend fun updateSettings(@Body request: UpdateSettingsRequest): ApiResponse<UserSettingsDto>
+
+    // Gửi món tự tạo vào kho chung (BR-08.5)
+    @POST("foods/submissions")
+    suspend fun submitFoodToCatalog(@Body request: SubmitFoodRequest): ApiResponse<FoodSubmissionDto>
+
     // --- WORKOUTS & TRAINING ---
     @GET("workouts/categories")
     suspend fun getWorkoutCategories(): ApiResponse<List<WorkoutCategoryInfoDto>>
@@ -204,6 +267,59 @@ interface CalAIApi {
     suspend fun createWorkout(
         @Body request: CreateWorkoutLogRequest
     ): ApiResponse<WorkoutLogDto>
+
+    // ── Lịch sử, thống kê, kỷ lục, mẫu buổi tập (BR-10.3 → 10.8) ──
+    @GET("workouts/history")
+    suspend fun getWorkoutHistory(@Query("month") month: String? = null): ApiResponse<WorkoutHistoryDto>
+
+    @GET("workouts/last-sets")
+    suspend fun getLastSets(@Query("key") key: String): ApiResponse<LastSetsDto>
+
+    @GET("workouts/stats/volume")
+    suspend fun getVolumeStats(
+        @Query("weeks") weeks: Int? = null,
+        @Query("key") key: String? = null,
+        @Query("muscle") muscle: String? = null
+    ): ApiResponse<VolumeStatsDto>
+
+    @GET("workouts/stats/sets")
+    suspend fun getSetsPerMuscle(@Query("weeks") weeks: Int? = null): ApiResponse<SetsPerMuscleDto>
+
+    @GET("workouts/records")
+    suspend fun getWorkoutRecords(@Query("key") key: String? = null): ApiResponse<RecordsDto>
+
+    @GET("workouts/log-nudge")
+    suspend fun getWorkoutLogNudge(): ApiResponse<com.calai.app.data.remote.dto.WorkoutNudgeDto>
+
+    @GET("workouts/last-template")
+    suspend fun getLastWorkoutTemplate(): ApiResponse<LastTemplateDto>
+
+    @GET("workouts/activity-check")
+    suspend fun getActivityCheck(): ApiResponse<ActivityCheckDto>
+
+    @POST("workouts/activity-check/handled")
+    suspend fun markActivityCheckHandled(): ApiResponse<Any?>
+
+    @GET("workout-routines")
+    suspend fun getWorkoutRoutines(): ApiResponse<List<RoutineDto>>
+
+    @POST("workout-routines/from-workout/{workoutId}")
+    suspend fun createRoutineFromWorkout(
+        @Path("workoutId") workoutId: String,
+        @Body request: RoutineFromWorkoutRequest
+    ): ApiResponse<RoutineDto>
+
+    @DELETE("workout-routines/{id}")
+    suspend fun deleteWorkoutRoutine(@Path("id") id: String): ApiResponse<Any?>
+
+    @GET("custom-exercises")
+    suspend fun getCustomExercises(): ApiResponse<List<CustomExerciseDto>>
+
+    @POST("custom-exercises")
+    suspend fun createCustomExercise(@Body request: CreateCustomExerciseRequest): ApiResponse<CustomExerciseDto>
+
+    @DELETE("custom-exercises/{id}")
+    suspend fun deleteCustomExercise(@Path("id") id: String): ApiResponse<Any?>
 
     @GET("workouts")
     suspend fun getWorkouts(
@@ -355,14 +471,22 @@ interface CalAIApi {
                     || Build.HARDWARE.contains("ranchu"))
 
         const val EMULATOR_HOST = "10.0.2.2"
-        const val PC_LAN_IP = "172.16.10.170"
+        const val PC_LAN_IP = "172.16.11.195"
         const val USB_REVERSE_HOST = "127.0.0.1"
 
         /**
          * Mặc định sử dụng 10.0.2.2 (cho Android Emulator).
          * Khi chạy trên máy thật (qua cáp USB với adb reverse hoặc qua Wi-Fi),
-         * DynamicHostInterceptor sẽ tự động chuyển hướng sang 127.0.0.1 hoặc 172.16.10.170.
+         * DynamicHostInterceptor sẽ tự động chuyển hướng sang 127.0.0.1 hoặc 192.168.1.101.
          */
         const val BASE_URL = "http://$EMULATOR_HOST:3000/api/v1/"
+
+        /**
+         * Máy chủ của chính NutriWise. Mọi địa chỉ khác (ví dụ kho ảnh đám mây) KHÔNG được gắn token đăng nhập
+         * và KHÔNG bị đổi host khi dò kết nối.
+         */
+        fun isApiHost(host: String): Boolean =
+            host == EMULATOR_HOST || host == USB_REVERSE_HOST || host == PC_LAN_IP
+
     }
 }

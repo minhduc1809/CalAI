@@ -137,7 +137,7 @@ fun OnboardingScreen(
                                 "${(animatedProgress * 100).toInt()}%",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = VividOrange
+                                color = PrimaryStrong
                             )
                         }
                     }
@@ -403,7 +403,7 @@ private fun FeatureItem(title: String, desc: String, isDarkTheme: Boolean) {
                 .background(VividOrangeSoft),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.CheckCircle, null, tint = VividOrange, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.CheckCircle, null, tint = PrimaryStrong, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column {
@@ -443,7 +443,7 @@ private fun StepIntroPage(
                 "BƯỚC $stepNumber / 3",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = VividOrange
+                color = PrimaryStrong
             )
         }
 
@@ -456,7 +456,7 @@ private fun StepIntroPage(
                 .background(VividOrangeSoft),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = VividOrange, modifier = Modifier.size(44.dp))
+            Icon(icon, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(44.dp))
         }
 
         Spacer(Modifier.height(28.dp))
@@ -543,7 +543,7 @@ private fun BodyMetricsPage(
                         label,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) TextWhite else textSecondary
+                        color = if (isSelected) OnPrimary else textSecondary
                     )
                 }
             }
@@ -572,7 +572,7 @@ private fun BodyMetricsPage(
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else textSecondary)
+                    Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isSelected) OnPrimary else textSecondary)
                 }
             }
         }
@@ -607,7 +607,7 @@ private fun BodyMetricsPage(
                             label,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) TextWhite else textSecondary,
+                            color = if (isSelected) OnPrimary else textSecondary,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -618,7 +618,7 @@ private fun BodyMetricsPage(
                 Text(
                     "Vì sức khỏe mẹ và bé, hệ thống sẽ tự động bổ sung năng lượng (+300 đến +500 kcal) và khóa chế độ giảm cân.",
                     fontSize = 11.sp,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     textAlign = TextAlign.Center,
                     lineHeight = 15.sp,
                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -875,7 +875,7 @@ private fun BodyFatPage(
                     "≈ %.1f%% mỡ cơ thể (tính theo công thức US Navy)".format(it),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -939,7 +939,7 @@ private fun GoalPage(
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) TextWhite else textSecondary)
+                    Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) OnPrimary else textSecondary)
                 }
             }
         }
@@ -971,7 +971,7 @@ private fun GoalPage(
                     "Với người dưới 18 tuổi, NutriWise áp dụng chế độ Duy trì để bảo đảm dinh dưỡng phát triển tự nhiên. Hãy trao đổi với bác sĩ hoặc chuyên gia dinh dưỡng trước khi giảm hoặc tăng cân.",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     textAlign = TextAlign.Center,
                     lineHeight = 16.sp
                 )
@@ -989,7 +989,7 @@ private fun GoalPage(
                     "Đang mang thai / cho con bú: Mục tiêu được giới hạn ở Duy trì hoặc Tăng cân để bảo vệ thai nhi và nguồn sữa mẹ.",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     textAlign = TextAlign.Center,
                     lineHeight = 16.sp
                 )
@@ -1037,7 +1037,7 @@ private fun GoalPage(
                             Text(subtitle, fontSize = 12.sp, color = textSecondary, lineHeight = 16.sp)
                         }
                         if (isSelected) {
-                            Icon(Icons.Default.CheckCircle, null, tint = VividOrange, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.CheckCircle, null, tint = PrimaryStrong, modifier = Modifier.size(24.dp))
                         }
                     }
                 }
@@ -1096,7 +1096,7 @@ private fun GoalPage(
                     "Đạt được sau khoảng $weeks tuần",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1495,7 +1495,7 @@ private fun InjuriesPage(
                 "Vui lòng xác nhận để đảm bảo an toàn khi tập",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = VividOrange,
+                color = PrimaryStrong,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1552,7 +1552,7 @@ private fun SummaryStep(
                 .background(VividOrangeSoft),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.CheckCircle, null, tint = VividOrange, modifier = Modifier.size(44.dp))
+            Icon(Icons.Default.CheckCircle, null, tint = PrimaryStrong, modifier = Modifier.size(44.dp))
         }
 
         Spacer(Modifier.height(24.dp))
@@ -1576,7 +1576,7 @@ private fun SummaryStep(
                     "${profile?.targetCalories?.toInt() ?: 2000} kcal/ngày",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
-                    color = VividOrange
+                    color = PrimaryStrong
                 )
                 Text("Mục tiêu năng lượng mỗi ngày", fontSize = 12.sp, color = textSecondary)
 
@@ -1600,7 +1600,7 @@ private fun SummaryStep(
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
         ) {
-            Text("Bắt đầu trải nghiệm", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextWhite)
+            Text("Bắt đầu trải nghiệm", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = OnPrimary)
         }
     }
 }
@@ -1638,7 +1638,7 @@ private fun ValueDisplay(value: String, unit: String, isDarkTheme: Boolean) {
                 unit,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = VividOrange,
+                color = PrimaryStrong,
                 modifier = Modifier.padding(bottom = 6.dp)
             )
         }

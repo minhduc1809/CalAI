@@ -168,7 +168,7 @@ fun SuggestionsScreen(
                             text = "Workout Hub →",
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = VividOrange,
+                            color = PrimaryStrong,
                             modifier = Modifier.clickable { onNavigateToWorkoutHub() }
                         )
                     }
@@ -254,7 +254,7 @@ private fun WorkoutCard(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -313,7 +313,7 @@ private fun WorkoutCard(
                 ) {
                     Text(
                         text = if (showAllDays) "Thu gọn lịch tập" else "Xem đầy đủ (${plan.weeklySchedule.size} ngày)",
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
@@ -347,7 +347,7 @@ private fun DayRow(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -405,7 +405,7 @@ private fun DayRow(
                     AppButton(
                         text = "Bắt đầu & Ghi buổi tập này",
                         onClick = onStartWorkout,
-                        leadingIcon = { DuotoneWorkoutIcon(size = 16.dp, outlineColor = TextWhite, accentColor = TextWhite) },
+                        leadingIcon = { DuotoneWorkoutIcon(size = 16.dp, outlineColor = OnPrimary, accentColor = OnPrimary) },
                         height = 40.dp,
                         shape = RoundedCornerShape(10.dp)
                     )
@@ -468,7 +468,7 @@ private fun FilterPill(label: String, isSelected: Boolean, isDarkTheme: Boolean 
             text = label,
             fontSize = 12.5.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -497,7 +497,7 @@ private fun ExerciseCard(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.White,
+                        if (isDarkTheme) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.outline,
                         MaterialTheme.colorScheme.outline
                     )
                 ),
@@ -544,7 +544,7 @@ private fun ExerciseCard(
                 AppButton(
                     text = "+ Ghi bài tập này vào buổi tập",
                     onClick = onLogWorkout,
-                    leadingIcon = { DuotoneWorkoutIcon(size = 15.dp, outlineColor = TextWhite, accentColor = TextWhite) },
+                    leadingIcon = { DuotoneWorkoutIcon(size = 15.dp, outlineColor = OnPrimary, accentColor = OnPrimary) },
                     height = 38.dp,
                     shape = RoundedCornerShape(10.dp)
                 )

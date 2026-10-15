@@ -78,6 +78,9 @@ data class UserProfileDto(
     val dailyAiQuota: Int? = null,
     @SerializedName("timezone")
     val timezone: String? = null,
+    /** Ngày Check-in hằng tuần (BR-06.1): 1 = Thứ Hai … 7 = Chủ Nhật. */
+    @SerializedName("checkinDay")
+    val checkinDay: Int? = null,
     /** Quy tắc an toàn đã giới hạn mục tiêu calo: FLOOR | DEFICIT_CAP | SURPLUS_CAP | null (BR-03.3). */
     @SerializedName("targetLimitedBy")
     val targetLimitedBy: String? = null,
@@ -203,6 +206,9 @@ data class UpdateProfileRequest(
     /** Số buổi tập mỗi tuần (0–7). Backend suy ra activityLevel và sessionsPerWeek từ giá trị này (BR-03.6). */
     @SerializedName("trainingDaysPerWeek")
     val trainingDaysPerWeek: Int? = null,
+    /** Ngày Check-in hằng tuần: 1 = Thứ Hai … 7 = Chủ Nhật. */
+    @SerializedName("checkinDay")
+    val checkinDay: Int? = null,
     @SerializedName("equipmentAccess")
     val equipmentAccess: String? = null,
     @SerializedName("injuries")
@@ -253,3 +259,28 @@ data class SaveOnboardingDraftRequest(
     val data: Map<String, Any?>
 )
 
+/** Một phong cách ăn với tỉ lệ THỰC TẾ đã tính cho người dùng — GET /users/me/macro-preview. */
+data class MacroStylePreviewDto(
+    val style: String,
+    val protein: Int = 0,
+    val carb: Int = 0,
+    val fat: Int = 0,
+    val proteinPct: Int = 0,
+    val carbPct: Int = 0,
+    val fatPct: Int = 0,
+    /** true khi béo bị nâng lên mức tối thiểu để đảm bảo sức khoẻ (phong cách ít béo không đạt như mô tả). */
+    val fatFloorApplied: Boolean = false,
+    val note: String? = null
+)
+
+data class MacroPreviewDto(
+    val targetCalories: Int = 0,
+    val currentStyle: String? = null,
+    val styles: List<MacroStylePreviewDto> = emptyList()
+)
+
+
+data class AvatarDto(
+    @SerializedName("avatar")
+    val avatar: String? = null
+)

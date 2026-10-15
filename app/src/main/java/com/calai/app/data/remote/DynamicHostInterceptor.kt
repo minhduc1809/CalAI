@@ -11,7 +11,7 @@ import javax.inject.Singleton
  * Interceptor thông minh tự động tìm và kết nối tới host khả dụng:
  * 1. 10.0.2.2 (cho Android Emulator)
  * 2. 127.0.0.1 (cho máy thật cắm USB với adb reverse tcp:3000 tcp:3000)
- * 3. 172.16.10.170 (cho máy thật kết nối qua cùng mạng Wi-Fi máy tính)
+ * 3. 192.168.1.101 (cho máy thật kết nối qua cùng mạng Wi-Fi máy tính)
  * Khi một host kết nối thành công, tự động lưu lại (verifiedHost) để các request sau
  * chạy thẳng không cần retry.
  */
@@ -21,7 +21,7 @@ class DynamicHostInterceptor @Inject constructor() : Interceptor {
     private val candidateHosts = listOf(
         CalAIApi.EMULATOR_HOST,       // "10.0.2.2"
         CalAIApi.USB_REVERSE_HOST,    // "127.0.0.1"
-        CalAIApi.PC_LAN_IP            // "172.16.10.170"
+        CalAIApi.PC_LAN_IP            // "192.168.1.101"
     )
 
     @Volatile
@@ -30,6 +30,8 @@ class DynamicHostInterceptor @Inject constructor() : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val originalUrl = request.url
+        // Địa chỉ ngoài hệ thống (kho ảnh đám mây...): đi thẳng, không dò host
+        if (!CalAIApi.isApiHost(originalUrl.host)) return chain.proceed(request)
 
         // Nếu đã xác minh được host đang hoạt động, chuyển hướng ngay
         val primaryHost = verifiedHost ?: originalUrl.host

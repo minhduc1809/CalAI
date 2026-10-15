@@ -89,15 +89,15 @@ fun MealReminderCard(
     // Màu phối theo loại bữa — cùng tông với thanh accent của Nhật ký bữa ăn (amber/mint/blue/
     // purple), gradient pastel→trắng để chữ vẫn rõ, tránh mất hẳn màu như bản vừa viết lại trước đó.
     val typeAccent = when (pick?.reminder?.type) {
-        "BREAKFAST" -> Color(0xFFFBBF24)
-        "LUNCH" -> Color(0xFF34D399)
+        "BREAKFAST" -> Color(0xFFF2C265)
+        "LUNCH" -> Color(0xFF4FBFA5)
         "DINNER" -> VividOrange
-        "SNACK" -> Color(0xFFA78BFA)
+        "SNACK" -> Color(0xFFB69AE8)
         else -> VividOrange
     }
     val surfaceColor = MaterialTheme.colorScheme.surface
     val bg = if (isDarkTheme) Brush.verticalGradient(listOf(surfaceColor, surfaceColor))
-    else Brush.verticalGradient(listOf(typeAccent.copy(alpha = 0.14f), Color.White))
+    else Brush.verticalGradient(listOf(typeAccent.copy(alpha = 0.05f), MaterialTheme.colorScheme.surface))
 
     if (pick == null) {
         Row(
@@ -105,13 +105,15 @@ fun MealReminderCard(
                 .fillMaxWidth()
                 .shadow(6.dp, shape, ambientColor = shadowColor, spotColor = shadowColor)
                 .clip(shape)
+                .background(MaterialTheme.colorScheme.surface)
                 .background(bg)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 .clickable(onClick = onClick)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(Icons.Default.NotificationsActive, null, tint = VividOrange, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.NotificationsActive, null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
             Text(
                 "Chưa có nhắc nhở bữa ăn — chạm để thiết lập",
                 fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -135,7 +137,9 @@ fun MealReminderCard(
             .fillMaxWidth()
             .shadow(6.dp, shape, ambientColor = shadowColor, spotColor = shadowColor)
             .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
             .background(bg)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
     ) {
         // ── Phần đầu: icon + tiêu đề/khung giờ + 2 nút hành động ──
         Column(modifier = Modifier.padding(16.dp)) {
@@ -144,7 +148,7 @@ fun MealReminderCard(
                     Box(
                         modifier = Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
-                    ) { Icon(Icons.Default.MenuBook, null, tint = VividOrange, modifier = Modifier.size(18.dp)) }
+                    ) { Icon(Icons.Default.MenuBook, null, tint = PrimaryStrong, modifier = Modifier.size(18.dp)) }
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(r.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
@@ -164,7 +168,7 @@ fun MealReminderCard(
                     IconButton(
                         onClick = onAddClick,
                         modifier = Modifier.size(36.dp).clip(CircleShape).background(VividOrange)
-                    ) { Icon(Icons.Default.Add, "Thêm món", tint = Color.White, modifier = Modifier.size(18.dp)) }
+                    ) { Icon(Icons.Default.Add, "Thêm món", tint = com.calai.app.presentation.theme.OnPrimary, modifier = Modifier.size(18.dp)) }
                 }
             }
 
@@ -174,7 +178,7 @@ fun MealReminderCard(
             } else {
                 Spacer(Modifier.height(8.dp))
                 Row {
-                    Text("Gợi ý: ", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+                    Text("Gợi ý: ", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
                     Text(
                         r.foods.joinToString(", ") { it.name.substringBefore(" (") },
                         fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -225,8 +229,8 @@ fun MealReminderCard(
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.LocalFireDepartment, null, tint = VividOrange, modifier = Modifier.size(13.dp))
-                            Text("$totalKcal kcal", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = VividOrange)
+                            Icon(Icons.Default.LocalFireDepartment, null, tint = PrimaryStrong, modifier = Modifier.size(13.dp))
+                            Text("$totalKcal kcal", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
                         }
                     }
                 }
@@ -252,14 +256,15 @@ fun WaterCard(
             modifier = modifier
                 .fillMaxWidth()
                 .clip(placeholderShape)
-                .background(if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, placeholderShape)
                 .clickable(enabled = errorMessage != null, onClick = onRetry)
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (errorMessage == null) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = VividOrange)
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = PrimaryStrong)
                 Text("Đang tải lượng nước hôm nay...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Icon(Icons.Default.WifiOff, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -272,8 +277,8 @@ fun WaterCard(
     val goalMl = water.goalMl
     val glassMl = water.glassMl
     val shape = RoundedCornerShape(20.dp)
-    val bg = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
-    val waterBlue = Color(0xFF3B9EF5)
+    val bg = MaterialTheme.colorScheme.surface
+    val waterBlue = Color(0xFF6FB1F0)
     val totalGlasses = (goalMl / glassMl).coerceAtLeast(1)
     val filled = (drankMl / glassMl).coerceAtMost(totalGlasses)
     val behindMl = com.calai.app.domain.WaterProgressRule.expectedMl(goalMl) - drankMl
@@ -284,6 +289,7 @@ fun WaterCard(
             .shadow(6.dp, shape, ambientColor = if (isDarkTheme) DarkShadow else WarmShadow, spotColor = if (isDarkTheme) DarkShadow else WarmShadow)
             .clip(shape)
             .background(bg)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .padding(16.dp)
     ) {
         Row(

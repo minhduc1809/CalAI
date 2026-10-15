@@ -37,7 +37,8 @@ fun ProfileScreen(
     onOpenPremium: () -> Unit = {},
     onLogout: () -> Unit,
     isDarkTheme: Boolean = true,
-    onToggleTheme: (Boolean) -> Unit = {},
+    themeMode: String = "LIGHT",
+    onThemeModeChange: (String) -> Unit = {},
     onOpenGoalSetup: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
@@ -50,6 +51,54 @@ fun ProfileScreen(
     var showReminderSheet by remember { mutableStateOf(false) }
     var showEditHeightSheet by remember { mutableStateOf(false) }
     var showEditWeightSheet by remember { mutableStateOf(false) }
+    var showAvatarSheet by remember { mutableStateOf(false) }
+    var showEditInfo by remember { mutableStateOf(false) }
+    val avatarPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) viewModel.uploadAvatar(context, uri) { _, message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (showAvatarSheet) {
+        com.calai.app.presentation.components.NwAlertDialog(
+            onDismissRequest = { showAvatarSheet = false },
+            title = { Text("Ảnh đại diện", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    androidx.compose.material3.TextButton(onClick = { showAvatarSheet = false; avatarPicker.launch("image/*") }) {
+                        Text("Chọn ảnh từ thư viện", color = MaterialTheme.colorScheme.onBackground)
+                    }
+                    if (profile?.avatar != null) {
+                        androidx.compose.material3.TextButton(onClick = {
+                            showAvatarSheet = false
+                            viewModel.removeAvatar { _, message -> android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show() }
+                        }) { Text("Xoá ảnh hiện tại", color = MaterialTheme.colorScheme.error) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { showAvatarSheet = false }) { Text("Đóng", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
+    if (showEditInfo) {
+        EditBasicInfoDialog(
+            initialName = profile?.name.orEmpty(),
+            initialGender = profile?.gender,
+            initialDob = profile?.dateOfBirth?.take(10),
+            saving = uiState.isUpdatingBiometrics,
+            onDismiss = { showEditInfo = false },
+            onSave = { name, gender, dob ->
+                viewModel.saveBasicInfo(name, gender, dob) { ok, message ->
+                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                    if (ok) showEditInfo = false
+                }
+            }
+        )
+    }
 
     // BR-04: đổi hồ sơ không tự đổi mục tiêu; hỏi người dùng có muốn áp dụng mục tiêu đề xuất không
     uiState.proposedTarget?.let { proposed ->
@@ -59,7 +108,7 @@ fun ProfileScreen(
             diff < 0 -> "giảm ${-diff} kcal so với hiện tại"
             else -> "giữ nguyên calo, chỉ đổi macro"
         }
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.dismissProposedTarget() },
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
@@ -241,140 +290,139 @@ fun ProfileScreen(
                 }
             }
 
-            // 2. USER HERO CARD (BENTO)
+            // 2. HERO: ảnh đại diện lớn, tên, mục tiêu và 3 chỉ số cơ thể trong cùng một mảng peach
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(
-                        elevation = if (isDarkTheme) 8.dp else 10.dp,
-                        shape = RoundedCornerShape(24.dp),
-                        ambientColor = if (isDarkTheme) DarkShadow else WarmShadow,
-                        spotColor = if (isDarkTheme) DarkShadow else WarmShadow
-                    )
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(30.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
-                    .padding(20.dp)
+                    .background(heroBrush())
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(30.dp))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Avatar Pastel
-                    Box(
-                        modifier = Modifier
-                            .size(68.dp)
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = CircleShape,
-                                ambientColor = if (isDarkTheme) DarkShadow else WarmShadow,
-                                spotColor = if (isDarkTheme) DarkShadow else WarmShadow
-                            )
-                            .clip(CircleShape)
-                            .background(if (isDarkTheme) LavenderGradientStart else PastelLavenderTrackLight)
-                            .border(2.dp, VividOrange, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = (profile?.name?.take(1) ?: profile?.username?.take(1) ?: "C").uppercase(),
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Black,
-                            color = TextDeepInk
-                        )
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = profile?.name ?: "Người dùng NutriWise",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "@${profile?.username ?: "calai_user"}",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        val goalLabel = when (profile?.goal) {
-                            "LOSE_WEIGHT" -> "Giảm cân & Siết mỡ"
-                            "GAIN_MUSCLE" -> "Tăng cơ nạc"
-                            "MAINTAIN" -> "Duy trì vóc dáng"
-                            else -> "Ăn uống lành mạnh"
+                androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                    drawCircle(VividOrangeLight.copy(alpha = if (NwTheme.isDark) 0.14f else 0.28f), size.width * 0.34f, androidx.compose.ui.geometry.Offset(size.width * 0.98f, 0f))
+                }
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Ảnh đại diện: bấm để đổi / xoá
+                        Box(modifier = Modifier.size(92.dp).clickable { showAvatarSheet = true }) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(84.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(3.dp, VividOrange, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                com.calai.app.presentation.components.UserAvatar(
+                                    avatar = profile?.avatar,
+                                    displayName = profile?.name ?: profile?.username,
+                                    size = 84.dp,
+                                    fontSize = 34
+                                )
+                                if (uiState.isUpdatingAvatar) {
+                                    androidx.compose.material3.CircularProgressIndicator(color = PrimaryStrong, strokeWidth = 3.dp, modifier = Modifier.size(30.dp))
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(VividOrange)
+                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Đổi ảnh đại diện", tint = OnPrimary, modifier = Modifier.size(15.dp))
+                            }
                         }
-                        Surface(
-                            color = VividOrangeSoft,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
+
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = profile?.name ?: "Người dùng NutriWise",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 2
+                            )
+                            Text(
+                                text = "@${profile?.username ?: ""}",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            val goalLabel = when (profile?.goal) {
+                                "LOSE_WEIGHT" -> "Giảm cân"
+                                "GAIN_WEIGHT", "GAIN_MUSCLE" -> "Tăng cân"
+                                "MAINTAIN" -> "Giữ cân"
+                                else -> "Ăn uống lành mạnh"
+                            }
                             Text(
                                 text = goalLabel,
-                                color = VividOrange,
+                                color = OnPrimary,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(VividOrange)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
                     }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                            .padding(vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val rawWeight = profile?.weightKg
+                        BodyStat(
+                            label = "Chiều cao",
+                            value = profile?.heightCm?.toInt()?.toString() ?: "—",
+                            unit = "cm",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showEditHeightSheet = true }
+                        )
+                        StatDivider()
+                        BodyStat(
+                            label = "Cân nặng",
+                            value = rawWeight?.let { UserPreferencesManager.formatWeightValueOnly(it, uiState.weightUnit) } ?: "—",
+                            unit = if (uiState.weightUnit == "lb") "lbs" else "kg",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showEditWeightSheet = true }
+                        )
+                        StatDivider()
+                        val bmi = profile?.bmi
+                        BodyStat(
+                            label = "BMI",
+                            value = bmi?.let { String.format("%.1f", it) } ?: "—",
+                            unit = when {
+                                bmi == null -> ""
+                                bmi < 18.5f -> "Thiếu cân"
+                                bmi < 25f -> "Bình thường"
+                                bmi < 30f -> "Thừa cân"
+                                else -> "Béo phì"
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Text(
+                        text = "Chỉnh sửa thông tin cá nhân",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryStrong,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showEditInfo = true }
+                            .padding(vertical = 4.dp, horizontal = 2.dp)
+                    )
                 }
-            }
-
-            // 3. BIOLOGICAL BENTO GRID (2x2)
-            Text(
-                text = "Chỉ số sinh học",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                BioMetricCard(
-                    title = "Chiều cao",
-                    value = "${profile?.heightCm?.toInt() ?: 175}",
-                    unit = "cm",
-                    color = if (isDarkTheme) LavenderGradientStart else PastelLavenderLight,
-                    isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f),
-                    canEdit = true,
-                    onClick = { showEditHeightSheet = true }
-                )
-                val rawWeight = profile?.weightKg ?: 68.5f
-                val displayWeight = UserPreferencesManager.formatWeightValueOnly(rawWeight, uiState.weightUnit)
-
-                BioMetricCard(
-                    title = "Cân nặng",
-                    value = displayWeight,
-                    unit = if (uiState.weightUnit == "lb") "lbs" else "kg",
-                    color = if (isDarkTheme) ProteinGradientStart else PastelProteinLight,
-                    isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f),
-                    canEdit = true,
-                    onClick = { showEditWeightSheet = true }
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                BioMetricCard(
-                    title = "Chỉ số BMI",
-                    value = String.format("%.1f", profile?.bmi ?: 22.4f),
-                    unit = "Bình thường",
-                    color = if (isDarkTheme) CarbGradientStart else PastelCarbLight,
-                    isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f)
-                )
-                BioMetricCard(
-                    title = "Năng lượng TDEE",
-                    value = "${profile?.tdee?.toInt() ?: 2310}",
-                    unit = "kcal/ngày",
-                    color = if (isDarkTheme) FatGradientStart else PastelFatLight,
-                    isDark = isDarkTheme,
-                    modifier = Modifier.weight(1f)
-                )
             }
 
             // 4. NUTRITION TARGET CARD (BENTO)
@@ -402,37 +450,68 @@ fun ProfileScreen(
                             text = "Mục tiêu calo & dinh dưỡng",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f).padding(end = 12.dp)
                         )
                         Text(
-                            text = "${profile?.targetCalories?.toInt() ?: 1810} kcal",
+                            text = "${profile?.targetCalories?.toInt()?.toString() ?: "—"} kcal",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = VividOrange
+                            color = PrimaryStrong,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
+                    var showLimitWhy by remember { mutableStateOf(false) }
+                    profile?.targetLimitedBy?.let { limit ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .background(CoralWarning.copy(alpha = 0.12f))
+                                .clickable { showLimitWhy = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                if (limit == "FLOOR") "Mục tiêu đang ở mức calo tối thiểu an toàn" else "Mục tiêu đã được giới hạn để an toàn",
+                                fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text("Vì sao? ›", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
+                        }
+                        if (showLimitWhy) com.calai.app.presentation.components.TargetLimitDialog(
+                            limit = limit, targetCalories = profile?.targetCalories?.toInt(), onDismiss = { showLimitWhy = false }
+                        )
+                    }
+                    profile?.tdee?.let {
+                        Text(
+                            text = "Năng lượng tiêu hao mỗi ngày (TDEE): ${it.toInt()} kcal",
+                            fontSize = 12.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         MacroBadgePill(
                             label = "Protein",
-                            amount = "${profile?.targetProtein?.toInt() ?: 135}g",
+                            amount = "${profile?.targetProtein?.toInt()?.toString() ?: "—"}g",
                             accentColor = if (isDarkTheme) ProteinGradientStart else PastelProteinLight,
                             isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                         MacroBadgePill(
                             label = "Carbs",
-                            amount = "${profile?.targetCarb?.toInt() ?: 200}g",
+                            amount = "${profile?.targetCarb?.toInt()?.toString() ?: "—"}g",
                             accentColor = if (isDarkTheme) CarbGradientStart else PastelCarbLight,
                             isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                         MacroBadgePill(
                             label = "Fat",
-                            amount = "${profile?.targetFat?.toInt() ?: 50}g",
+                            amount = "${profile?.targetFat?.toInt()?.toString() ?: "—"}g",
                             accentColor = if (isDarkTheme) FatGradientStart else PastelFatLight,
                             isDark = isDarkTheme,
                             modifier = Modifier.weight(1f)
@@ -456,56 +535,14 @@ fun ProfileScreen(
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp))
                     .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else VividOrangeSoft)
-                                .border(1.dp, if (isDarkTheme) MaterialTheme.colorScheme.outline else VividOrange.copy(alpha = 0.3f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isDarkTheme) {
-                                DuotoneMoonIcon(size = 22.dp, outlineColor = PastelLavender, accentColor = LavenderGradientEnd)
-                            } else {
-                                DuotoneSunIcon(size = 22.dp, outlineColor = VividOrange, accentColor = CarbGradientStart)
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = if (isDarkTheme) "Giao diện tối" else "Giao diện sáng",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = if (isDarkTheme) "Dịu mắt, dễ chịu" else "Sáng rõ, dễ nhìn",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Text(
-                                text = if (isDarkTheme) "Phù hợp khi sử dụng vào ban đêm" else "Thoải mái sử dụng vào ban ngày",
-                                fontSize = 11.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    TactileThemeSwitch(
-                        isDarkTheme = isDarkTheme,
-                        onThemeChanged = { onToggleTheme(it) }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Giao diện",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
+                    com.calai.app.presentation.components.ThemeModeSelector(mode = themeMode, onModeChange = onThemeModeChange)
                 }
             }
 
@@ -568,55 +605,6 @@ fun ProfileScreen(
             isDarkTheme = isDarkTheme,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-    }
-}
-
-@Composable
-private fun BioMetricCard(
-    title: String,
-    value: String,
-    unit: String,
-    color: Color,
-    isDark: Boolean = true,
-    modifier: Modifier = Modifier,
-    canEdit: Boolean = false,
-    onClick: (() -> Unit)? = null
-) {
-    Box(
-        modifier = modifier
-            .shadow(
-                elevation = if (isDark) 6.dp else 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = if (isDark) DarkShadow else WarmShadow,
-                spotColor = if (isDark) DarkShadow else WarmShadow
-            )
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
-            .then(
-                if (onClick != null) Modifier.clickable { onClick() } else Modifier
-            )
-            .padding(16.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (canEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Chỉnh sửa $title",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-            Text(text = unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
-        }
     }
 }
 
@@ -734,7 +722,7 @@ fun EditBiometricModalSheet(
                     text = "$selectedValue",
                     fontSize = 42.sp,
                     fontWeight = FontWeight.Black,
-                    color = VividOrange
+                    color = PrimaryStrong
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -788,3 +776,144 @@ fun EditBiometricModalSheet(
     }
 }
 
+
+
+/** Sửa họ tên, giới tính và ngày sinh. Kiểm tra cơ bản ở máy; máy chủ kiểm tra lại (tuổi 13–100). */
+@Composable
+private fun EditBasicInfoDialog(
+    initialName: String,
+    initialGender: String?,
+    initialDob: String?,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String?, String?) -> Unit,
+) {
+    val context = LocalContext.current
+    var name by remember { mutableStateOf(initialName) }
+    var gender by remember { mutableStateOf(initialGender) }
+    var dob by remember { mutableStateOf(initialDob.orEmpty()) }
+    val nameError = if (name.isBlank()) "Nhập họ tên" else if (name.trim().length > 60) "Tối đa 60 ký tự" else null
+
+    val outline = MaterialTheme.colorScheme.outline
+    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(if (NwTheme.isDark) MaterialTheme.colorScheme.surface else Color.White)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier.size(44.dp).clip(CircleShape).background(VividOrange.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.Person, null, tint = PrimaryStrong) }
+                Column {
+                    Text("Thông tin cá nhân", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Dùng để tính mục tiêu calo cho bạn", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            androidx.compose.material3.OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Họ và tên") },
+                singleLine = true,
+                isError = nameError != null,
+                supportingText = nameError?.let { { Text(it) } },
+                shape = RoundedCornerShape(16.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = VividOrange, unfocusedBorderColor = outline,
+                    focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Giới tính", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .background(if (NwTheme.isDark) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFF4F1F0)).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("MALE" to "Nam", "FEMALE" to "Nữ", "OTHER" to "Khác").forEach { (value, label) ->
+                        val sel = gender == value
+                        Box(
+                            modifier = Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (sel) VividOrange else Color.Transparent)
+                                .clickable { gender = value },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(label, fontSize = 14.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                color = if (sel) OnPrimary else MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ngày sinh", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, outline, RoundedCornerShape(16.dp))
+                        .clickable {
+                            val cal = java.util.Calendar.getInstance()
+                            dob.takeIf { it.length == 10 }?.split("-")?.takeIf { it.size == 3 }?.let {
+                                cal.set(it[0].toInt(), it[1].toInt() - 1, it[2].toInt())
+                            } ?: cal.set(2000, 0, 1)
+                            android.app.DatePickerDialog(context, { _, y, m, d -> dob = "%04d-%02d-%02d".format(y, m + 1, d) },
+                                cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)
+                            ).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
+                    Text(
+                        if (dob.isBlank()) "Chọn ngày sinh" else dob.split("-").reversed().joinToString("/"),
+                        fontSize = 15.sp, modifier = Modifier.weight(1f),
+                        color = if (dob.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, outline, RoundedCornerShape(14.dp))
+                        .clickable(enabled = !saving) { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) { Text("Hủy", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                val canSave = !saving && nameError == null
+                Box(
+                    modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
+                        .background(if (canSave) VividOrange else VividOrange.copy(alpha = 0.4f))
+                        .clickable(enabled = canSave) { onSave(name, gender, dob.takeIf { it.length == 10 }) },
+                    contentAlignment = Alignment.Center
+                ) { Text(if (saving) "Đang lưu..." else "Lưu", fontWeight = FontWeight.Bold, color = OnPrimary) }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun StatDivider() {
+    Box(Modifier.width(1.dp).height(34.dp).background(MaterialTheme.colorScheme.outline))
+}
+
+@Composable
+private fun BodyStat(label: String, value: String, unit: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    Column(
+        modifier = modifier
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(label, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 24.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+        if (unit.isNotEmpty()) Text(unit, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}

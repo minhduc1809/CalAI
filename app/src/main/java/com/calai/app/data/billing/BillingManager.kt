@@ -63,6 +63,8 @@ class BillingManager @Inject constructor(
     companion object {
         val PRODUCT_IDS = listOf("premium_monthly", "premium_yearly")
         private const val MAX_VERIFY_ATTEMPTS = 3
+        /** Mất mạng thì tin bản entitlement đã lưu tối đa 24 giờ, sau đó coi như gói Free (entitlement.offlineTrustHours). */
+        private const val OFFLINE_TRUST_MS = 24L * 3_600_000L
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -70,7 +72,28 @@ class BillingManager @Inject constructor(
     private val _offers = MutableStateFlow<List<PremiumOffer>>(emptyList())
     val offers: StateFlow<List<PremiumOffer>> = _offers.asStateFlow()
 
-    private val _entitlement = MutableStateFlow<EntitlementDto?>(null)
+    private val cachePrefs = context.getSharedPreferences("billing_cache", Context.MODE_PRIVATE)
+    private val gson = com.google.gson.Gson()
+    private var entitlementSavedAt = 0L
+
+    /** Entitlement lưu gần nhất, chỉ tin tối đa [OFFLINE_TRUST_MS] khi không gọi được máy chủ. */
+    private fun loadCachedEntitlement(): EntitlementDto? {
+        val savedAt = cachePrefs.getLong("saved_at", 0L)
+        if (savedAt == 0L || System.currentTimeMillis() - savedAt > OFFLINE_TRUST_MS) return null
+        val json = cachePrefs.getString("entitlement", null) ?: return null
+        return try {
+            gson.fromJson(json, EntitlementDto::class.java).also { entitlementSavedAt = savedAt }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun saveEntitlement(value: EntitlementDto) {
+        entitlementSavedAt = System.currentTimeMillis()
+        cachePrefs.edit().putString("entitlement", gson.toJson(value)).putLong("saved_at", entitlementSavedAt).apply()
+    }
+
+    private val _entitlement = MutableStateFlow<EntitlementDto?>(loadCachedEntitlement())
     val entitlement: StateFlow<EntitlementDto?> = _entitlement.asStateFlow()
 
     private val _events = MutableStateFlow<PurchaseUiEvent?>(null)
@@ -115,7 +138,14 @@ class BillingManager @Inject constructor(
 
     /** Tải entitlement từ server. Lỗi mạng thì giữ bản cũ. */
     suspend fun refreshEntitlement() {
-        runCatching { api.getEntitlement().data }.getOrNull()?.let { _entitlement.value = it }
+        val fresh = runCatching { api.getEntitlement().data }.getOrNull()
+        if (fresh != null) {
+            _entitlement.value = fresh
+            saveEntitlement(fresh)
+        } else if (_entitlement.value != null && System.currentTimeMillis() - entitlementSavedAt > OFFLINE_TRUST_MS) {
+            // Quá 24 giờ không xác nhận được với máy chủ thì không còn tin bản cũ
+            _entitlement.value = null
+        }
     }
 
     suspend fun loadOffers() {
@@ -194,6 +224,7 @@ class BillingManager @Inject constructor(
                 val data = response.getOrNull()?.data
                 if (data != null) {
                     _entitlement.value = data
+            saveEntitlement(data)
                     if (!silent) _events.value = PurchaseUiEvent.Verified
                     return@launch
                 }

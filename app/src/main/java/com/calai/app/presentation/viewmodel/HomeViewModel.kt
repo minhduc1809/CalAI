@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /** Định dạng giờ:phút thực tế lúc log 1 bữa ăn (dùng `createdAt`) để hiển thị trên mỗi dòng ở chế độ Timeline. */
@@ -42,6 +43,8 @@ data class HomeUiState(
     val incompleteDates: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val username: String = "",
+    val avatar: String? = null,
+    val displayName: String? = null,
     val dailySummary: DailyNutritionSummaryData? = null,
     val meals: List<MealResponseDto> = emptyList(),
     val mealStructureMode: String = "TIMELINE",
@@ -88,6 +91,14 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState(mealStructureMode = preferencesManager.getMealStructureMode()))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    /** Bữa ăn/buổi tập đang chờ gửi hoặc bị từ chối (BR-07.5, BR-10.4). */
+    val pendingRequests: StateFlow<List<com.calai.app.data.local.entity.PendingRequestEntity>> =
+        repository.observePendingRequests()
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun retryPending(id: Long) = viewModelScope.launch { repository.retryPendingRequest(id) }
+    fun deletePending(id: Long) = viewModelScope.launch { repository.deletePendingRequest(id) }
 
     init {
         viewModelScope.launch {
@@ -156,6 +167,8 @@ class HomeViewModel @Inject constructor(
                 val target = profile.targetWeightKg
                 _uiState.update {
                     it.copy(
+                        avatar = profile.avatar,
+                        displayName = profile.name,
                         weightText = current?.let { kg -> preferencesManager.formatWeight(kg) },
                         targetWeightText = target?.let { kg -> preferencesManager.formatWeight(kg) },
                         // Độ gần mục tiêu: min/max giữa cân nặng hiện tại và mục tiêu (1.0 = đã đạt)
@@ -205,7 +218,13 @@ class HomeViewModel @Inject constructor(
         submitMealItems(meal.id, meal.items.filterNot { it.id == itemId })
     }
 
+    /** True nếu thao tác sẽ làm bữa không còn món nào, tức là xoá cả bữa: màn hình phải hỏi trước (BR-07.4). */
+    fun wouldEmptyMeal(meal: com.calai.app.data.remote.dto.MealResponseDto, itemId: String, newQuantity: Float? = null): Boolean =
+        (newQuantity == null || newQuantity <= 0f) && meal.items.all { it.id == itemId }
+
     private fun submitMealItems(mealId: String, items: List<com.calai.app.data.remote.dto.MealItemResponseDto>) {
+        // Danh sách rỗng = xoá cả bữa trên máy chủ; chỉ đi đường deleteMeal sau khi người dùng xác nhận
+        if (items.isEmpty()) return
         val request = items.map { item ->
             com.calai.app.data.remote.dto.CreateMealItemDto(
                 name = item.name,

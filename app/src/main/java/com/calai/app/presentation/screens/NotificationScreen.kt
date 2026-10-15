@@ -25,6 +25,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.R
 import com.calai.app.data.remote.dto.NotificationDto
 import com.calai.app.presentation.components.CuteLoadingIndicator
+import com.calai.app.presentation.components.DuotoneCheckmarkIcon
+import com.calai.app.presentation.components.DuotoneDumbbellIcon
+import com.calai.app.presentation.components.DuotoneEnergyIcon
+import com.calai.app.presentation.components.DuotoneCalendarIcon
+import com.calai.app.presentation.components.DuotoneMenuListIcon
 import com.calai.app.presentation.components.DuotoneDietIcon
 import com.calai.app.presentation.components.DuotoneFlameIcon
 import com.calai.app.presentation.components.DuotoneSparkleIcon
@@ -42,6 +47,11 @@ import java.util.Locale
 @Composable
 fun NotificationScreen(
     onBack: () -> Unit,
+    onOpenCheckin: () -> Unit = {},
+    onOpenGoalSetup: () -> Unit = {},
+    onOpenWeeklySummary: () -> Unit = {},
+    onOpenPremium: () -> Unit = {},
+    onLogWorkout: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
@@ -67,7 +77,7 @@ fun NotificationScreen(
                 actions = {
                     if (uiState.unreadCount > 0) {
                         TextButton(onClick = { viewModel.markAllRead() }) {
-                            Text("Đọc tất cả", color = VividOrange, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Đọc tất cả", color = PrimaryStrong, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 },
@@ -92,7 +102,7 @@ fun NotificationScreen(
                     ) {
                         Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = CrimsonError, modifier = Modifier.size(40.dp))
                         Text(uiState.errorMessage ?: "", color = textSecondary, fontSize = 13.sp)
-                        TextButton(onClick = { viewModel.refresh() }) { Text("Thử lại", color = VividOrange) }
+                        TextButton(onClick = { viewModel.refresh() }) { Text("Thử lại", color = PrimaryStrong) }
                     }
                 }
                 uiState.items.isEmpty() -> {
@@ -119,7 +129,17 @@ fun NotificationScreen(
                                 shadowColor = shadowColor,
                                 textPrimary = textPrimary,
                                 textSecondary = textSecondary,
-                                onClick = { if (!item.isRead) viewModel.markRead(item.id) },
+                                onClick = {
+                                    if (!item.isRead) viewModel.markRead(item.id)
+                                    // Thông báo Check-in sẵn sàng (BR-06.7) mở thẳng màn Check-in
+                                    if (item.type == "CHECKIN_READY") onOpenCheckin()
+                                    // Chạm cân đích: gợi ý chuyển sang Duy trì nằm ở màn thiết lập mục tiêu
+                                    if (item.type == "GOAL_REACHED") onOpenGoalSetup()
+                                    if (item.type == "WEEKLY_SUMMARY_READY") onOpenWeeklySummary()
+                                    // Vấn đề thanh toán / thanh toán thành công: xem tình trạng gói Premium
+                                    if (item.type == "WORKOUT_REMINDER") onLogWorkout()
+                                    if (item.type == "BILLING_ISSUE" || item.type == "PAYMENT_SUCCESS") onOpenPremium()
+                                },
                                 onDelete = { viewModel.delete(item.id) }
                             )
                         }
@@ -130,15 +150,33 @@ fun NotificationScreen(
     }
 }
 
-/** Icon theo loại thông báo — dùng duy nhất bộ Duotone custom của app (CODING_RULES 9.7/10.3),
- * tuyệt đối không Material icon mặc định/emoji. Tất cả đồng nhất tông cam thương hiệu. */
+/** Kiểu hiển thị riêng của từng loại thông báo: màu nhấn, nhãn ngắn và biểu tượng Duotone của app. */
+private data class NotifStyle(val accent: Color, val label: String)
+
+private fun notifStyle(type: String): NotifStyle = when (type) {
+    "CHECKIN_READY" -> NotifStyle(Color(0xFFE9745F), "Check-in tuần")
+    "DAY_COMPLETED" -> NotifStyle(Color(0xFF2E9E6B), "Ngày ghi đủ")
+    "BILLING_ISSUE" -> NotifStyle(Color(0xFFD64545), "Vấn đề thanh toán")
+    "WEEKLY_SUMMARY_READY" -> NotifStyle(Color(0xFF8B6FD0), "Tổng kết tuần")
+    "FOOD_SUBMISSION_RESULT" -> NotifStyle(Color(0xFF3F8FD9), "Kết quả duyệt món")
+    "GOAL_REACHED" -> NotifStyle(Color(0xFFD9A441), "Đạt mục tiêu")
+    "PAYMENT_SUCCESS" -> NotifStyle(Color(0xFF2FA58C), "Thanh toán thành công")
+    "WORKOUT_REMINDER" -> NotifStyle(Color(0xFFE9745F), "Nhắc tập luyện")
+    else -> NotifStyle(VividOrange, "Thông báo")
+}
+
 @Composable
 private fun NotificationTypeIcon(type: String, modifier: Modifier = Modifier) {
+    val accent = notifStyle(type).accent
     when (type) {
-        "WATER_REMINDER" -> DuotoneWaterIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
-        "AI_MESSAGE" -> DuotoneSparkleIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
-        "MEAL_REMINDER" -> DuotoneDietIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
-        else -> DuotoneFlameIcon(modifier = modifier, outlineColor = VividOrange, accentColor = VividOrange)
+        "CHECKIN_READY" -> DuotoneSparkleIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "DAY_COMPLETED", "PAYMENT_SUCCESS" -> DuotoneCheckmarkIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "BILLING_ISSUE" -> DuotoneEnergyIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "WEEKLY_SUMMARY_READY" -> DuotoneCalendarIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "FOOD_SUBMISSION_RESULT" -> DuotoneMenuListIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "GOAL_REACHED" -> DuotoneFlameIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        "WORKOUT_REMINDER" -> DuotoneDumbbellIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
+        else -> DuotoneSparkleIcon(modifier = modifier, outlineColor = accent, accentColor = accent)
     }
 }
 
@@ -183,7 +221,7 @@ private fun NotificationRow(
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(VividOrange.copy(alpha = 0.12f)),
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(notifStyle(item.type).accent.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
                 NotificationTypeIcon(type = item.type, modifier = Modifier.size(20.dp))
@@ -202,8 +240,15 @@ private fun NotificationRow(
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(item.message, fontSize = 12.5.sp, color = textSecondary, lineHeight = 17.sp)
-                Spacer(Modifier.height(4.dp))
-                Text(formatRelativeTime(item.createdAt), fontSize = 11.sp, color = textSecondary.copy(alpha = 0.7f))
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val st = notifStyle(item.type)
+                    Text(
+                        st.label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = st.accent,
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(st.accent.copy(alpha = 0.14f)).padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                    Text(formatRelativeTime(item.createdAt), fontSize = 11.sp, color = textSecondary.copy(alpha = 0.7f))
+                }
             }
 
             IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {

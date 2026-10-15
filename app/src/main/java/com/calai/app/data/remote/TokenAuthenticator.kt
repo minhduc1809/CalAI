@@ -35,6 +35,8 @@ class TokenAuthenticator @Inject constructor(
     private val gson = Gson()
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        // 401 từ máy chủ ngoài hệ thống (kho ảnh đám mây...) không liên quan phiên đăng nhập
+        if (!CalAIApi.isApiHost(response.request.url.host)) return null
         // Nếu đã retry refresh rồi mà vẫn 401 → dừng lại, tránh vòng lặp vô hạn.
         // QUAN TRỌNG: vẫn phải notifySessionExpired() ở đây — trước đây chỉ return null mà
         // không clear token, khiến app tưởng vẫn đang đăng nhập dù access token đã vô hiệu

@@ -13,6 +13,7 @@ class AuthInterceptor @Inject constructor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
+        if (!CalAIApi.isApiHost(originalRequest.url.host)) return chain.proceed(originalRequest)
         val token = tokenManager.getAccessToken()
 
         val requestBuilder = originalRequest.newBuilder()

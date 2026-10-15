@@ -30,7 +30,8 @@ data class AddMealUiState(
     val isSearching: Boolean = false,
     val isSaving: Boolean = false,
     val isSaveSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val infoMessage: String? = null
 )
 
 @HiltViewModel
@@ -99,6 +100,25 @@ class AddMealViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** Gửi món tự tạo vào kho chung (BR-08.5). Món đang chờ đồng bộ (chưa lên máy chủ) thì chưa gửi được. */
+    fun submitCustomFood(id: String) {
+        if (id.startsWith("pending_")) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Món chưa đồng bộ lên máy chủ, hãy thử lại khi có mạng")
+            return
+        }
+        viewModelScope.launch {
+            repository.submitFoodToCatalog(id).onSuccess { msg ->
+                _uiState.value = _uiState.value.copy(infoMessage = msg)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(errorMessage = e.message ?: "Không thể gửi món")
+            }
+        }
+    }
+
+    fun clearInfo() {
+        _uiState.value = _uiState.value.copy(infoMessage = null)
     }
 
     fun clearError() {

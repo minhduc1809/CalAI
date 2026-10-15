@@ -160,7 +160,7 @@ fun ExpenditureDetailScreen(
                             text = if (expenditure?.method == "ADAPTIVE") "Thuật toán Thích ứng" else "Công thức Tĩnh",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = VividOrange
+                            color = PrimaryStrong
                         )
                     }
 
@@ -180,7 +180,7 @@ fun ExpenditureDetailScreen(
                                     text = "$currentExpenditure",
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = VividOrange,
+                                    color = PrimaryStrong,
                                     letterSpacing = (-1).sp
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))

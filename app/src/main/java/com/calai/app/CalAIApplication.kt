@@ -12,10 +12,20 @@ import javax.inject.Inject
  * nhờ đó ReminderWorker inject được CalAIRepository và gọi API thật (vd water-logs/today).
  */
 @HiltAndroidApp
-class CalAIApplication : Application(), Configuration.Provider {
+class CalAIApplication : Application(), Configuration.Provider, coil.ImageLoaderFactory {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var okHttpClient: okhttp3.OkHttpClient
+
+    /** Ảnh đại diện tải qua cùng OkHttp với API nên dùng được cơ chế dò host (máy ảo, USB, Wi-Fi). */
+    override fun newImageLoader(): coil.ImageLoader =
+        coil.ImageLoader.Builder(this)
+            .okHttpClient(okHttpClient)
+            .crossfade(true)
+            .build()
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()

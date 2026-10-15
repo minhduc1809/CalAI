@@ -65,6 +65,14 @@ fun AddMealScreen(
     // Quick Add tự hiển thị lỗi ngay trong dialog của nó; các lỗi khác (vd. tạo món ăn riêng
     // đã đóng dialog trước khi biết kết quả) hiện qua Toast để không bị "biến mất trong im lặng".
     val context = LocalContext.current
+    val infoContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(uiState.infoMessage) {
+        uiState.infoMessage?.let {
+            android.widget.Toast.makeText(infoContext, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearInfo()
+        }
+    }
+
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null && !showQuickAddDialog) {
             Toast.makeText(context, uiState.errorMessage, Toast.LENGTH_LONG).show()
@@ -159,7 +167,7 @@ fun AddMealScreen(
                                     text = "${totalP.toInt()}g P • ${totalC.toInt()}g C • ${totalF.toInt()}g F",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkTheme) PastelLavender else VividOrange
+                                    color = PrimaryStrong
                                 )
                             }
 
@@ -167,7 +175,7 @@ fun AddMealScreen(
                                 "${totalCal.toInt()} kcal",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Black,
-                                color = VividOrange
+                                color = PrimaryStrong
                             )
                         }
 
@@ -232,7 +240,7 @@ fun AddMealScreen(
                                 text = label,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -289,7 +297,7 @@ fun AddMealScreen(
                             ) {
                                 Text(
                                     text = "Quét Ảnh Bằng AI",
-                                    color = VividOrange,
+                                    color = PrimaryStrong,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -303,7 +311,7 @@ fun AddMealScreen(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "Gemini AI tự nhận diện món, khẩu phần & calo trong 1s",
+                                text = "Tự nhận diện món, khẩu phần & calo từ ảnh chụp",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -319,7 +327,7 @@ fun AddMealScreen(
                             Icon(
                                 Icons.Default.CameraAlt,
                                 contentDescription = null,
-                                tint = TextWhite,
+                                tint = OnPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -340,7 +348,7 @@ fun AddMealScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Bolt, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Bolt, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
                     Text(
                         text = "Nhập nhanh Calo / Macro (không cần chọn món)",
                         fontSize = 13.5.sp,
@@ -365,7 +373,7 @@ fun AddMealScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = VividOrange, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
                     Text(
                         text = "Quét mã vạch sản phẩm đóng gói",
                         fontSize = 13.5.sp,
@@ -394,7 +402,7 @@ fun AddMealScreen(
                         text = "+ Tạo món riêng",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         modifier = Modifier.clickable { showCreateCustomFoodDialog = true }
                     )
                 }
@@ -413,7 +421,8 @@ fun AddMealScreen(
                         food = food,
                         isDark = isDarkTheme,
                         onAdd = { viewModel.addFoodToMeal(food.toFoodItemDto()) },
-                        onDelete = { viewModel.deleteCustomFood(food.id) }
+                        onDelete = { viewModel.deleteCustomFood(food.id) },
+                        onSubmit = { viewModel.submitCustomFood(food.id) }
                     )
                 }
             }
@@ -469,8 +478,8 @@ fun AddMealScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) PastelLavender else MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, if (isSelected) PastelLavender else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) VividOrange else MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(1.dp, if (isSelected) VividOrange else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                                     .clickable { viewModel.onCategorySelect(cat) }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
@@ -478,7 +487,7 @@ fun AddMealScreen(
                                     text = cat,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) TextDeepInk else MaterialTheme.colorScheme.onBackground
+                                    color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onBackground
                                 )
                             }
                         }
@@ -548,7 +557,7 @@ private fun SelectedFoodServingCard(
                         text = "$scaledCal kcal",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = VividOrange
+                        color = PrimaryStrong
                     )
 
                     IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
@@ -570,6 +579,40 @@ private fun SelectedFoodServingCard(
                 ServingMacroChip(label = "Protein", value = "${scaledP}g", color = if (isDark) ProteinGradientStart else PastelProteinLight, isDark = isDark)
                 ServingMacroChip(label = "Carbs", value = "${scaledC}g", color = if (isDark) CarbGradientStart else PastelCarbLight, isDark = isDark)
                 ServingMacroChip(label = "Fat", value = "${scaledF}g", color = if (isDark) FatGradientStart else PastelFatLight, isDark = isDark)
+            }
+
+            // BR-08.2: khi biết số gram của khẩu phần, cho nhập thẳng số gram (đổi sang số phần)
+            val servingGrams = com.calai.app.domain.util.ServingGrams.parse(item.servingSize)
+            if (servingGrams != null) {
+                var gramsText by androidx.compose.runtime.remember(item.quantity) {
+                    androidx.compose.runtime.mutableStateOf(
+                        com.calai.app.domain.util.ServingGrams.gramsForPortions(servingGrams, item.quantity)
+                            ?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() }.orEmpty()
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Nhập theo gram", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.material3.OutlinedTextField(
+                        value = gramsText,
+                        onValueChange = { v ->
+                            val clean = v.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)
+                            gramsText = clean
+                            clean.toFloatOrNull()
+                                ?.let { g -> com.calai.app.domain.util.ServingGrams.portionsForGrams(servingGrams, g) }
+                                ?.let(onQuantityChange)
+                        },
+                        singleLine = true,
+                        suffix = { Text("g") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                        ),
+                        modifier = Modifier.width(120.dp)
+                    )
+                }
             }
 
             // Stepper & Quick Multipliers
@@ -601,7 +644,7 @@ private fun SelectedFoodServingCard(
                         text = String.format("%.1fx", item.quantity),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
 
@@ -631,7 +674,7 @@ private fun SelectedFoodServingCard(
                                 text = "${mult}x",
                                 fontSize = 11.5.sp,
                                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isCurrent) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isCurrent) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -661,7 +704,8 @@ private fun CustomFoodRow(
     food: CustomFoodDto,
     isDark: Boolean,
     onAdd: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onSubmit: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -676,22 +720,27 @@ private fun CustomFoodRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(food.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Text(
                     text = "${food.servingSize?.ifEmpty { "1 phần" } ?: "1 phần"} • ${food.protein.toInt()}g P • ${food.carb.toInt()}g C • ${food.fat.toInt()}g F",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${food.calories.toInt()} kcal",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = VividOrange,
-                    modifier = Modifier.padding(end = 4.dp)
+                    color = PrimaryStrong,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onSubmit, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Share, contentDescription = "Gửi vào kho chung", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Delete, contentDescription = "Xóa món riêng", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
@@ -749,7 +798,7 @@ private fun FoodSearchResultCard(
                     text = "${food.calories.toInt()} kcal",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = VividOrange,
+                    color = PrimaryStrong,
                     modifier = Modifier.padding(end = 4.dp)
                 )
 
@@ -990,19 +1039,19 @@ private fun CreateCustomFoodDialog(
         )
 
         // Chuyển đổi Món đơn giản (nhập thẳng 1 số calo) / Công thức nhiều nguyên liệu (tự cộng dồn)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             SelectionPill(
                 label = "Món đơn giản",
                 isSelected = !isRecipeMode,
                 isDarkTheme = isDark,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { isRecipeMode = false }
             )
             SelectionPill(
                 label = "Công thức nhiều nguyên liệu",
                 isSelected = isRecipeMode,
                 isDarkTheme = isDark,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { isRecipeMode = true }
             )
         }
@@ -1061,7 +1110,7 @@ private fun CreateCustomFoodDialog(
                         text = servingAmount.ifBlank { "1" },
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
                     IconButton(
@@ -1162,9 +1211,9 @@ private fun CreateCustomFoodDialog(
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = VividOrange, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Thêm nguyên liệu", color = VividOrange, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Thêm nguyên liệu", color = PrimaryStrong, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // Tổng cộng — chỉ đọc, tự tính từ các nguyên liệu bên trên
@@ -1184,7 +1233,7 @@ private fun CreateCustomFoodDialog(
                             fontSize = 11.5.sp, color = TextInkSecondary
                         )
                     }
-                    Text("${recipeTotalCalories.toInt()} kcal", fontSize = 20.sp, fontWeight = FontWeight.Black, color = VividOrange)
+                    Text("${recipeTotalCalories.toInt()} kcal", fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryStrong)
                 }
             }
         } else {
@@ -1220,7 +1269,7 @@ private fun CreateCustomFoodDialog(
                     textStyle = androidx.compose.ui.text.TextStyle(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
-                        color = VividOrange,
+                        color = PrimaryStrong,
                         textAlign = androidx.compose.ui.text.style.TextAlign.End
                     ),
                     placeholder = { Text("0", textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.fillMaxWidth()) },

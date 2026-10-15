@@ -17,6 +17,10 @@ data class AuthUiState(
     val password: String = "",
     val confirmPassword: String = "",
     val name: String = "",
+    /** Đã tích đồng ý Chính sách quyền riêng tư (chỉ cần khi đăng ký). */
+    val acceptPrivacy: Boolean = false,
+    /** Có idToken Google đang chờ người dùng đồng ý chính sách trước khi tạo tài khoản mới. */
+    val pendingGoogleConsent: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false,
@@ -78,6 +82,10 @@ class AuthViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(password = value, errorMessage = null)
     }
 
+    fun onAcceptPrivacyChange(value: Boolean) {
+        _uiState.value = _uiState.value.copy(acceptPrivacy = value, errorMessage = null)
+    }
+
     fun onConfirmPasswordChange(value: String) {
         _uiState.value = _uiState.value.copy(confirmPassword = value, errorMessage = null)
     }
@@ -96,11 +104,14 @@ class AuthViewModel @Inject constructor(
     /**
      * Đăng nhập/Đăng ký bằng Google Sign-In. idToken lấy từ Credential Manager phía UI.
      */
-    fun loginWithGoogle(idToken: String) {
+    private var pendingGoogleToken: String? = null
+
+    fun loginWithGoogle(idToken: String, acceptPrivacy: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            val result = repository.loginWithGoogle(idToken)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, pendingGoogleConsent = false)
+            val result = repository.loginWithGoogle(idToken, acceptPrivacy)
             result.onSuccess {
+                pendingGoogleToken = null
                 val needsOnboarding = checkProfileIncomplete()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -108,12 +119,27 @@ class AuthViewModel @Inject constructor(
                     needsOnboarding = needsOnboarding
                 )
             }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Đăng nhập Google thất bại"
-                )
+                if ((e as? com.calai.app.data.remote.ApiException)?.code == "PRIVACY_CONSENT_REQUIRED") {
+                    // Tài khoản Google mới: hỏi đồng ý chính sách rồi gửi lại cùng idToken
+                    pendingGoogleToken = idToken
+                    _uiState.value = _uiState.value.copy(isLoading = false, pendingGoogleConsent = true)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Đăng nhập Google thất bại"
+                    )
+                }
             }
         }
+    }
+
+    fun confirmGoogleConsent() {
+        pendingGoogleToken?.let { loginWithGoogle(it, acceptPrivacy = true) }
+    }
+
+    fun cancelGoogleConsent() {
+        pendingGoogleToken = null
+        _uiState.value = _uiState.value.copy(pendingGoogleConsent = false)
     }
 
     fun onGoogleSignInError(message: String) {
@@ -160,6 +186,10 @@ class AuthViewModel @Inject constructor(
                 _uiState.value = state.copy(errorMessage = "Xác nhận mật khẩu không khớp")
                 return
             }
+            if (!state.acceptPrivacy) {
+                _uiState.value = state.copy(errorMessage = "Bạn cần đồng ý Chính sách quyền riêng tư để tạo tài khoản")
+                return
+            }
         }
 
         viewModelScope.launch {
@@ -171,7 +201,8 @@ class AuthViewModel @Inject constructor(
                     username = state.username.trim(),
                     email = state.email.trim().ifBlank { null },
                     password = state.password,
-                    name = state.name.trim().ifBlank { null }
+                    name = state.name.trim().ifBlank { null },
+                    acceptPrivacy = state.acceptPrivacy
                 )
             }
 

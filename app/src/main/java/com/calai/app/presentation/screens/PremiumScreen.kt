@@ -3,7 +3,19 @@ package com.calai.app.presentation.screens
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.calai.app.presentation.theme.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -73,15 +85,17 @@ fun PremiumScreen(
     order?.let { QrDialog(it, onClose = { viewModel.closeQr() }) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Gói Premium", fontWeight = FontWeight.Bold) },
+                title = { Text("Gói Premium", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = MaterialTheme.colorScheme.onBackground)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
@@ -90,59 +104,37 @@ fun PremiumScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val ent = entitlement
-            if (ent?.isPremium == true) {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Bạn đang dùng Premium", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        ent.expiryTime?.let {
-                            Text(
-                                (if (ent.autoRenewing) "Gia hạn tự động: " else "Hết hạn: ") + it.take(10),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
+            PremiumHero(isPremium = ent?.isPremium == true, expiry = ent?.expiryTime?.take(10), autoRenewing = ent?.autoRenewing == true)
+
             ent?.banner?.let {
-                Card(Modifier.fillMaxWidth()) {
+                Text(
+                    if (it == "GRACE_PERIOD") "Google Play chưa thu được tiền gia hạn. Hãy cập nhật phương thức thanh toán để giữ Premium."
+                    else "Gói của bạn đang bị tạm dừng do chưa thanh toán được. Cập nhật phương thức thanh toán để dùng lại.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CoralWarning.copy(alpha = 0.16f))
+                        .padding(14.dp)
+                )
+            }
+
+            if (ent?.isPremium != true && qrPlans.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    qrPlans.forEach { plan -> PlanCard(plan.name, plan.amount, plan.days, plan.productId == "premium_yearly") { viewModel.startQr(plan.productId) } }
                     Text(
-                        if (it == "GRACE_PERIOD") "Google Play chưa thu được tiền gia hạn. Hãy cập nhật phương thức thanh toán để giữ Premium."
-                        else "Gói của bạn đang bị tạm dừng do chưa thanh toán được. Cập nhật phương thức thanh toán để dùng lại.",
-                        modifier = Modifier.padding(14.dp),
-                        fontSize = 13.5.sp
+                        "Thanh toán bằng QR ngân hàng. Premium mở ngay khi nhận được tiền.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Text("So sánh gói", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Miễn phí vẫn đủ để theo dõi ăn uống, mục tiêu, cân nặng, tập luyện và dùng thử AI. Premium cho nhiều hơn, sâu hơn và lâu hơn.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    ComparisonRow("Tính năng", "Miễn phí", "Premium", header = true)
-                    ComparisonRow("Nhận diện món bằng ảnh", "5 lượt/ngày", "30 lượt/ngày")
-                    ComparisonRow("Quét thực đơn quán ăn", "1 lần/ngày", "5 lần/ngày")
-                    ComparisonRow("AI gợi ý món", "2 lượt/ngày", "Nhiều hơn")
-                    ComparisonRow("Trò chuyện AI Coach", "10 tin/ngày", "50.000 token/ngày")
-                    ComparisonRow("Lịch sử chat", "3 ngày", "7 ngày")
-                    ComparisonRow("Kế hoạch dinh dưỡng", "7 ngày + xem trước 30 ngày", "Đầy đủ 30 ngày")
-                    ComparisonRow("Check-in mục tiêu", "1 lần/tháng", "Hằng tuần")
-                    ComparisonRow("Lịch sử Expenditure", "7 ngày", "Đầy đủ")
-                    ComparisonRow("Insight", "1 nổi bật", "Đầy đủ")
-                    ComparisonRow("Tổng kết tuần", "Xem một phần", "Đầy đủ bằng AI")
-                    ComparisonRow("Tra mã vạch", "Giới hạn", "Nhiều hơn")
-                    Text(
-                        "Dữ liệu của bạn luôn xem, xuất và xoá được dù ở gói nào.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.5.sp
-                    )
-                }
-            }
+            ComparisonTable()
 
             if (SHOW_GOOGLE_PLAY && ent?.isPremium != true) {
                 if (offers.isEmpty()) {
@@ -152,19 +144,6 @@ fun PremiumScreen(
                     )
                 }
                 offers.forEach { offer -> OfferCard(offer) { (context as? Activity)?.let { a -> viewModel.buy(a, offer) } } }
-            }
-
-            if (ent?.isPremium != true && qrPlans.isNotEmpty()) {
-                Text("Thanh toán bằng QR ngân hàng", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                qrPlans.forEach { plan ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(plan.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("%,d đ cho %d ngày".format(plan.amount, plan.days).replace(',', '.'), fontSize = 15.sp)
-                            AppButton(text = "Chuyển khoản bằng QR", onClick = { viewModel.startQr(plan.productId) })
-                        }
-                    }
-                }
             }
 
             if (SHOW_GOOGLE_PLAY) {
@@ -177,6 +156,149 @@ fun PremiumScreen(
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+/** Mảng peach đầu trang: tên gói và trạng thái hiện tại, không có đoạn mô tả dài. */
+@Composable
+private fun PremiumHero(isPremium: Boolean, expiry: String?, autoRenewing: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                if (NwTheme.isDark) Brush.linearGradient(listOf(PeachDarkTint, Color(0xFF1B1210)))
+                else Brush.linearGradient(listOf(PeachSoft, PeachMist))
+            )
+    ) {
+        Canvas(Modifier.matchParentSize()) {
+            drawCircle(VividOrangeLight.copy(alpha = if (NwTheme.isDark) 0.16f else 0.30f), size.width * 0.34f, Offset(size.width * 0.95f, 0f))
+            drawCircle(VividOrangeLight.copy(alpha = if (NwTheme.isDark) 0.10f else 0.18f), size.width * 0.18f, Offset(size.width * 1.0f, size.height * 0.6f))
+        }
+        Row(Modifier.padding(22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(VividOrange),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.WorkspacePremium, null, tint = OnPrimary, modifier = Modifier.size(30.dp)) }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    if (isPremium) "Bạn đang dùng Premium" else "NutriWise Premium",
+                    fontSize = 21.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    when {
+                        isPremium && expiry != null -> (if (autoRenewing) "Gia hạn tự động: " else "Hết hạn: ") + expiry
+                        isPremium -> "Đang hoạt động"
+                        else -> "Nhiều lượt AI hơn, kế hoạch đầy đủ"
+                    },
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanCard(name: String, amount: Int, days: Int, recommended: Boolean, onChoose: () -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(if (recommended) 2.dp else 1.dp, if (recommended) VividOrange else MaterialTheme.colorScheme.outline, shape)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    if (recommended) {
+                        Text(
+                            "Tiết kiệm",
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OnPrimary,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(VividOrange).padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+                Text("$days ngày", fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(
+                "%,d đ".format(amount).replace(',', '.'),
+                fontSize = 22.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        AppButton(text = "Thanh toán bằng QR", onClick = onChoose, height = 48.dp, shape = RoundedCornerShape(14.dp))
+    }
+}
+
+private data class FeatureRow(val feature: String, val free: String, val premium: String)
+
+private val FEATURE_ROWS = listOf(
+    FeatureRow("Nhận diện món bằng ảnh", "5 lượt/ngày", "30 lượt/ngày"),
+    FeatureRow("Quét thực đơn quán ăn", "1 lần/ngày", "5 lần/ngày"),
+    FeatureRow("AI gợi ý món", "2 lượt/ngày", "Nhiều hơn"),
+    FeatureRow("Trò chuyện AI Coach", "10 tin/ngày", "50.000 token/ngày"),
+    FeatureRow("Lịch sử chat", "3 ngày", "7 ngày"),
+    FeatureRow("Kế hoạch dinh dưỡng", "7 ngày", "Đầy đủ 30 ngày"),
+    FeatureRow("Check-in mục tiêu", "1 lần/tháng", "Hằng tuần"),
+    FeatureRow("Lịch sử Expenditure", "7 ngày", "Đầy đủ"),
+    FeatureRow("Insight", "1 nổi bật", "Đầy đủ"),
+    FeatureRow("Tổng kết tuần", "Một phần", "Đầy đủ bằng AI"),
+    FeatureRow("Tra mã vạch", "Giới hạn", "Nhiều hơn"),
+)
+
+/** Bảng so sánh: cột Premium nổi bằng nền peach liền mạch từ đầu đến cuối bảng. */
+@Composable
+private fun ComparisonTable() {
+    val shape = RoundedCornerShape(24.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+    ) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            Text(
+                "So sánh gói", Modifier.weight(1.25f).padding(16.dp),
+                fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                "Miễn phí", Modifier.weight(1f).padding(vertical = 16.dp, horizontal = 8.dp),
+                fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Box(Modifier.weight(1f).fillMaxHeight().background(VividOrange), contentAlignment = Alignment.CenterStart) {
+                Text("Premium", Modifier.padding(horizontal = 8.dp), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = OnPrimary)
+            }
+        }
+        FEATURE_ROWS.forEachIndexed { i, row ->
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                Text(
+                    row.feature, Modifier.weight(1.25f).padding(horizontal = 16.dp, vertical = 12.dp),
+                    fontSize = 12.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    row.free, Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 12.dp),
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box(Modifier.weight(1f).fillMaxHeight().background(VividOrangeSoft)) {
+                    Text(
+                        row.premium, Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+                        fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            if (i < FEATURE_ROWS.lastIndex) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            }
+        }
+        Text(
+            "Dữ liệu của bạn luôn xem, xuất và xoá được ở mọi gói.",
+            Modifier.padding(16.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -200,7 +322,7 @@ private fun OfferCard(offer: PremiumOffer, onBuy: () -> Unit) {
 
 @Composable
 private fun QrDialog(order: PaymentOrderDto, onClose: () -> Unit) {
-    AlertDialog(
+    com.calai.app.presentation.components.NwAlertDialog(
         onDismissRequest = onClose,
         title = { Text("Quét mã để thanh toán", fontWeight = FontWeight.Bold) },
         text = {
@@ -226,15 +348,4 @@ private fun QrDialog(order: PaymentOrderDto, onClose: () -> Unit) {
         },
         confirmButton = { TextButton(onClick = onClose) { Text("Đóng") } }
     )
-}
-
-
-@Composable
-private fun ComparisonRow(feature: String, free: String, premium: String, header: Boolean = false) {
-    val weight = if (header) FontWeight.Bold else FontWeight.Normal
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(feature, Modifier.weight(1.3f), fontSize = 12.5.sp, fontWeight = if (header) FontWeight.Bold else FontWeight.Medium)
-        Text(free, Modifier.weight(1f), fontSize = 12.sp, fontWeight = weight, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(premium, Modifier.weight(1f), fontSize = 12.sp, fontWeight = weight)
-    }
 }

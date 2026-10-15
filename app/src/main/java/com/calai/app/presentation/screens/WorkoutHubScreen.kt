@@ -24,12 +24,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.calai.app.data.remote.dto.DayWorkoutPlanDto
 import com.calai.app.data.remote.dto.ExerciseGuideDto
+import com.calai.app.data.remote.dto.ExerciseInstructionsDto
 import com.calai.app.data.remote.dto.WorkoutLogDto
 import com.calai.app.data.remote.dto.WorkoutRecommendationData
 import com.calai.app.presentation.components.*
@@ -48,6 +50,7 @@ enum class TrainingHubTab(val title: String) {
 fun WorkoutHubScreen(
     onBack: () -> Unit,
     onNavigateToLogWorkout: () -> Unit,
+    onNavigateTab: (com.calai.app.presentation.components.DockTab) -> Unit = {},
     isDarkTheme: Boolean = true,
     workoutViewModel: WorkoutViewModel = hiltViewModel(),
     suggestionsViewModel: SuggestionsViewModel = hiltViewModel()
@@ -57,7 +60,15 @@ fun WorkoutHubScreen(
 
     var activeTab by remember { mutableStateOf(TrainingHubTab.PROGRAM) }
     var selectedWorkoutForDetail by remember { mutableStateOf<WorkoutLogDto?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    // Buổi tập mở từ phần "Tiến độ" (openWorkoutById) được lưu ở ViewModel: chuyển sang sheet chi tiết
+    // (trước đây không có nơi nào hiển thị nên bấm vào không thấy gì).
+    LaunchedEffect(workoutUiState.selectedWorkoutDetail) {
+        workoutUiState.selectedWorkoutDetail?.let {
+            selectedWorkoutForDetail = it
+            workoutViewModel.selectWorkoutDetail(null)
+        }
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
@@ -107,6 +118,7 @@ fun WorkoutHubScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier.weight(1f).padding(end = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -127,10 +139,11 @@ fun WorkoutHubScreen(
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Trung Tâm Tập Luyện",
-                            fontSize = 20.sp,
+                            fontSize = 19.sp,
+                            maxLines = 1,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
                             letterSpacing = (-0.5).sp
@@ -150,7 +163,7 @@ fun WorkoutHubScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(CtaSolidOrange)
                         .clickable {
-                            workoutViewModel.resetForm()
+                            workoutViewModel.startBlank()
                             onNavigateToLogWorkout()
                         }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -160,7 +173,7 @@ fun WorkoutHubScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(16.dp))
-                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                        Text(text = "Ghi tập", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false, color = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             }
@@ -197,7 +210,7 @@ fun WorkoutHubScreen(
                             text = tab.title,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -211,8 +224,13 @@ fun WorkoutHubScreen(
                     ProgramTabContent(
                         workoutData = suggestionsUiState.workout,
                         isDark = isDarkTheme,
+                        libraryExercises = suggestionsUiState.exercises,
+                        onLogExercise = { ex ->
+                            workoutViewModel.startFromExercise(ex.name, "CATALOG", ex.id.takeUnless { it.startsWith("plan-") }, ex.targetMuscle.substringBefore(',').trim())
+                            onNavigateToLogWorkout()
+                        },
                         onStartWorkoutDay = { dayTitle, exerciseNames ->
-                            workoutViewModel.prefillFromProgram(dayTitle, exerciseNames)
+                            workoutViewModel.startFromProgram(dayTitle, exerciseNames)
                             onNavigateToLogWorkout()
                         }
                     )
@@ -224,24 +242,41 @@ fun WorkoutHubScreen(
                         summary = workoutUiState.summary,
                         isDark = isDarkTheme,
                         onSelectDetail = { selectedWorkoutForDetail = it },
-                        onDelete = { workoutViewModel.deleteWorkout(it.id) }
+                        onDelete = { workoutViewModel.deleteWorkout(it.id) },
+                        progressSection = {
+                            val ctx = androidx.compose.ui.platform.LocalContext.current
+                            WorkoutProgressSection(
+                                ui = workoutUiState,
+                                vm = workoutViewModel,
+                                onToast = { android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show() },
+                                onOpenWorkout = workoutViewModel::openWorkoutById
+                            )
+                        }
                     )
                 }
 
                 TrainingHubTab.LIBRARY -> {
                     LibraryTabContent(
                         exercises = suggestionsUiState.exercises,
+                        isLoading = suggestionsUiState.isLoading,
+                        errorMessage = suggestionsUiState.errorMessage,
+                        onRetry = suggestionsViewModel::reload,
                         isDark = isDarkTheme,
                         onLogExercise = { ex ->
-                            workoutViewModel.resetForm()
-                            workoutViewModel.setWorkoutName("Buổi tập ${ex.name}")
-                            workoutViewModel.addExercise(ex.name)
+                            workoutViewModel.startFromExercise(ex.name, "CATALOG", ex.id, ex.targetMuscle.substringBefore(',').trim())
                             onNavigateToLogWorkout()
                         }
                     )
                 }
             }
         }
+
+        com.calai.app.presentation.components.FloatingBottomDock(
+            currentTab = com.calai.app.presentation.components.DockTab.WORKOUT,
+            isDarkTheme = isDarkTheme,
+            onTabSelected = { tab -> if (tab != com.calai.app.presentation.components.DockTab.WORKOUT) onNavigateTab(tab) },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         // 4. BOTTOM SHEET XEM CHI TIẾT BUỔI TẬP ĐÃ LƯU
         selectedWorkoutForDetail?.let { workout ->
@@ -265,14 +300,43 @@ fun WorkoutHubScreen(
 /**
  * TAB 1: LỘ TRÌNH TẬP LUYỆN 4 TUẦN
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ProgramTabContent(
     workoutData: WorkoutRecommendationData?,
     isDark: Boolean = true,
-    onStartWorkoutDay: (dayTitle: String, exerciseNames: List<String>) -> Unit
+    libraryExercises: List<ExerciseGuideDto> = emptyList(),
+    onStartWorkoutDay: (dayTitle: String, exerciseNames: List<String>) -> Unit,
+    onLogExercise: (ExerciseGuideDto) -> Unit = {}
 ) {
+    var detail by remember { mutableStateOf<ExerciseGuideDto?>(null) }
+    detail?.let { ex ->
+        com.calai.app.presentation.components.ExerciseDetailSheet(
+            exercise = ex,
+            onDismiss = { detail = null },
+            onLog = { onLogExercise(ex) }
+        )
+    }
     val scrollState = rememberScrollState()
     val plan = workoutData?.recommendedWorkout
+    var showPlanInfo by remember { mutableStateOf(false) }
+
+    // Tiến độ từng bài trong tuần: lưu cục bộ, tự đặt lại khi sang tuần mới.
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("plan_progress", android.content.Context.MODE_PRIVATE) }
+    val weekKey = remember { java.time.LocalDate.now().let { "${it.year}-W${it.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)}" } }
+    val done = remember(plan?.id) {
+        mutableStateListOf<String>().apply {
+            if (prefs.getString("week", null) != weekKey) prefs.edit().clear().putString("week", weekKey).apply()
+            addAll(prefs.getStringSet("done_${plan?.id}", emptySet()) ?: emptySet())
+        }
+    }
+    fun toggleDone(key: String) {
+        if (!done.remove(key)) done.add(key)
+        prefs.edit().putStringSet("done_${plan?.id}", done.toSet()).apply()
+    }
+    val totalCount = plan?.weeklySchedule?.sumOf { it.exercises.size } ?: 0
+    val doneCount = plan?.weeklySchedule?.sumOf { d -> d.exercises.count { "${d.dayName}|${it.name}" in done } } ?: 0
 
     Column(
         modifier = Modifier
@@ -292,6 +356,7 @@ fun ProgramTabContent(
                     )
                 )
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                .clickable(enabled = plan != null) { showPlanInfo = true }
                 .padding(16.dp)
         ) {
             Row(
@@ -309,7 +374,7 @@ fun ProgramTabContent(
                     DuotoneCalendarIcon(size = 22.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelLavender)
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = plan?.title ?: "Lộ trình Tập Luyện Chuẩn 4 Tuần",
                         fontSize = 15.sp,
@@ -317,23 +382,50 @@ fun ProgramTabContent(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "${plan?.suitableForBmi ?: "Mọi thể trạng"} • ${plan?.goal ?: "Tăng cơ & Giảm mỡ"}",
+                        text = "${plan?.suitableForBmi ?: "Mọi thể trạng"} • ${planGoalLabel(plan?.goal)}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(PastelMint.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("Đang hoạt động", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PastelMint)
+                        }
+                        if (plan != null) Text("Xem chi tiết ›", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
+                    }
                 }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PastelMint.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+            }
+        }
+        if (showPlanInfo && plan != null) {
+            ModalBottomSheet(
+                onDismissRequest = { showPlanInfo = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Text(plan.title, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                    Text(plan.description, fontSize = 14.sp, lineHeight = 20.sp)
+                    Text("Mục tiêu: ${planGoalLabel(plan.goal)}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Mức độ: ${planLevelLabel(plan.level)}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Phù hợp: ${plan.suitableForBmi}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = "Đang hoạt động",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PastelMint
+                        "Số buổi tập mỗi tuần: ${plan.weeklySchedule.count { it.exercises.isNotEmpty() }} · " +
+                            "Đã xong tuần này: $doneCount/$totalCount bài",
+                        fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Tick vào ô tròn cạnh từng bài khi tập xong để theo dõi tiến độ tuần. Tiến độ tự đặt lại mỗi tuần mới.",
+                        fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -377,6 +469,7 @@ fun ProgramTabContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -394,7 +487,7 @@ fun ProgramTabContent(
                                     }
                                 }
 
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = dayItem.dayName,
                                         fontSize = 14.sp,
@@ -406,6 +499,13 @@ fun ProgramTabContent(
                                         fontSize = 12.sp,
                                         color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else PastelMint
                                     )
+                                    if (!isRest) {
+                                        val dayDone = dayItem.exercises.count { "${dayItem.dayName}|${it.name}" in done }
+                                        Text(
+                                            text = if (dayDone == dayItem.exercises.size) "Hoàn thành buổi tập ✓" else "Đã xong $dayDone/${dayItem.exercises.size} bài",
+                                            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = PrimaryStrong
+                                        )
+                                    }
                                 }
                             }
 
@@ -419,7 +519,7 @@ fun ProgramTabContent(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text(text = "Tập ngay", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = "Tập ngay", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                                 }
                             }
                         }
@@ -436,20 +536,49 @@ fun ProgramTabContent(
                             ) {
                                 dayItem.exercises.forEach { exItem ->
                                     Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                val key = exItem.name.trim().lowercase()
+                                                detail = libraryExercises.firstOrNull { it.name.trim().lowercase() == key }
+                                                    ?: ExerciseGuideDto(
+                                                        id = "plan-" + exItem.name, name = exItem.name, genderTarget = "ALL",
+                                                        level = "BEGINNER", targetMuscle = exItem.targetMuscle, equipment = "NO_EQUIPMENT",
+                                                        sets = exItem.sets, repsOrDuration = exItem.repsOrDuration,
+                                                        restSeconds = exItem.restSeconds, caloriesBurnedEstimate = exItem.caloriesBurnedEstimate,
+                                                        instructions = ExerciseInstructionsDto(
+                                                            preparation = "Khởi động nhẹ các khớp trước khi bắt đầu.",
+                                                            execution = exItem.instructions,
+                                                            commonMistakes = "Tập quá nhanh, mất kiểm soát động tác hoặc gồng cứng người.",
+                                                            breathing = "Thở đều, không nín thở."
+                                                        )
+                                                    )
+                                            },
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
+                                        val doneKey = "${dayItem.dayName}|${exItem.name}"
+                                        val isDone = doneKey in done
                                         Box(
                                             modifier = Modifier
-                                                .size(5.dp)
+                                                .size(22.dp)
                                                 .clip(CircleShape)
-                                                .background(VividOrange)
-                                        )
+                                                .background(if (isDone) VividOrange else Color.Transparent)
+                                                .border(1.5.dp, VividOrange, CircleShape)
+                                                .clickable { toggleDone(doneKey) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isDone) Text("✓", fontSize = 13.sp, fontWeight = FontWeight.Black, color = OnPrimary)
+                                        }
                                         Text(
                                             text = "${exItem.name} (${exItem.sets}x${exItem.repsOrDuration})",
                                             fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (isDone) 0.5f else 0.9f),
+                                            textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                            modifier = Modifier.weight(1f)
                                         )
+                                        Text("Xem ›", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
                                     }
                                 }
                             }
@@ -470,7 +599,8 @@ fun HistoryTabContent(
     summary: com.calai.app.data.remote.dto.WorkoutSummaryDto?,
     isDark: Boolean = true,
     onSelectDetail: (WorkoutLogDto) -> Unit,
-    onDelete: (WorkoutLogDto) -> Unit
+    onDelete: (WorkoutLogDto) -> Unit,
+    progressSection: @Composable () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -481,6 +611,7 @@ fun HistoryTabContent(
             .padding(bottom = 90.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        progressSection()
         // Summary Widget Hôm nay (Active Calo + Minutes + Workouts)
         Box(
             modifier = Modifier
@@ -509,10 +640,10 @@ fun HistoryTabContent(
                 ) {
                     Column {
                         Text(
-                            text = "${summary?.totalActiveCalories ?: 420}",
+                            text = "${summary?.totalActiveCalories ?: 0}",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = VividOrange
+                            color = PrimaryStrong
                         )
                         Text(text = "Calo đã đốt", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -611,6 +742,10 @@ fun HistoryTabContent(
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    Text(
+                                        text = "Xem chi tiết ›",
+                                        fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong
+                                    )
                                 }
                             }
 
@@ -625,7 +760,7 @@ fun HistoryTabContent(
                                     text = "${workout.caloriesBurned.toInt()} kcal",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = VividOrange
+                                    color = PrimaryStrong
                                 )
                             }
                         }
@@ -688,10 +823,17 @@ fun HistoryTabContent(
 @Composable
 fun LibraryTabContent(
     exercises: List<ExerciseGuideDto>,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: () -> Unit = {},
     isDark: Boolean = true,
     onLogExercise: (ExerciseGuideDto) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var detail by remember { mutableStateOf<ExerciseGuideDto?>(null) }
+    detail?.let { ex ->
+        com.calai.app.presentation.components.ExerciseDetailSheet(exercise = ex, onDismiss = { detail = null }, onLog = { onLogExercise(ex) })
+    }
     val filtered = exercises.filter {
         it.name.contains(searchQuery, ignoreCase = true) ||
                 it.targetMuscle.contains(searchQuery, ignoreCase = true)
@@ -723,6 +865,35 @@ fun LibraryTabContent(
             shape = RoundedCornerShape(16.dp)
         )
 
+        if (exercises.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = PrimaryStrong, modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                    Text("Đang tải kho bài tập...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(
+                        errorMessage ?: "Chưa có bài tập nào trong kho",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(onClick = onRetry) { Text("Thử lại") }
+                }
+            }
+        } else if (filtered.isEmpty()) {
+            Text(
+                "Không có bài tập khớp \"$searchQuery\"",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                textAlign = TextAlign.Center
+            )
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -734,59 +905,74 @@ fun LibraryTabContent(
                         .clip(RoundedCornerShape(18.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                        .clickable { detail = ex }
                         .padding(14.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(VividOrange.copy(alpha = 0.14f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(PastelMint.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    DuotoneDumbbellIcon(size = 18.dp, outlineColor = MaterialTheme.colorScheme.onBackground, accentColor = PastelMint)
-                                }
-
-                                Column {
-                                    Text(
-                                        text = ex.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                    Text(
-                                        text = "${ex.targetMuscle} • ${ex.equipment}",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Icon(Icons.Default.SelfImprovement, contentDescription = null, tint = PrimaryStrong, modifier = Modifier.size(22.dp))
                             }
-
-                            Button(
-                                onClick = { onLogExercise(ex) },
-                                colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text(text = "+ Ghi tập", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = ex.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = ex.targetMuscle,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            ExerciseChip(exerciseLevelLabel(ex.level))
+                            ExerciseChip(exerciseEquipmentLabel(ex.equipment))
+                            ExerciseChip("${ex.sets} hiệp · ${ex.repsOrDuration}")
                         }
 
                         Text(
                             text = ex.instructions.execution,
-                            fontSize = 12.sp,
+                            fontSize = 12.5.sp,
                             color = (MaterialTheme.colorScheme.onBackground).copy(alpha = 0.8f),
-                            lineHeight = 16.sp
+                            lineHeight = 17.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
                         )
+
+                        Text(
+                            text = "Xem hướng dẫn chi tiết & video →",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = com.calai.app.presentation.theme.PrimaryStrong
+                        )
+
+                        Button(
+                            onClick = { onLogExercise(ex) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(text = "Ghi buổi tập với bài này", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = OnPrimary)
+                        }
                     }
                 }
             }
@@ -795,7 +981,8 @@ fun LibraryTabContent(
 }
 
 /**
- * MODAL BOTTOM SHEET XEM CHI TIẾT 1 BUỔI TẬP
+ * MODAL BOTTOM SHEET XEM CHI TIẾT 1 BUỔI TẬP: thông số tổng, từng bài kèm bảng set (tạ × lần), ghi chú.
+ * Cuộn được để buổi tập dài không bị cắt.
  */
 @Composable
 fun WorkoutDetailSheetContent(
@@ -803,110 +990,129 @@ fun WorkoutDetailSheetContent(
     isDark: Boolean = true,
     onClose: () -> Unit
 ) {
+    val surfaceCard = MaterialTheme.colorScheme.surfaceVariant
+    val totalSets = workout.exercises.sumOf { ex -> ex.sets.count { !it.isWarmup } }
+    val volume = workout.totalVolumeKg ?: workout.exercises.sumOf { ex ->
+        ex.sets.filter { !it.isWarmup }.sumOf { (it.weightKg * it.reps).toDouble() }
+    }.toFloat()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 36.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = workout.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "${workout.date.take(10)} • ${workout.durationMinutes} phút • ${workout.caloriesBurned.toInt()} kcal",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = workout.name,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = workout.date.take(10),
+                fontSize = 12.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(PastelMint.copy(alpha = 0.15f))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "RPE ${workout.rpe ?: 8}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PastelMint
-                )
-            }
+        // Thông số tổng: mỗi ô một sắc nhẹ
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            DetailStat("Thời lượng", "${workout.durationMinutes}'", Color(0xFFE2F5EF), Color(0xFF2FA58C), Modifier.weight(1f))
+            DetailStat("Calo", "${workout.caloriesBurned.toInt()}", Color(0xFFFFE5DF), Color(0xFFE9745F), Modifier.weight(1f))
+            DetailStat("Cường độ", "RPE ${workout.rpe ?: "—"}", Color(0xFFFFF2D9), Color(0xFFD9A441), Modifier.weight(1f))
+        }
+        if (workout.exercises.isNotEmpty()) {
+            Text(
+                text = "${workout.exercises.size} bài · $totalSets hiệp" + if (volume > 0f) " · tổng ${volume.toInt()} kg" else "",
+                fontSize = 12.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         if (workout.exercises.isNotEmpty()) {
             Text(
-                text = "DANH SÁCH BÀI TẬP (${workout.exercises.size})",
+                text = "CÁC BÀI ĐÃ TẬP",
                 fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
 
-            workout.exercises.forEach { ex ->
-                Box(
+            workout.exercises.forEachIndexed { index, ex ->
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                        .padding(12.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(surfaceCard)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = ex.name,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            ex.sets.forEach { s ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = "${s.weightKg.toInt()}kg × ${s.reps}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = PastelMint
-                                    )
-                                }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            Modifier.size(26.dp).clip(CircleShape).background(VividOrange),
+                            contentAlignment = Alignment.Center
+                        ) { Text("${index + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = OnPrimary) }
+                        Column(Modifier.weight(1f)) {
+                            Text(ex.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                            ex.primaryMuscle?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                        }
+                    }
+                    if (ex.sets.isEmpty()) {
+                        Text("Chưa ghi hiệp nào", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    ex.sets.forEachIndexed { i, s ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (s.isWarmup) "Khởi động" else "Hiệp ${i + 1}",
+                                fontSize = 12.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = when {
+                                    s.durationSec != null && s.durationSec > 0 && s.reps == 0 -> "${s.durationSec}s"
+                                    s.weightKg > 0f -> "${if (s.weightKg % 1f == 0f) s.weightKg.toInt().toString() else s.weightKg.toString()} kg × ${s.reps}"
+                                    else -> "${s.reps} lần"
+                                },
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }
             }
+        } else {
+            Text(
+                "Buổi tập này chưa ghi chi tiết bài nào.",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         if (!workout.note.isNullOrBlank()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(12.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFFFF2D9).copy(alpha = if (isDark) 0.12f else 1f))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "Ghi chú: ${workout.note}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
-                )
+                Text("Ghi chú", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(workout.note, fontSize = 13.5.sp, lineHeight = 19.sp, color = MaterialTheme.colorScheme.onBackground)
             }
         }
 
@@ -917,4 +1123,64 @@ fun WorkoutDetailSheetContent(
             shape = RoundedCornerShape(14.dp)
         )
     }
+}
+
+@Composable
+private fun DetailStat(label: String, value: String, tintLight: Color, accent: Color, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (NwTheme.isDark) accent.copy(alpha = 0.16f) else tintLight)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(value, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+
+@Composable
+private fun ExerciseChip(text: String) {
+    Text(
+        text = text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
+}
+
+private fun exerciseLevelLabel(level: String) = when (level) {
+    "BEGINNER" -> "Dễ"
+    "INTERMEDIATE" -> "Vừa"
+    "ADVANCED" -> "Nâng cao"
+    else -> level
+}
+
+private fun exerciseEquipmentLabel(equipment: String) = when (equipment) {
+    "NO_EQUIPMENT" -> "Không dụng cụ"
+    "DUMBBELL" -> "Tạ đơn"
+    "GYM_MACHINE" -> "Máy tập"
+    "RESISTANCE_BAND" -> "Dây kháng lực"
+    else -> equipment
+}
+
+private fun planGoalLabel(goal: String?): String = when (goal) {
+    "LOSE_WEIGHT" -> "Giảm cân / đốt mỡ"
+    "GAIN_WEIGHT", "GAIN_MUSCLE", "BUILD_MUSCLE" -> "Tăng cân / tăng cơ"
+    "MAINTAIN" -> "Duy trì thể trạng"
+    null, "" -> "Tăng cơ & giảm mỡ"
+    else -> goal
+}
+
+private fun planLevelLabel(level: String): String = when (level) {
+    "BEGINNER" -> "Người mới (dễ)"
+    "INTERMEDIATE" -> "Trung bình"
+    "ADVANCED" -> "Nâng cao"
+    else -> level
 }

@@ -18,6 +18,7 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val isChangingPassword: Boolean = false,
     val isUpdatingBiometrics: Boolean = false,
+    val isUpdatingAvatar: Boolean = false,
     val isSendingVerificationEmail: Boolean = false,
     val isVerifyingEmail: Boolean = false,
     val profile: UserProfileDto? = null,
@@ -31,19 +32,29 @@ data class ProfileUiState(
     val successMessage: String? = null,
     val isLoggedOut: Boolean = false,
     val weightUnit: String = "kg",
-    val mealStructureMode: String = "TIMELINE"
+    val mealStructureMode: String = "TIMELINE",
+    /** Nhắc "ghi đủ hôm nay" cuối ngày (BR-14): bật/tắt và giờ nhắc "HH:mm". */
+    val dailyCompletionEnabled: Boolean = true,
+    val dailyCompletionTime: String = "21:00",
+    /** Thời gian nghỉ mặc định giữa set (giây) và các loại thông báo đã tắt (BR-19.4). */
+    val defaultRestSec: Int = 90,
+    val disabledNotifications: Set<String> = emptySet()
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val repository: CalAIRepository,
-    private val preferencesManager: UserPreferencesManager
+    private val preferencesManager: UserPreferencesManager,
+    private val settingsSync: com.calai.app.data.sync.SettingsSync
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         ProfileUiState(
             weightUnit = preferencesManager.getWeightUnit(),
-            mealStructureMode = preferencesManager.getMealStructureMode()
+            mealStructureMode = preferencesManager.getMealStructureMode(),
+            dailyCompletionEnabled = preferencesManager.isDailyCompletionEnabled(),
+            dailyCompletionTime = preferencesManager.getDailyCompletionTime(),
+            defaultRestSec = preferencesManager.getDefaultRestSec()
         )
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -54,6 +65,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun observePreferences() {
+        viewModelScope.launch {
+            settingsSync.disabledNotifications.collect { disabled ->
+                _uiState.update { it.copy(disabledNotifications = disabled) }
+            }
+        }
         viewModelScope.launch {
             preferencesManager.weightUnit.collect { unit ->
                 _uiState.update { it.copy(weightUnit = unit) }
@@ -68,10 +84,108 @@ class ProfileViewModel @Inject constructor(
 
     fun setWeightUnit(unit: String) {
         preferencesManager.setWeightUnit(unit)
+        pushSettings(com.calai.app.data.remote.dto.UpdateSettingsRequest(weightUnit = unit))
+    }
+
+    /** Đẩy thay đổi cài đặt lên server (BR-19.4); lỗi mạng thì lần mở app sau sẽ đồng bộ lại. */
+    private fun pushSettings(request: com.calai.app.data.remote.dto.UpdateSettingsRequest) {
+        viewModelScope.launch { settingsSync.push(request) }
+    }
+
+    fun setNotificationEnabled(type: String, enabled: Boolean) {
+        // Cập nhật ngay trên giao diện; nếu server từ chối thì lấy lại giá trị thật từ server
+        val current = settingsSync.disabledNotifications.value
+        _uiState.update { it.copy(disabledNotifications = if (enabled) current - type else current + type) }
+        viewModelScope.launch {
+            val result = settingsSync.push(com.calai.app.data.remote.dto.UpdateSettingsRequest(notificationPrefs = mapOf(type to enabled)))
+            if (result == null) {
+                _uiState.update { it.copy(disabledNotifications = settingsSync.disabledNotifications.value) }
+            }
+        }
+    }
+
+    fun setDefaultRestSec(sec: Int) {
+        preferencesManager.setDefaultRestSec(sec)
+        _uiState.update { it.copy(defaultRestSec = sec) }
+        pushSettings(com.calai.app.data.remote.dto.UpdateSettingsRequest(defaultRestSec = sec))
     }
 
     fun setMealStructureMode(mode: String) {
         preferencesManager.setMealStructureMode(mode)
+    }
+
+    /** Chọn ảnh từ thư viện: thu nhỏ về tối đa 512px, nén JPEG rồi tải lên máy chủ. */
+    fun uploadAvatar(context: android.content.Context, uri: android.net.Uri, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingAvatar = true) }
+            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { prepareAvatarFile(context, uri) }
+            if (file == null) {
+                _uiState.update { it.copy(isUpdatingAvatar = false) }
+                onDone(false, "Không đọc được ảnh đã chọn")
+                return@launch
+            }
+            repository.uploadAvatar(file)
+                .onSuccess { path ->
+                    _uiState.update { st -> st.copy(isUpdatingAvatar = false, profile = st.profile?.copy(avatar = path)) }
+                    onDone(true, "Đã cập nhật ảnh đại diện")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingAvatar = false) }
+                    onDone(false, err.message ?: "Không thể cập nhật ảnh đại diện")
+                }
+            file.delete()
+        }
+    }
+
+    fun removeAvatar(onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingAvatar = true) }
+            repository.removeAvatar()
+                .onSuccess {
+                    _uiState.update { st -> st.copy(isUpdatingAvatar = false, profile = st.profile?.copy(avatar = null)) }
+                    onDone(true, "Đã xoá ảnh đại diện")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingAvatar = false) }
+                    onDone(false, err.message ?: "Không thể xoá ảnh đại diện")
+                }
+        }
+    }
+
+    /** Đổi họ tên, giới tính, ngày sinh (YYYY-MM-DD). Máy chủ kiểm tra tuổi 13–100 và tính lại chỉ số liên quan. */
+    fun saveBasicInfo(name: String, gender: String?, dateOfBirth: String?, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingBiometrics = true) }
+            repository.updateProfile(UpdateProfileRequest(name = name.trim(), gender = gender, dateOfBirth = dateOfBirth))
+                .onSuccess { updated ->
+                    _uiState.update { it.copy(isUpdatingBiometrics = false, profile = updated) }
+                    onDone(true, "Đã lưu thông tin cá nhân")
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingBiometrics = false) }
+                    onDone(false, err.message ?: "Không thể lưu thông tin")
+                }
+        }
+    }
+
+    private fun prepareAvatarFile(context: android.content.Context, uri: android.net.Uri): java.io.File? {
+        return try {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+            val longest = maxOf(bounds.outWidth, bounds.outHeight)
+            if (longest <= 0) return null
+            var sample = 1
+            while (longest / sample > 1024) sample *= 2
+            val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+            val bitmap = context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, opts) } ?: return null
+            val scale = 512f / maxOf(bitmap.width, bitmap.height)
+            val scaled = if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true) else bitmap
+            val out = java.io.File(context.cacheDir, "avatar_${System.currentTimeMillis()}.jpg")
+            out.outputStream().use { scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, it) }
+            out
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun loadProfile() {
@@ -122,6 +236,34 @@ class ProfileViewModel @Inject constructor(
             }.onFailure { err ->
                 onError(err.message ?: "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.")
             }
+        }
+    }
+
+    fun setDailyCompletionEnabled(enabled: Boolean) {
+        preferencesManager.setDailyCompletionEnabled(enabled)
+        _uiState.update { it.copy(dailyCompletionEnabled = enabled) }
+        pushSettings(
+            com.calai.app.data.remote.dto.UpdateSettingsRequest(
+                dailyCompletionReminder = if (enabled) preferencesManager.getDailyCompletionTime() else "OFF"
+            )
+        )
+    }
+
+    fun setDailyCompletionTime(time: String) {
+        preferencesManager.setDailyCompletionTime(time)
+        _uiState.update { it.copy(dailyCompletionTime = time) }
+        pushSettings(com.calai.app.data.remote.dto.UpdateSettingsRequest(dailyCompletionReminder = time))
+    }
+
+    /** Đổi ngày Check-in hằng tuần (1 = Thứ Hai … 7 = Chủ Nhật). Không đụng tới mục tiêu dinh dưỡng. */
+    fun setCheckinDay(day: Int, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            repository.updateProfile(UpdateProfileRequest(checkinDay = day))
+                .onSuccess { updated ->
+                    _uiState.update { it.copy(profile = updated) }
+                    onDone(true, "Đã đổi ngày Check-in sang ${checkinDayName(day)}")
+                }
+                .onFailure { err -> onDone(false, err.message ?: "Không thể đổi ngày Check-in") }
         }
     }
 
@@ -236,6 +378,33 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Xoá tài khoản (BR-01.4): xác thực lại bằng mật khẩu rồi xoá. Lỗi thì giữ nguyên tài khoản và báo lý do. */
+    fun deleteAccount(password: String, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            repository.deleteAccount(password)
+                .onSuccess { onResult(true, null) }
+                .onFailure { onResult(false, it.message ?: "Không thể xoá tài khoản") }
+        }
+    }
+
+    fun loadSessions(onResult: (List<com.calai.app.data.remote.dto.SessionDto>?) -> Unit) {
+        viewModelScope.launch { onResult(repository.getSessions().getOrNull()) }
+    }
+
+    fun revokeSession(id: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            repository.revokeSession(id)
+            onDone()
+        }
+    }
+
+    fun logoutAll(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.logoutAll()
+            onSuccess()
+        }
+    }
+
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             repository.logout()
@@ -243,4 +412,16 @@ class ProfileViewModel @Inject constructor(
             onSuccess()
         }
     }
+}
+
+
+/** Tên ngày trong tuần theo số 1 = Thứ Hai … 7 = Chủ Nhật (cùng quy ước với backend). */
+fun checkinDayName(day: Int?): String = when (day) {
+    2 -> "Thứ Ba"
+    3 -> "Thứ Tư"
+    4 -> "Thứ Năm"
+    5 -> "Thứ Sáu"
+    6 -> "Thứ Bảy"
+    7 -> "Chủ Nhật"
+    else -> "Thứ Hai"
 }

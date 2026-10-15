@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
@@ -49,7 +50,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatbotScreen(
-    onNavigateTab: (DockTab) -> Unit,
+    onBack: () -> Unit,
     onOpenPremium: () -> Unit = {},
     isDarkTheme: Boolean = true,
     viewModel: ChatbotViewModel = hiltViewModel()
@@ -83,37 +84,41 @@ fun ChatbotScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp)
+                .navigationBarsPadding()
         ) {
             // 1. TOP HEADER: AI Coach Status Bar & Plan Tier Badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = MaterialTheme.colorScheme.onBackground)
+                }
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(PastelLavender.copy(alpha = 0.2f))
-                        .border(1.dp, PastelLavender.copy(alpha = 0.4f), CircleShape),
+                        .background(VividOrangeSoft)
+                        .border(1.dp, VividOrange.copy(alpha = 0.4f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = PastelLavender,
-                        modifier = Modifier.size(24.dp)
+                        tint = PrimaryStrong,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Trợ Lý Dinh Dưỡng NutriWise",
+                        text = "Trợ lý NutriWise",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Row(
@@ -127,7 +132,7 @@ fun ChatbotScreen(
                                 .background(MintJade)
                         )
                         Text(
-                            text = "Trợ lý dinh dưỡng AI • Trực tuyến",
+                            text = "Trực tuyến",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -315,14 +320,14 @@ fun ChatbotScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                if (inputText.isNotBlank()) PastelLavender
+                                if (inputText.isNotBlank()) VividOrange
                                 else (MaterialTheme.colorScheme.outline)
                             )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Gửi",
-                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (inputText.isNotBlank()) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -332,7 +337,7 @@ fun ChatbotScreen(
 
         // Dialog xác nhận xóa lịch sử trò chuyện
         if (showClearConfirmDialog) {
-            AlertDialog(
+            com.calai.app.presentation.components.NwAlertDialog(
                 onDismissRequest = { showClearConfirmDialog = false },
                 icon = {
                     Box(
@@ -374,12 +379,6 @@ fun ChatbotScreen(
             )
         }
 
-        // Dock điều hướng
-        FloatingBottomDock(
-            currentTab = DockTab.CHAT,
-            onTabSelected = onNavigateTab,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -397,46 +396,81 @@ private fun MessageBubble(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(PastelLavender.copy(alpha = 0.2f)),
+                    .background(VividOrangeSoft),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = PastelLavender,
+                    tint = PrimaryStrong,
                     modifier = Modifier.size(16.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
         }
 
+        val isSafety = !message.isUser && message.safetyFlag != null
+        // Đuôi tam giác nhỏ trỏ về phía avatar của chatbot (kiểu bong bóng thoại).
+        if (!message.isUser) {
+            val tailFill = if (isSafety) PastelRose.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surface
+            val tailLine = if (isSafety) PastelRose else MaterialTheme.colorScheme.outline
+            androidx.compose.foundation.Canvas(Modifier.padding(top = 8.dp).size(width = 8.dp, height = 12.dp)) {
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(size.width + 1f, 0f)
+                    lineTo(0f, size.height * 0.35f)
+                    lineTo(size.width + 1f, size.height)
+                    close()
+                }
+                drawPath(path, tailFill)
+                drawLine(tailLine, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height * 0.35f), 1.dp.toPx())
+                drawLine(tailLine, androidx.compose.ui.geometry.Offset(0f, size.height * 0.35f), androidx.compose.ui.geometry.Offset(size.width, size.height), 1.dp.toPx())
+            }
+        }
         Surface(
             color = if (message.isUser) {
-                PastelLavender
+                VividOrange
+            } else if (isSafety) {
+                PastelRose.copy(alpha = 0.22f)
             } else {
                 MaterialTheme.colorScheme.surface
             },
             shape = RoundedCornerShape(
-                topStart = 18.dp,
+                topStart = if (message.isUser) 18.dp else 4.dp,
                 topEnd = 18.dp,
-                bottomStart = if (message.isUser) 18.dp else 4.dp,
+                bottomStart = 18.dp,
                 bottomEnd = if (message.isUser) 4.dp else 18.dp
             ),
             border = if (!message.isUser) {
                 androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline
+                    color = if (isSafety) PastelRose else MaterialTheme.colorScheme.outline
                 )
             } else null,
-            modifier = Modifier.widthIn(max = 280.dp)
+            // Bong bóng co theo nội dung nhưng tối đa bằng phần còn lại của hàng (chừa lề đối diện) —
+            // trước đây cố định 280dp nên câu trả lời dài bị hẹp, cao và lệch.
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .padding(start = if (message.isUser) 44.dp else 0.dp, end = if (message.isUser) 0.dp else 20.dp)
         ) {
-            Text(
-                text = message.text,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = if (message.isUser) MaterialTheme.colorScheme.background else (MaterialTheme.colorScheme.onBackground),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                if (isSafety) {
+                    Text(
+                        text = "Lời khuyên an toàn",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(
+                        text = if (message.isUser) androidx.compose.ui.text.AnnotatedString(message.text) else com.calai.app.presentation.components.markdownToAnnotated(message.text),
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        color = if (message.isUser) OnPrimary else (MaterialTheme.colorScheme.onBackground)
+                    )
+                }
+            }
         }
     }
 }

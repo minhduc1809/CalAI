@@ -41,5 +41,8 @@ data class WeeklySummaryDto(
     @SerializedName("isFallback")
     val isFallback: Boolean,
     @SerializedName("generatedAt")
-    val generatedAt: String
+    val generatedAt: String,
+    /** true với người dùng Free: chỉ có calo, cân nặng, buổi tập; macro và nhận xét dành cho Premium. */
+    @SerializedName("isPreview")
+    val isPreview: Boolean? = null
 )

@@ -9,6 +9,10 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import android.util.Size
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -26,6 +30,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashOff
@@ -128,6 +134,30 @@ fun BarcodeScanScreen(
                     }
                 }
 
+                uiState.lookupError != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                        Text(uiState.lookupError!!, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
+                        if (!uiState.lookupQuotaExceeded) {
+                            Button(onClick = { viewModel.resetScan() }, colors = ButtonDefaults.buttonColors(containerColor = VividOrange)) { Text("Quét lại") }
+                        }
+                    }
+                }
+
+                uiState.notFound && uiState.showCreateForm -> {
+                    BarcodeCreateForm(
+                        code = uiState.scannedCode.orEmpty(),
+                        isCreating = uiState.isCreating,
+                        error = uiState.errorMessage,
+                        onCancel = viewModel::closeCreateForm,
+                        onCreate = viewModel::createFoodForBarcode
+                    )
+                }
+
                 uiState.notFound -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center).padding(32.dp),
@@ -135,13 +165,14 @@ fun BarcodeScanScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
-                        Text("Không tìm thấy sản phẩm với mã vạch này", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
+                        Text("Không tìm thấy sản phẩm. Tạo món mới với mã vạch này?", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
                         Button(
-                            onClick = { viewModel.resetScan() },
+                            onClick = { viewModel.openCreateForm() },
                             colors = ButtonDefaults.buttonColors(containerColor = VividOrange)
                         ) {
-                            Text("Quét lại")
+                            Text("Tạo món với mã vạch này")
                         }
+                        TextButton(onClick = { viewModel.resetScan() }) { Text("Quét lại") }
                     }
                 }
 
@@ -167,11 +198,18 @@ private fun BarcodeCameraPreview(
     onDetected: (String) -> Unit,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner
 ) {
-    // Zoom mặc định để vùng khung quét chiếm phần lớn khung hình phân tích — mã vạch
-    // decode nhanh hơn nhiều so với để camera quét nguyên khung hình rộng (gốc của defect
-    // "phải căn rất lâu mới quét được" — mã vạch quá nhỏ trong ảnh gửi cho ML Kit).
-    val roiZoomRatio = 0.35f
     var camera by remember { mutableStateOf<Camera?>(null) }
+    var zoomRatio by remember { mutableStateOf(1f) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showManual by remember { mutableStateOf(false) }
+    var manualCode by remember { mutableStateOf("") }
+    val pickImage = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) scanBarcodeFromImage(context, uri, onDetected) {
+            android.widget.Toast.makeText(context, "Không đọc được mã vạch trong ảnh. Hãy chọn ảnh rõ nét, chụp thẳng và đủ sáng.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     var isTorchOn by remember { mutableStateOf(false) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
@@ -197,10 +235,34 @@ private fun BarcodeCameraPreview(
         label = "scanLineOffset"
     )
 
+    // Lấy nét lại giữa khung mỗi 2 giây: điện thoại hay "ngủ" lấy nét khi mã vạch đứng yên ở khoảng cách gần
+    LaunchedEffect(camera) {
+        val cam = camera ?: return@LaunchedEffect
+        while (true) {
+            val p = SurfaceOrientedMeteringPointFactory(1f, 1f).createPoint(0.5f, 0.5f)
+            cam.cameraControl.startFocusAndMetering(
+                FocusMeteringAction.Builder(p, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
+                    .setAutoCancelDuration(2, TimeUnit.SECONDS).build()
+            )
+            kotlinx.coroutines.delay(2000)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    // Chụm hai ngón để zoom (1×–8×)
+                    detectTransformGestures { _, _, zoom, _ ->
+                        val cam = camera ?: return@detectTransformGestures
+                        if (zoom == 1f) return@detectTransformGestures
+                        val st = cam.cameraInfo.zoomState.value
+                        val next = (zoomRatio * zoom).coerceIn(st?.minZoomRatio ?: 1f, minOf(st?.maxZoomRatio ?: 1f, 8f))
+                        zoomRatio = next
+                        cam.cameraControl.setZoomRatio(next)
+                    }
+                }
                 .pointerInput(Unit) {
                     // Tap-to-focus: khắc phục auto-focus mặc định lấy nét chậm ở khoảng
                     // cách gần (10-15cm), đúng khoảng cách quét mã vạch thực tế.
@@ -223,7 +285,7 @@ private fun BarcodeCameraPreview(
                 previewView = view
                 val scanner = BarcodeScanning.getClient(
                     BarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                        .setBarcodeFormats(SCAN_FORMATS)
                         .build()
                 )
                 val analyzerExecutor = Executors.newSingleThreadExecutor()
@@ -234,7 +296,13 @@ private fun BarcodeCameraPreview(
                     val preview = Preview.Builder().build().also {
                         it.setSurfaceProvider(view.surfaceProvider)
                     }
+                    // Mặc định CameraX phân tích ở ~640×480 nên vạch mã bị mờ; yêu cầu Full HD để đọc nét hơn
                     val analysis = ImageAnalysis.Builder()
+                        .setResolutionSelector(
+                            ResolutionSelector.Builder()
+                                .setResolutionStrategy(ResolutionStrategy(Size(1920, 1080), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
+                                .build()
+                        )
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                     analysis.setAnalyzer(analyzerExecutor) { imageProxy ->
@@ -243,7 +311,7 @@ private fun BarcodeCameraPreview(
                             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                             scanner.process(image)
                                 .addOnSuccessListener { barcodes ->
-                                    barcodes.firstOrNull()?.rawValue?.let(onDetected)
+                                    barcodes.firstNotNullOfOrNull { it.rawValue ?: it.displayValue }?.let(onDetected)
                                 }
                                 .addOnCompleteListener { imageProxy.close() }
                         } else {
@@ -260,7 +328,10 @@ private fun BarcodeCameraPreview(
                         )
                         // Zoom vào vùng trung tâm (khớp khung quét hiển thị) + lấy nét gần
                         // ngay khi mở camera, không đợi người dùng phải tự tap.
-                        boundCamera.cameraControl.setLinearZoom(roiZoomRatio)
+                        val zs = boundCamera.cameraInfo.zoomState.value
+                        val start = zoomRatio.coerceIn(zs?.minZoomRatio ?: 1f, minOf(zs?.maxZoomRatio ?: 1f, 8f))
+                        zoomRatio = start
+                        boundCamera.cameraControl.setZoomRatio(start)
                         val centerFactory = SurfaceOrientedMeteringPointFactory(1f, 1f)
                         val centerPoint = centerFactory.createPoint(0.5f, 0.5f)
                         boundCamera.cameraControl.startFocusAndMetering(
@@ -296,6 +367,14 @@ private fun BarcodeCameraPreview(
             }
         }
 
+        Column(
+            modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            BarcodeToolButton(Icons.Default.Image, "Chọn ảnh") { pickImage.launch("image/*") }
+            BarcodeToolButton(Icons.Default.Keyboard, "Nhập mã") { showManual = true }
+        }
+
         IconButton(
             onClick = {
                 val cam = camera ?: return@IconButton
@@ -315,8 +394,38 @@ private fun BarcodeCameraPreview(
             )
         }
 
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 96.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.7f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            listOf(1f, 2f, 3f, 5f).forEach { z ->
+                val active = kotlin.math.abs(zoomRatio - z) < 0.2f
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(if (active) VividOrange else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable {
+                            val cam = camera ?: return@clickable
+                            val st = cam.cameraInfo.zoomState.value
+                            val v = z.coerceIn(st?.minZoomRatio ?: 1f, minOf(st?.maxZoomRatio ?: 1f, 8f))
+                            zoomRatio = v
+                            cam.cameraControl.setZoomRatio(v)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${z.toInt()}×", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (active) OnPrimary else MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        }
+
         Text(
-            "Đưa mã vạch sản phẩm vào khung để quét — chạm để lấy nét",
+            "Đưa mã vạch vào khung — chụm hai ngón hoặc bấm 1×–5× để phóng to",
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
@@ -324,12 +433,39 @@ private fun BarcodeCameraPreview(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 48.dp)
+                .padding(bottom = 32.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         )
 
         if (isLookingUp) {
-            CircularProgressIndicator(color = VividOrange, modifier = Modifier.align(Alignment.Center))
+            CircularProgressIndicator(color = PrimaryStrong, modifier = Modifier.align(Alignment.Center))
         }
+    }
+
+    if (showManual) {
+        com.calai.app.presentation.components.NwAlertDialog(
+            onDismissRequest = { showManual = false },
+            title = { Text("Nhập mã vạch") },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = manualCode,
+                    onValueChange = { v -> manualCode = v.filter { it.isLetterOrDigit() }.take(20) },
+                    label = { Text("Dãy số dưới mã vạch") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = manualCode.length >= 6,
+                    onClick = { showManual = false; onDetected(manualCode); manualCode = "" }
+                ) { Text("Tra cứu", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { showManual = false }) { Text("Hủy") } }
+        )
     }
 }
 
@@ -387,7 +523,7 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
                     ) {
                         Text(
                             "${mult}x",
-                            color = if (isSelected) TextWhite else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) OnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.5.sp,
                             textAlign = TextAlign.Center,
@@ -432,4 +568,107 @@ private fun BarcodeResultCard(uiState: BarcodeScanUiState, viewModel: BarcodeSca
             Text("Quét sản phẩm khác", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+
+@Composable
+private fun BarcodeCreateForm(
+    code: String,
+    isCreating: Boolean,
+    error: String?,
+    onCancel: () -> Unit,
+    onCreate: (String, Float, Float, Float, Float) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var kcal by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carb by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
+    val kcalValue = kcal.replace(',', '.').toFloatOrNull()
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Tạo món cho mã vạch $code", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+        Text("Số liệu cho một phần ăn. Lần sau quét mã này sẽ tìm thấy ngay.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        androidx.compose.material3.OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tên sản phẩm") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        androidx.compose.material3.OutlinedTextField(value = kcal, onValueChange = { kcal = it }, label = { Text("Calo (kcal)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(Triple("Đạm (g)", protein, { v: String -> protein = v }), Triple("Tinh bột (g)", carb, { v: String -> carb = v }), Triple("Béo (g)", fat, { v: String -> fat = v })).forEach { (label, value, set) ->
+                androidx.compose.material3.OutlinedTextField(value = value, onValueChange = set, label = { Text(label, fontSize = 11.sp) }, singleLine = true, modifier = Modifier.weight(1f),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+            }
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+        Button(
+            onClick = {
+                onCreate(
+                    name, kcalValue ?: 0f,
+                    protein.replace(',', '.').toFloatOrNull() ?: 0f,
+                    carb.replace(',', '.').toFloatOrNull() ?: 0f,
+                    fat.replace(',', '.').toFloatOrNull() ?: 0f
+                )
+            },
+            enabled = name.isNotBlank() && kcalValue != null && !isCreating,
+            colors = ButtonDefaults.buttonColors(containerColor = VividOrange),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (isCreating) "Đang tạo…" else "Tạo và dùng món này") }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Huỷ") }
+    }
+}
+
+
+/** Chỉ dò các định dạng mã vạch sản phẩm/mã QR phổ biến: nhanh và ít nhầm hơn FORMAT_ALL_FORMATS. */
+private const val SCAN_FORMATS = Barcode.FORMAT_EAN_13 or Barcode.FORMAT_EAN_8 or Barcode.FORMAT_UPC_A or
+    Barcode.FORMAT_UPC_E or Barcode.FORMAT_CODE_128 or Barcode.FORMAT_CODE_39 or Barcode.FORMAT_CODE_93 or
+    Barcode.FORMAT_ITF or Barcode.FORMAT_CODABAR or Barcode.FORMAT_QR_CODE or Barcode.FORMAT_DATA_MATRIX
+
+@Composable
+private fun BarcodeToolButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.75f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(18.dp))
+        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+/**
+ * Đọc mã vạch từ một ảnh trong thư viện. Thử ảnh gốc, rồi xoay 90°/180°/270° (mã vạch chụp ngang/ngược),
+ * và cuối cùng thử lại ảnh thu nhỏ (ảnh quá lớn đôi khi làm bộ dò bỏ sót).
+ */
+private fun scanBarcodeFromImage(context: android.content.Context, uri: android.net.Uri, onFound: (String) -> Unit, onNone: () -> Unit) {
+    val scanner = BarcodeScanning.getClient(BarcodeScannerOptions.Builder().setBarcodeFormats(SCAN_FORMATS).build())
+    val bitmap = try {
+        context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) }
+    } catch (_: Exception) { null }
+    if (bitmap == null) { onNone(); return }
+
+    val attempts = mutableListOf<Pair<android.graphics.Bitmap, Int>>()
+    listOf(0, 90, 180, 270).forEach { attempts += bitmap to it }
+    val maxSide = maxOf(bitmap.width, bitmap.height)
+    if (maxSide > 1600) {
+        val k = 1600f / maxSide
+        val small = android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * k).toInt(), (bitmap.height * k).toInt(), true)
+        listOf(0, 90).forEach { attempts += small to it }
+    }
+
+    fun tryAt(i: Int) {
+        if (i >= attempts.size) { onNone(); return }
+        val (bmp, rot) = attempts[i]
+        scanner.process(InputImage.fromBitmap(bmp, rot))
+            .addOnSuccessListener { list ->
+                val code = list.firstNotNullOfOrNull { it.rawValue ?: it.displayValue }
+                if (code != null) onFound(code) else tryAt(i + 1)
+            }
+            .addOnFailureListener { tryAt(i + 1) }
+    }
+    tryAt(0)
 }

@@ -18,7 +18,9 @@ data class ChatMessage(
     val text: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    val isFallback: Boolean = false
+    val isFallback: Boolean = false,
+    /** Có khi đây là phản hồi an toàn cố định (chủ đề rủi ro, người dưới 18 tuổi/đang mang thai). */
+    val safetyFlag: String? = null
 )
 
 data class ChatbotUiState(
@@ -67,7 +69,8 @@ class ChatbotViewModel @Inject constructor(
                         ChatMessage(
                             id = dto.id,
                             text = dto.content,
-                            isUser = dto.role == "user"
+                            isUser = dto.role == "user",
+                            safetyFlag = dto.safetyFlag
                         )
                     }
                     _uiState.update { current ->
@@ -105,7 +108,8 @@ class ChatbotViewModel @Inject constructor(
                 val aiMessage = ChatMessage(
                     text = response.reply,
                     isUser = false,
-                    isFallback = response.isFallback
+                    isFallback = response.isFallback,
+                    safetyFlag = response.safetyFlag
                 )
                 _uiState.update {
                     it.copy(

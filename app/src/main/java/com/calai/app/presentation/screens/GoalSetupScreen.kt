@@ -1,5 +1,6 @@
 package com.calai.app.presentation.screens
 
+import com.calai.app.data.remote.dto.MacroStylePreviewDto
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,12 +50,35 @@ fun GoalSetupScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
+    // Sau khi lưu: nếu calo mục tiêu bị quy tắc an toàn giới hạn (chạm sàn...) thì giải thích trước rồi mới quay lại.
+    var showLimitDialog by remember { mutableStateOf(false) }
     LaunchedEffect(uiState.isSaveSuccess) {
-        if (uiState.isSaveSuccess) onBack()
+        if (uiState.isSaveSuccess) {
+            if (uiState.original?.targetLimitedBy != null) showLimitDialog = true else onBack()
+        }
+    }
+    if (showLimitDialog) {
+        uiState.original?.targetLimitedBy?.let { limit ->
+            com.calai.app.presentation.components.TargetLimitDialog(
+                limit = limit,
+                targetCalories = uiState.original?.targetCalories?.toInt(),
+                onDismiss = { showLimitDialog = false; if (uiState.isSaveSuccess) onBack() }
+            )
+        }
+    }
+    var showWhyDialog by remember { mutableStateOf(false) }
+    if (showWhyDialog) {
+        uiState.original?.targetLimitedBy?.let { limit ->
+            com.calai.app.presentation.components.TargetLimitDialog(
+                limit = limit,
+                targetCalories = uiState.original?.targetCalories?.toInt(),
+                onDismiss = { showWhyDialog = false }
+            )
+        }
     }
 
     if (showConfirmDialog) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             containerColor = surface,
             title = {
@@ -104,7 +128,7 @@ fun GoalSetupScreen(
     ) { padding ->
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = VividOrange)
+                CircularProgressIndicator(color = PrimaryStrong)
             }
             return@Scaffold
         }
@@ -127,7 +151,7 @@ fun GoalSetupScreen(
                         "${profile.targetCalories?.toInt() ?: 0} kcal/ngày",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
-                        color = VividOrange
+                        color = PrimaryStrong
                     )
                     Text(
                         "P ${profile.targetProtein?.toInt() ?: 0}g · C ${profile.targetCarb?.toInt() ?: 0}g · F ${profile.targetFat?.toInt() ?: 0}g",
@@ -146,6 +170,11 @@ fun GoalSetupScreen(
                             fontSize = 11.5.sp,
                             lineHeight = 15.sp,
                             color = CoralWarning
+                        )
+                        Text(
+                            "Vì sao? ›",
+                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong,
+                            modifier = Modifier.padding(top = 4.dp).clickable { showWhyDialog = true }
                         )
                     }
                     uiState.expenditure?.let { expenditure ->
@@ -221,13 +250,27 @@ fun GoalSetupScreen(
                 color = textSecondary
             )
 
-            // 4. Phong cách Macro
+            // 4. Phong cách Macro — hiển thị tỉ lệ THỰC TẾ backend đã tính (sàn béo tối thiểu có thể thay đổi mô tả)
             Text("Bạn ưu tiên phong cách ăn nào?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textPrimary)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MacroStyleOptionRow("Cân bằng", "30% đạm · 40% tinh bột · 30% béo", uiState.macroStyle == "BALANCED", isDarkTheme) { viewModel.selectMacroStyle("BALANCED") }
-                MacroStyleOptionRow("Nhiều tinh bột, ít béo", "30% đạm · 55% tinh bột · 15% béo", uiState.macroStyle == "HIGH_CARB_LOW_FAT", isDarkTheme) { viewModel.selectMacroStyle("HIGH_CARB_LOW_FAT") }
-                MacroStyleOptionRow("Ít tinh bột, nhiều béo", "35% đạm · 20% tinh bột · 45% béo", uiState.macroStyle == "LOW_CARB_HIGH_FAT", isDarkTheme) { viewModel.selectMacroStyle("LOW_CARB_HIGH_FAT") }
-                MacroStyleOptionRow("Keto", "25% đạm · 5% tinh bột · 70% béo", uiState.macroStyle == "KETO", isDarkTheme) { viewModel.selectMacroStyle("KETO") }
+                listOf(
+                    Triple("BALANCED", "Cân bằng", "Phù hợp với đa số mọi người"),
+                    Triple("HIGH_CARB_LOW_FAT", "Nhiều tinh bột, ít béo", "Nhiều tinh bột hơn, béo ở mức thấp"),
+                    Triple("LOW_CARB_HIGH_FAT", "Ít tinh bột, nhiều béo", "Ít tinh bột hơn, tăng tỉ lệ chất béo"),
+                    Triple("KETO", "Keto", "Rất ít tinh bột, chất béo là nguồn năng lượng chính")
+                ).forEach { (key, label, fallbackDesc) ->
+                    val preview = uiState.macroPreview.firstOrNull { it.style == key }
+                    MacroStyleOptionRow(label, macroStyleDescription(preview, fallbackDesc), uiState.macroStyle == key, isDarkTheme) {
+                        viewModel.selectMacroStyle(key)
+                    }
+                }
+            }
+            if (uiState.macroPreview.isNotEmpty()) {
+                Text(
+                    "Tỉ lệ tính theo mức calo hiện tại của bạn và sẽ cập nhật sau khi lưu mục tiêu.",
+                    fontSize = 11.5.sp,
+                    color = textSecondary
+                )
             }
 
             uiState.errorMessage?.let {
@@ -267,3 +310,12 @@ private fun SectionCard(
     }
 }
 
+/**
+ * Mô tả một phong cách ăn bằng tỉ lệ thực tế đã tính ("30% đạm · 45% tinh bột · 25% béo"). Khi béo bị nâng lên
+ * mức tối thiểu thì ghi chú lý do; chưa có số liệu thì dùng mô tả không có con số để không hiển thị sai.
+ */
+private fun macroStyleDescription(preview: MacroStylePreviewDto?, fallback: String): String {
+    if (preview == null) return fallback
+    val ratio = "${preview.proteinPct}% đạm · ${preview.carbPct}% tinh bột · ${preview.fatPct}% béo"
+    return if (preview.fatFloorApplied && !preview.note.isNullOrBlank()) "$ratio · ${preview.note}" else ratio
+}
