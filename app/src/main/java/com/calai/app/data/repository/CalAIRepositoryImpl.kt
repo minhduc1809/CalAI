@@ -72,6 +72,7 @@ class CalAIRepositoryImpl @Inject constructor(
     override suspend fun fetchSetsPerMuscle(weeks: Int?) = apiData { api.getSetsPerMuscle(weeks) }
     override suspend fun fetchWorkoutRecords(key: String?) = apiData { api.getWorkoutRecords(key) }
     override suspend fun fetchLastWorkoutTemplate() = apiData { api.getLastWorkoutTemplate() }
+    override suspend fun fetchWorkoutLogNudge() = apiData { api.getWorkoutLogNudge() }
     override suspend fun fetchActivityCheck() = apiData { api.getActivityCheck() }
     override suspend fun markActivityCheckHandled() = apiUnit { api.markActivityCheckHandled() }
     override suspend fun fetchWorkoutRoutines() = apiData { api.getWorkoutRoutines() }
@@ -110,6 +111,25 @@ class CalAIRepositoryImpl @Inject constructor(
             )
         )
         com.calai.app.data.sync.PendingSyncScheduler.schedule(appContext)
+    }
+
+    /** Thông báo dễ hiểu cho lỗi quét ảnh: ưu tiên lời nhắn của máy chủ (ví dụ "không nhận diện được món ăn"). */
+    private fun scanErrorMessage(e: Throwable): String {
+        if (e is HttpException) {
+            val msg = extractErrorMessage(e)
+            val generic = msg.startsWith("HTTP ")
+            return when {
+                !generic && msg.isNotBlank() -> msg
+                e.code() == 400 -> "Không nhận diện được món ăn trong ảnh. Hãy chụp rõ món ăn, đủ sáng và thử lại nhé."
+                e.code() == 429 -> "Bạn đã hết lượt nhận diện hôm nay."
+                e.code() >= 500 -> "Máy chủ đang bận. Vui lòng thử lại sau ít phút."
+                else -> "Không phân tích được ảnh. Vui lòng thử lại."
+            }
+        }
+        return when (e) {
+            is java.io.IOException -> "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại."
+            else -> e.localizedMessage ?: "Không phân tích được ảnh. Vui lòng thử lại."
+        }
     }
 
     private fun extractErrorMessage(e: Throwable): String {
@@ -1363,7 +1383,7 @@ class CalAIRepositoryImpl @Inject constructor(
     // --- AI Food Recognition & Chat Coach  ---
     override suspend fun recognizeFood(file: File): Result<FoodRecognitionResultDto> {
         return try {
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
             val response = api.recognizeFood(body)
             if (response.success && response.data != null) {
@@ -1375,7 +1395,7 @@ class CalAIRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFood exception: ${e.message}", e)
-            Result.failure(e)
+            Result.failure(Exception(scanErrorMessage(e), e))
         }
     }
 
@@ -1391,7 +1411,7 @@ class CalAIRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.e("CalAIRepository", "recognizeFoodBase64 exception: ${e.message}", e)
-            Result.failure(e)
+            Result.failure(Exception(scanErrorMessage(e), e))
         }
     }
 
@@ -1469,51 +1489,11 @@ class CalAIRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto> {
-        return try {
-            val response = api.getSuggestMeal()
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.success(SuggestMealResponseDto(
-                    nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
-                    suggestions = listOf(
-                        SuggestedMealItemDto(
-                            name = "Phở gà ức ít bánh + 2 trứng chần",
-                            mealType = "Bữa tối",
-                            calories = 450,
-                            protein = 40,
-                            carbs = 48,
-                            fat = 9,
-                            reason = "Cung cấp đạm nạc tinh khiết, vừa vặn với calo còn thiếu tối nay."
-                        )
-                    ),
-                    advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
-                ))
-            }
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.success(SuggestMealResponseDto(
-                nutritionGap = NutritionGapDto(remainingCalories = 500, remainingProtein = 35),
-                suggestions = listOf(
-                    SuggestedMealItemDto(
-                        name = "Phở gà ức ít bánh + 2 trứng chần",
-                        mealType = "Bữa tối",
-                        calories = 450,
-                        protein = 40,
-                        carbs = 48,
-                        fat = 9,
-                        reason = "Cung cấp đạm nạc tinh khiết, vừa vặn với calo còn thiếu tối nay."
-                    )
-                ),
-                advice = "Bạn còn thiếu 35g protein. Hãy ưu tiên bổ sung bữa tối giàu đạm nhé!"
-            ))
-        }
-    }
+    override suspend fun fetchSuggestMeal(): Result<SuggestMealResponseDto> = apiData { api.getSuggestMeal() }
 
     override suspend fun scanMenu(file: File, note: String?): Result<ScanMenuResponseDto> {
         return try {
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
             val noteBody = note?.let { MultipartBody.Part.createFormData("note", it) }
 
@@ -1525,7 +1505,7 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(e)
+            Result.failure(Exception(scanErrorMessage(e), e))
         }
     }
 
@@ -1539,7 +1519,7 @@ class CalAIRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(e)
+            Result.failure(Exception(scanErrorMessage(e), e))
         }
     }
 

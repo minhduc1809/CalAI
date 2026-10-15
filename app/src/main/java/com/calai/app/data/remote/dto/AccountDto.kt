@@ -7,6 +7,7 @@ data class PrivacyPolicyDto(
     @SerializedName("title") val title: String = "",
     @SerializedName("version") val version: String = "",
     @SerializedName("lastUpdated") val lastUpdated: String = "",
+    @SerializedName("summary") val summary: String = "",
     @SerializedName("sections") val sections: List<PolicySectionDto> = emptyList()
 )
 

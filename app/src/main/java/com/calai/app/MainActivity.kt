@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity() {
                     var upgradePrompt by remember { mutableStateOf<com.calai.app.data.billing.UpgradePrompt?>(null) }
                     LaunchedEffect(Unit) { upgradeEvents.events.collect { upgradePrompt = it } }
                     upgradePrompt?.let { p ->
-                        androidx.compose.material3.AlertDialog(
+                        com.calai.app.presentation.components.NwAlertDialog(
                             onDismissRequest = { upgradePrompt = null },
                             title = { androidx.compose.material3.Text(if (p.code == "PREMIUM_REQUIRED") "Tính năng Premium" else "Đã hết lượt") },
                             text = {
@@ -310,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenWorkoutHub = {
                                     navController.navigate(Screen.WorkoutHub.route)
                                 },
+
                                 // NEN-01: nút Tìm kiếm trên Trang chủ mở màn Thêm bữa ăn (có ô tìm món), không còn là nút chết
                                 onSearchClick = {
                                     navController.navigate(Screen.AddMeal.route)
@@ -329,11 +330,17 @@ class MainActivity : ComponentActivity() {
 
                         // 2a. Màn hình Thông báo
                         composable(Screen.Notifications.route) {
+                            val workoutVmForNudge: com.calai.app.presentation.viewmodel.WorkoutViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                             NotificationScreen(
                                 onBack = { navController.popBackStack() },
                                 onOpenCheckin = { navController.navigate(Screen.WeeklyCheckin.route) },
                                 onOpenGoalSetup = { navController.navigate(Screen.GoalSetup.route) },
                                 onOpenWeeklySummary = { navController.navigate(Screen.WeeklySummary.route) },
+                                onOpenPremium = { navController.navigate(Screen.Premium.route) },
+                                onLogWorkout = {
+                                    workoutVmForNudge.startBlank()
+                                    navController.navigate(Screen.LogWorkout.route)
+                                },
                                 isDarkTheme = isDarkTheme
                             )
                         }
@@ -443,6 +450,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateTab = { tab ->
                                     navigateToTab(tab)
                                 },
+                                onOpenCheckin = { navController.navigate(Screen.WeeklyCheckin.route) },
                                 onNavigateToWeightHistory = {
                                     navController.navigate(Screen.WeightHistory.route)
                                 },

@@ -720,22 +720,24 @@ private fun CustomFoodRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(food.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Text(
                     text = "${food.servingSize?.ifEmpty { "1 phần" } ?: "1 phần"} • ${food.protein.toInt()}g P • ${food.carb.toInt()}g C • ${food.fat.toInt()}g F",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${food.calories.toInt()} kcal",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryStrong,
-                    modifier = Modifier.padding(end = 4.dp)
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onSubmit, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Share, contentDescription = "Gửi vào kho chung", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
@@ -1037,19 +1039,19 @@ private fun CreateCustomFoodDialog(
         )
 
         // Chuyển đổi Món đơn giản (nhập thẳng 1 số calo) / Công thức nhiều nguyên liệu (tự cộng dồn)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
             SelectionPill(
                 label = "Món đơn giản",
                 isSelected = !isRecipeMode,
                 isDarkTheme = isDark,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { isRecipeMode = false }
             )
             SelectionPill(
                 label = "Công thức nhiều nguyên liệu",
                 isSelected = isRecipeMode,
                 isDarkTheme = isDark,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { isRecipeMode = true }
             )
         }

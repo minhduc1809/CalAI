@@ -89,7 +89,8 @@ class SettingsSync @Inject constructor(
             "DAY_COMPLETED" to "Ngày ghi đủ",
             "WEEKLY_SUMMARY_READY" to "Tổng kết tuần",
             "GOAL_REACHED" to "Đạt cân nặng mục tiêu",
-            "FOOD_SUBMISSION_RESULT" to "Kết quả duyệt món gửi"
+            "FOOD_SUBMISSION_RESULT" to "Kết quả duyệt món gửi",
+            "WORKOUT_REMINDER" to "Nhắc ghi buổi tập"
         )
     }
 }

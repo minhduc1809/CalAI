@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -248,7 +247,7 @@ fun LogWorkoutScreen(
 
     // ── Hộp thoại ──
     if (ui.resume == ResumeState.RESUME) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = {},
             title = { Text("Tiếp tục buổi tập đang dở?") },
             text = { Text("Bạn có một buổi tập chưa lưu. Các set đã ghi vẫn còn nguyên.") },
@@ -262,7 +261,7 @@ fun LogWorkoutScreen(
         )
     }
     if (ui.resume == ResumeState.ABANDONED) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = {},
             title = { Text("Buổi tập dở đã quá 12 giờ") },
             text = { Text("Bạn muốn lưu buổi tập này, hay huỷ để bắt đầu buổi mới?") },
@@ -281,7 +280,7 @@ fun LogWorkoutScreen(
         )
     }
     if (showDiscard) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showDiscard = false },
             title = { Text("Huỷ buổi tập này?") },
             text = { Text("Các set bạn đã nhập sẽ bị xoá.") },

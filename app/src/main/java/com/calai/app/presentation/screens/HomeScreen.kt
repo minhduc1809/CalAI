@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +62,7 @@ fun HomeScreen(
     onLogout: () -> Unit = {},
     onOpenSuggestions: () -> Unit = {},
     onOpenWorkoutHub: () -> Unit = {},
+    onLogWorkout: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenCheckin: () -> Unit = {},
@@ -73,10 +76,12 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val pendingCheckin by checkinViewModel.pending.collectAsState()
+    // Nhắc "Bạn vừa tập xong?" được đẩy vào hộp thông báo (không còn thẻ trên Trang chủ); mở Trang chủ chỉ kích hoạt kiểm tra.
+    androidx.hilt.navigation.compose.hiltViewModel<com.calai.app.presentation.viewmodel.WorkoutNudgeViewModel>()
     val pendingSync by viewModel.pendingRequests.collectAsState()
     var confirmDeleteWholeMeal by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     confirmDeleteWholeMeal?.let { mealId ->
-        androidx.compose.material3.AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { confirmDeleteWholeMeal = null },
             title = { Text("Xoá cả bữa này?") },
             text = { Text("Đây là món cuối của bữa. Gỡ món này sẽ xoá luôn cả bữa ăn.") },
@@ -209,17 +214,13 @@ fun HomeScreen(
                     }
                 }
 
-                // ── 3b. CHECK-IN TUẦN: chỉ hiện khi đang có Check-in chờ (BR-06) ──────────
-                pendingCheckin?.let { pending ->
-                    item {
-                        CheckinEntryCard(checkIn = pending, onClick = onOpenCheckin)
-                    }
-                }
+                // (Check-in tuần chuyển sang màn Thống kê + hộp thông báo; Thực đơn gợi ý nằm ở "Nhật ký bữa ăn")
 
                 // ── 3c. TỔNG KẾT TUẦN ────────────────────────────────────────────────────
                 item {
                     WeeklySummaryEntryCard(onClick = onOpenWeeklySummary)
                 }
+
 
                 // ── 4. 4 Ô THÔNG SỐ: Nước / Cân nặng / Calories / Đa lượng (dữ liệu thật từ BE) ──
                 item {
@@ -264,7 +265,7 @@ fun HomeScreen(
 
                 // ── 5. FOOD DIARY HEADER ────────────────────────────────────────────
                 item {
-                    FoodDiaryHeader(onAddMealClick = onAddMealClick)
+                    FoodDiaryHeader(onAddMealClick = onAddMealClick, onOpenMealPlan = onOpenSuggestions)
                 }
 
                 // ── 6. MEALS LIST / EMPTY STATE ─────────────────────────────────────
@@ -483,7 +484,7 @@ private fun FloatingIconButton(
 }
 
 @Composable
-private fun FoodDiaryHeader(onAddMealClick: () -> Unit) {
+private fun FoodDiaryHeader(onAddMealClick: () -> Unit, onOpenMealPlan: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -510,6 +511,13 @@ private fun FoodDiaryHeader(onAddMealClick: () -> Unit) {
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Normal
+            )
+            Text(
+                text = "Xem thực đơn gợi ý ›",
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryStrong,
+                modifier = Modifier.padding(top = 4.dp).clickable(onClick = onOpenMealPlan)
             )
         }
 
@@ -1050,7 +1058,7 @@ private fun CopyMealDialog(
         "Sau 2 ngày" to dateAfter(2)
     )
 
-    AlertDialog(
+    com.calai.app.presentation.components.NwAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
@@ -1183,7 +1191,7 @@ private fun PendingSyncBanner(
         )
     }
     if (showFailed) {
-        androidx.compose.material3.AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showFailed = false },
             title = { Text("Mục chưa gửi được") },
             text = {
@@ -1204,3 +1212,5 @@ private fun PendingSyncBanner(
         )
     }
 }
+
+

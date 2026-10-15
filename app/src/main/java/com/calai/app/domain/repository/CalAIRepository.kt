@@ -153,6 +153,7 @@ interface CalAIRepository {
     suspend fun fetchSetsPerMuscle(weeks: Int? = null): Result<SetsPerMuscleDto>
     suspend fun fetchWorkoutRecords(key: String? = null): Result<RecordsDto>
     suspend fun fetchLastWorkoutTemplate(): Result<LastTemplateDto>
+    suspend fun fetchWorkoutLogNudge(): Result<com.calai.app.data.remote.dto.WorkoutNudgeDto>
     suspend fun fetchActivityCheck(): Result<ActivityCheckDto>
     suspend fun markActivityCheckHandled(): Result<Unit>
     suspend fun fetchWorkoutRoutines(): Result<List<RoutineDto>>

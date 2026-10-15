@@ -62,7 +62,7 @@ fun ProfileScreen(
     }
 
     if (showAvatarSheet) {
-        androidx.compose.material3.AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showAvatarSheet = false },
             title = { Text("Ảnh đại diện", fontWeight = FontWeight.Bold) },
             text = {
@@ -108,7 +108,7 @@ fun ProfileScreen(
             diff < 0 -> "giảm ${-diff} kcal so với hiện tại"
             else -> "giữ nguyên calo, chỉ đổi macro"
         }
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.dismissProposedTarget() },
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
@@ -450,16 +450,40 @@ fun ProfileScreen(
                             text = "Mục tiêu calo & dinh dưỡng",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f).padding(end = 12.dp)
                         )
                         Text(
                             text = "${profile?.targetCalories?.toInt()?.toString() ?: "—"} kcal",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = PrimaryStrong
+                            color = PrimaryStrong,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
+                    var showLimitWhy by remember { mutableStateOf(false) }
+                    profile?.targetLimitedBy?.let { limit ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .background(CoralWarning.copy(alpha = 0.12f))
+                                .clickable { showLimitWhy = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                if (limit == "FLOOR") "Mục tiêu đang ở mức calo tối thiểu an toàn" else "Mục tiêu đã được giới hạn để an toàn",
+                                fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text("Vì sao? ›", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong)
+                        }
+                        if (showLimitWhy) com.calai.app.presentation.components.TargetLimitDialog(
+                            limit = limit, targetCalories = profile?.targetCalories?.toInt(), onDismiss = { showLimitWhy = false }
+                        )
+                    }
                     profile?.tdee?.let {
                         Text(
                             text = "Năng lượng tiêu hao mỗi ngày (TDEE): ${it.toInt()} kcal",
@@ -770,56 +794,108 @@ private fun EditBasicInfoDialog(
     var dob by remember { mutableStateOf(initialDob.orEmpty()) }
     val nameError = if (name.isBlank()) "Nhập họ tên" else if (name.trim().length > 60) "Tối đa 60 ký tự" else null
 
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Thông tin cá nhân", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                androidx.compose.material3.OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Họ và tên") },
-                    singleLine = true,
-                    isError = nameError != null,
-                    supportingText = nameError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text("Giới tính", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val outline = MaterialTheme.colorScheme.outline
+    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(if (NwTheme.isDark) MaterialTheme.colorScheme.surface else Color.White)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier.size(44.dp).clip(CircleShape).background(VividOrange.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.Person, null, tint = PrimaryStrong) }
+                Column {
+                    Text("Thông tin cá nhân", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Dùng để tính mục tiêu calo cho bạn", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            androidx.compose.material3.OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Họ và tên") },
+                singleLine = true,
+                isError = nameError != null,
+                supportingText = nameError?.let { { Text(it) } },
+                shape = RoundedCornerShape(16.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = VividOrange, unfocusedBorderColor = outline,
+                    focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Giới tính", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .background(if (NwTheme.isDark) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFF4F1F0)).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     listOf("MALE" to "Nam", "FEMALE" to "Nữ", "OTHER" to "Khác").forEach { (value, label) ->
-                        androidx.compose.material3.FilterChip(
-                            selected = gender == value,
-                            onClick = { gender = value },
-                            label = { Text(label) }
-                        )
+                        val sel = gender == value
+                        Box(
+                            modifier = Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (sel) VividOrange else Color.Transparent)
+                                .clickable { gender = value },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(label, fontSize = 14.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                color = if (sel) OnPrimary else MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
-                androidx.compose.material3.OutlinedButton(
-                    onClick = {
-                        val cal = java.util.Calendar.getInstance()
-                        dob.takeIf { it.length == 10 }?.split("-")?.takeIf { it.size == 3 }?.let {
-                            cal.set(it[0].toInt(), it[1].toInt() - 1, it[2].toInt())
-                        } ?: cal.set(2000, 0, 1)
-                        android.app.DatePickerDialog(context, { _, y, m, d -> dob = "%04d-%02d-%02d".format(y, m + 1, d) },
-                            cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)
-                        ).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(if (dob.isBlank()) "Chọn ngày sinh" else "Ngày sinh: ${dob.split("-").reversed().joinToString("/")}") }
             }
-        },
-        confirmButton = {
-            androidx.compose.material3.Button(
-                onClick = { onSave(name, gender, dob.takeIf { it.length == 10 }) },
-                enabled = !saving && nameError == null,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = VividOrange)
-            ) { Text(if (saving) "Đang lưu..." else "Lưu", color = OnPrimary) }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss, enabled = !saving) { Text("Hủy", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
-    )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ngày sinh", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, outline, RoundedCornerShape(16.dp))
+                        .clickable {
+                            val cal = java.util.Calendar.getInstance()
+                            dob.takeIf { it.length == 10 }?.split("-")?.takeIf { it.size == 3 }?.let {
+                                cal.set(it[0].toInt(), it[1].toInt() - 1, it[2].toInt())
+                            } ?: cal.set(2000, 0, 1)
+                            android.app.DatePickerDialog(context, { _, y, m, d -> dob = "%04d-%02d-%02d".format(y, m + 1, d) },
+                                cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)
+                            ).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = PrimaryStrong, modifier = Modifier.size(20.dp))
+                    Text(
+                        if (dob.isBlank()) "Chọn ngày sinh" else dob.split("-").reversed().joinToString("/"),
+                        fontSize = 15.sp, modifier = Modifier.weight(1f),
+                        color = if (dob.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, outline, RoundedCornerShape(14.dp))
+                        .clickable(enabled = !saving) { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) { Text("Hủy", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                val canSave = !saving && nameError == null
+                Box(
+                    modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
+                        .background(if (canSave) VividOrange else VividOrange.copy(alpha = 0.4f))
+                        .clickable(enabled = canSave) { onSave(name, gender, dob.takeIf { it.length == 10 }) },
+                    contentAlignment = Alignment.Center
+                ) { Text(if (saving) "Đang lưu..." else "Lưu", fontWeight = FontWeight.Bold, color = OnPrimary) }
+            }
+        }
+    }
 }
 
 

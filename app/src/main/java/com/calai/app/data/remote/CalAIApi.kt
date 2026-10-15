@@ -288,6 +288,9 @@ interface CalAIApi {
     @GET("workouts/records")
     suspend fun getWorkoutRecords(@Query("key") key: String? = null): ApiResponse<RecordsDto>
 
+    @GET("workouts/log-nudge")
+    suspend fun getWorkoutLogNudge(): ApiResponse<com.calai.app.data.remote.dto.WorkoutNudgeDto>
+
     @GET("workouts/last-template")
     suspend fun getLastWorkoutTemplate(): ApiResponse<LastTemplateDto>
 
@@ -468,7 +471,7 @@ interface CalAIApi {
                     || Build.HARDWARE.contains("ranchu"))
 
         const val EMULATOR_HOST = "10.0.2.2"
-        const val PC_LAN_IP = "192.168.1.101"
+        const val PC_LAN_IP = "172.16.11.195"
         const val USB_REVERSE_HOST = "127.0.0.1"
 
         /**

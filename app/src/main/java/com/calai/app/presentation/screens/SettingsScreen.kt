@@ -182,7 +182,7 @@ fun SettingsScreen(
     }
 
     if (showAboutDialog) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showAboutDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
@@ -358,6 +358,25 @@ fun SettingsScreen(
                         onCheckedChange = { enabled -> viewModel.setNotificationEnabled(type, enabled) }
                     )
                 }
+                // Hai loại thanh toán: luôn gửi, không có công tắc
+                listOf("Vấn đề thanh toán" to "Gia hạn Premium lỗi hoặc hết thời gian ân hạn", "Thanh toán thành công" to "Đơn thanh toán đã duyệt, Premium đã kích hoạt")
+                    .forEachIndexed { i, (title, sub) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                "Luôn gửi", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong,
+                                modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(PrimaryStrong.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
             }
             Text(
                 "Thông báo về thanh toán luôn được gửi.",
@@ -379,7 +398,7 @@ fun SettingsScreen(
                 )
             }
             if (showRestDialog) {
-                androidx.compose.material3.AlertDialog(
+                com.calai.app.presentation.components.NwAlertDialog(
                     onDismissRequest = { showRestDialog = false },
                     title = { Text("Nghỉ mặc định giữa set") },
                     text = {
@@ -1284,7 +1303,7 @@ private fun SessionsDialog(viewModel: ProfileViewModel, onDismiss: () -> Unit) {
         failed = result == null
     }
     LaunchedEffect(Unit) { load() }
-    androidx.compose.material3.AlertDialog(
+    com.calai.app.presentation.components.NwAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Thiết bị đăng nhập") },
         text = {
@@ -1324,7 +1343,7 @@ private fun DeleteAccountDialog(viewModel: ProfileViewModel, onDismiss: () -> Un
     var confirm by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    androidx.compose.material3.AlertDialog(
+    com.calai.app.presentation.components.NwAlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text("Xoá tài khoản?") },
         text = {

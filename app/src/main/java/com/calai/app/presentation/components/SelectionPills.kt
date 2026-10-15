@@ -58,12 +58,14 @@ fun SelectionPill(
             .background(if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.surface))
             .border(1.dp, if (isSelected) CtaSolidOrange else (MaterialTheme.colorScheme.outline), RoundedCornerShape(14.dp))
             .clickable { onClick() }
-            .padding(vertical = 14.dp),
+            .padding(vertical = 14.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             label,
             fontSize = 13.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 17.sp,
             fontWeight = FontWeight.Bold,
             color = if (isSelected) OnPrimary else (MaterialTheme.colorScheme.onSurfaceVariant)
         )

@@ -322,7 +322,7 @@ private fun OfferCard(offer: PremiumOffer, onBuy: () -> Unit) {
 
 @Composable
 private fun QrDialog(order: PaymentOrderDto, onClose: () -> Unit) {
-    AlertDialog(
+    com.calai.app.presentation.components.NwAlertDialog(
         onDismissRequest = onClose,
         title = { Text("Quét mã để thanh toán", fontWeight = FontWeight.Bold) },
         text = {

@@ -58,10 +58,14 @@ private const val CHART_DRAW_ANIMATION_MS = 700
 fun StatisticsScreen(
     onNavigateTab: (DockTab) -> Unit,
     onNavigateToWeightHistory: () -> Unit = {},
+    onOpenCheckin: () -> Unit = {},
     isDarkTheme: Boolean = true,
-    viewModel: StatisticsViewModel = hiltViewModel()
+    viewModel: StatisticsViewModel = hiltViewModel(),
+    checkinViewModel: com.calai.app.presentation.viewmodel.CheckinBannerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val pendingCheckin by checkinViewModel.pending.collectAsState()
+    LaunchedEffect(Unit) { checkinViewModel.refresh() }
 
     // Responsive: BoxWithConstraints để giới hạn bề rộng nội dung trên tablet/landscape (>= 600dp)
     BoxWithConstraints(
@@ -90,6 +94,9 @@ fun StatisticsScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = (-0.5).sp
             )
+
+            // Check-in tuần: nơi hợp lý nhất để xem lại cân nặng, dinh dưỡng và mức tuân thủ của tuần qua
+            pendingCheckin?.let { CheckinEntryCard(checkIn = it, onClick = onOpenCheckin) }
 
             val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 

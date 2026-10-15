@@ -66,7 +66,7 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
 
     if (uiState.pendingGoogleConsent) {
-        androidx.compose.material3.AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.cancelGoogleConsent() },
             title = { Text("Tạo tài khoản mới") },
             text = { Text("Để tạo tài khoản bằng Google, bạn cần đọc và đồng ý Chính sách quyền riêng tư của NutriWise.") },
@@ -432,17 +432,27 @@ fun LoginScreen(
                         checked = uiState.acceptPrivacy,
                         onCheckedChange = { viewModel.onAcceptPrivacyChange(it) }
                     )
-                    Text(
-                        text = "Tôi đã đọc và đồng ý với ",
-                        fontSize = 12.5.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Chính sách quyền riêng tư",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PrimaryStrong,
-                        modifier = Modifier.clickable { onOpenPrivacy() }
+                    // Một đoạn văn liền mạch, xuống dòng tự nhiên; chỉ cụm "Chính sách quyền riêng tư" bấm được.
+                    val plainColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    val linkColor = PrimaryStrong
+                    val consentText = remember(plainColor, linkColor) {
+                        androidx.compose.ui.text.buildAnnotatedString {
+                            append("Tôi đã đọc và đồng ý với ")
+                            pushStringAnnotation("privacy", "open")
+                            pushStyle(androidx.compose.ui.text.SpanStyle(color = linkColor, fontWeight = FontWeight.SemiBold))
+                            append("Chính sách quyền riêng tư")
+                            pop()
+                            pop()
+                        }
+                    }
+                    androidx.compose.foundation.text.ClickableText(
+                        text = consentText,
+                        style = androidx.compose.ui.text.TextStyle(fontSize = 12.5.sp, lineHeight = 18.sp, color = plainColor),
+                        modifier = Modifier.weight(1f),
+                        onClick = { offset ->
+                            if (consentText.getStringAnnotations("privacy", offset, offset).isNotEmpty()) onOpenPrivacy()
+                            else viewModel.onAcceptPrivacyChange(!uiState.acceptPrivacy)
+                        }
                     )
                 }
             }

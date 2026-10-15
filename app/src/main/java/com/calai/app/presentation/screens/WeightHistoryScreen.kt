@@ -53,7 +53,7 @@ fun WeightHistoryScreen(
     val inputUnitLabel = if (uiState.weightUnit == "lb") "lb" else "kg"
 
     if (uiState.isAddingLog) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.cancelAdd() },
             containerColor = surface,
             title = { Text("Ghi cân nặng mới", color = textPrimary, fontWeight = FontWeight.Bold) },
@@ -111,7 +111,7 @@ fun WeightHistoryScreen(
     }
 
     uiState.suspiciousLog?.let { log ->
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.keepSuspiciousLog() },
             containerColor = surface,
             title = { Text("Cân nặng này có đúng không?", color = textPrimary, fontWeight = FontWeight.Bold) },
@@ -141,7 +141,7 @@ fun WeightHistoryScreen(
     }
 
     if (uiState.editingLog != null) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { viewModel.cancelEdit() },
             containerColor = surface,
             title = { Text("Sửa bản ghi cân nặng", color = textPrimary, fontWeight = FontWeight.Bold) },
@@ -199,7 +199,7 @@ fun WeightHistoryScreen(
     }
 
     if (uiState.pendingDeleteLog != null) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { if (!uiState.isDeleting) viewModel.cancelDelete() },
             containerColor = surface,
             icon = {

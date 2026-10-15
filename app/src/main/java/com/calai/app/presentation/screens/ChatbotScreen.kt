@@ -337,7 +337,7 @@ fun ChatbotScreen(
 
         // Dialog xác nhận xóa lịch sử trò chuyện
         if (showClearConfirmDialog) {
-            AlertDialog(
+            com.calai.app.presentation.components.NwAlertDialog(
                 onDismissRequest = { showClearConfirmDialog = false },
                 icon = {
                     Box(
@@ -406,10 +406,26 @@ private fun MessageBubble(
                     modifier = Modifier.size(16.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
         }
 
         val isSafety = !message.isUser && message.safetyFlag != null
+        // Đuôi tam giác nhỏ trỏ về phía avatar của chatbot (kiểu bong bóng thoại).
+        if (!message.isUser) {
+            val tailFill = if (isSafety) PastelRose.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surface
+            val tailLine = if (isSafety) PastelRose else MaterialTheme.colorScheme.outline
+            androidx.compose.foundation.Canvas(Modifier.padding(top = 8.dp).size(width = 8.dp, height = 12.dp)) {
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(size.width + 1f, 0f)
+                    lineTo(0f, size.height * 0.35f)
+                    lineTo(size.width + 1f, size.height)
+                    close()
+                }
+                drawPath(path, tailFill)
+                drawLine(tailLine, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height * 0.35f), 1.dp.toPx())
+                drawLine(tailLine, androidx.compose.ui.geometry.Offset(0f, size.height * 0.35f), androidx.compose.ui.geometry.Offset(size.width, size.height), 1.dp.toPx())
+            }
+        }
         Surface(
             color = if (message.isUser) {
                 VividOrange
@@ -419,9 +435,9 @@ private fun MessageBubble(
                 MaterialTheme.colorScheme.surface
             },
             shape = RoundedCornerShape(
-                topStart = 18.dp,
+                topStart = if (message.isUser) 18.dp else 4.dp,
                 topEnd = 18.dp,
-                bottomStart = if (message.isUser) 18.dp else 4.dp,
+                bottomStart = 18.dp,
                 bottomEnd = if (message.isUser) 4.dp else 18.dp
             ),
             border = if (!message.isUser) {
@@ -430,7 +446,11 @@ private fun MessageBubble(
                     color = if (isSafety) PastelRose else MaterialTheme.colorScheme.outline
                 )
             } else null,
-            modifier = Modifier.widthIn(max = 280.dp)
+            // Bong bóng co theo nội dung nhưng tối đa bằng phần còn lại của hàng (chừa lề đối diện) —
+            // trước đây cố định 280dp nên câu trả lời dài bị hẹp, cao và lệch.
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .padding(start = if (message.isUser) 44.dp else 0.dp, end = if (message.isUser) 0.dp else 20.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (isSafety) {
@@ -442,12 +462,14 @@ private fun MessageBubble(
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
-                Text(
-                    text = if (message.isUser) androidx.compose.ui.text.AnnotatedString(message.text) else com.calai.app.presentation.components.markdownToAnnotated(message.text),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = if (message.isUser) OnPrimary else (MaterialTheme.colorScheme.onBackground)
-                )
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(
+                        text = if (message.isUser) androidx.compose.ui.text.AnnotatedString(message.text) else com.calai.app.presentation.components.markdownToAnnotated(message.text),
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        color = if (message.isUser) OnPrimary else (MaterialTheme.colorScheme.onBackground)
+                    )
+                }
             }
         }
     }

@@ -50,12 +50,35 @@ fun GoalSetupScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val shadowColor = if (isDarkTheme) DarkShadow else WarmShadow
 
+    // Sau khi lưu: nếu calo mục tiêu bị quy tắc an toàn giới hạn (chạm sàn...) thì giải thích trước rồi mới quay lại.
+    var showLimitDialog by remember { mutableStateOf(false) }
     LaunchedEffect(uiState.isSaveSuccess) {
-        if (uiState.isSaveSuccess) onBack()
+        if (uiState.isSaveSuccess) {
+            if (uiState.original?.targetLimitedBy != null) showLimitDialog = true else onBack()
+        }
+    }
+    if (showLimitDialog) {
+        uiState.original?.targetLimitedBy?.let { limit ->
+            com.calai.app.presentation.components.TargetLimitDialog(
+                limit = limit,
+                targetCalories = uiState.original?.targetCalories?.toInt(),
+                onDismiss = { showLimitDialog = false; if (uiState.isSaveSuccess) onBack() }
+            )
+        }
+    }
+    var showWhyDialog by remember { mutableStateOf(false) }
+    if (showWhyDialog) {
+        uiState.original?.targetLimitedBy?.let { limit ->
+            com.calai.app.presentation.components.TargetLimitDialog(
+                limit = limit,
+                targetCalories = uiState.original?.targetCalories?.toInt(),
+                onDismiss = { showWhyDialog = false }
+            )
+        }
     }
 
     if (showConfirmDialog) {
-        AlertDialog(
+        com.calai.app.presentation.components.NwAlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             containerColor = surface,
             title = {
@@ -147,6 +170,11 @@ fun GoalSetupScreen(
                             fontSize = 11.5.sp,
                             lineHeight = 15.sp,
                             color = CoralWarning
+                        )
+                        Text(
+                            "Vì sao? ›",
+                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryStrong,
+                            modifier = Modifier.padding(top = 4.dp).clickable { showWhyDialog = true }
                         )
                     }
                     uiState.expenditure?.let { expenditure ->
