@@ -61,7 +61,8 @@ object AppModule {
         tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // BASIC: chỉ dòng yêu cầu/mã trả về/thời gian. BODY từng ghi cả ảnh tải lên và token cho mọi request.
+            level = HttpLoggingInterceptor.Level.BASIC
         }
 
         return OkHttpClient.Builder()

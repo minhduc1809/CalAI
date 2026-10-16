@@ -212,6 +212,18 @@ private fun BarcodeCameraPreview(
     }
     var isTorchOn by remember { mutableStateOf(false) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    // Giữ tham chiếu để giải phóng khi rời màn hình: bộ dò ML Kit và luồng phân tích ảnh không tự đóng
+    var scannerRef by remember { mutableStateOf<com.google.mlkit.vision.barcode.BarcodeScanner?>(null) }
+    var executorRef by remember { mutableStateOf<java.util.concurrent.ExecutorService?>(null) }
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                androidx.camera.lifecycle.ProcessCameraProvider.getInstance(context).get().unbindAll()
+            } catch (_: Exception) { /* camera đã được gỡ */ }
+            scannerRef?.close()
+            executorRef?.shutdown()
+        }
+    }
 
     // Animation pulsing cho khung quét trong lúc đang cố dò mã — trước đây khung tĩnh
     // hoàn toàn khiến người dùng không biết camera có đang hoạt động hay không.
@@ -289,6 +301,8 @@ private fun BarcodeCameraPreview(
                         .build()
                 )
                 val analyzerExecutor = Executors.newSingleThreadExecutor()
+                scannerRef = scanner
+                executorRef = analyzerExecutor
 
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
@@ -661,12 +675,12 @@ private fun scanBarcodeFromImage(context: android.content.Context, uri: android.
     }
 
     fun tryAt(i: Int) {
-        if (i >= attempts.size) { onNone(); return }
+        if (i >= attempts.size) { scanner.close(); onNone(); return }
         val (bmp, rot) = attempts[i]
         scanner.process(InputImage.fromBitmap(bmp, rot))
             .addOnSuccessListener { list ->
                 val code = list.firstNotNullOfOrNull { it.rawValue ?: it.displayValue }
-                if (code != null) onFound(code) else tryAt(i + 1)
+                if (code != null) { scanner.close(); onFound(code) } else tryAt(i + 1)
             }
             .addOnFailureListener { tryAt(i + 1) }
     }

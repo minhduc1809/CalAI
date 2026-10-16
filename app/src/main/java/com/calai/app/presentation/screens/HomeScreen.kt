@@ -100,8 +100,10 @@ fun HomeScreen(
     val water by waterViewModel.water.collectAsState()
     val waterError by waterViewModel.error.collectAsState()
     var showReminderSheet by remember { mutableStateOf(false) }
+    // Tính một lần (không tạo SimpleDateFormat mới mỗi lần danh sách vẽ lại)
+    val todayIso = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
     var selectedDateIso by remember {
-        mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+        mutableStateOf(todayIso)
     }
 
     // Quay lại Home sau khi log bữa (camera/thêm món) hay đổi habit reminder không tự phát dữ liệu mới
@@ -110,10 +112,13 @@ fun HomeScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                viewModel.loadData(selectedDateIso)
-                reminderViewModel.loadReminders()
-                waterViewModel.refresh()
-                checkinViewModel.refresh()
+                // Vừa tải xong (lần mở app đầu: các ViewModel đã tự tải ở khởi tạo) thì bỏ qua cả cụm làm mới
+                // để không gọi trùng 8–10 API; quay lại màn từ màn khác sau vài giây vẫn làm mới đủ.
+                if (viewModel.loadData(selectedDateIso, onlyIfStale = true)) {
+                    reminderViewModel.loadReminders()
+                    waterViewModel.refresh()
+                    checkinViewModel.refresh()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -244,7 +249,7 @@ fun HomeScreen(
                     MealReminderCard(
                         pick = pickMealReminder(
                             reminderState.reminders,
-                            loggedMealTypes = if (selectedDateIso == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+                            loggedMealTypes = if (selectedDateIso == todayIso)
                                 uiState.meals.map { it.mealType }.toSet() else emptySet()
                         ),
                         isDarkTheme = isDarkTheme,
@@ -302,7 +307,6 @@ fun HomeScreen(
                     }
 
                     // BR-05.2 / BR-07.6: hỏi người dùng đã ghi đủ các bữa của ngày chưa (không hỏi ngày tương lai)
-                    val todayIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                     if (selectedDateIso <= todayIso) {
                         item(key = "day_completeness") {
                             DayCompletenessCard(

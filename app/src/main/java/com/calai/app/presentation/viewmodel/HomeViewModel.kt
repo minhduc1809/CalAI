@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -83,6 +84,9 @@ data class HomeUiState(
     }
 }
 
+/** Trong khoảng này sau lần tải trước, sự kiện quay lại màn hình không tải lại (giảm gọi API trùng). */
+private const val FRESH_WINDOW_MS = 3_000L
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: CalAIRepository,
@@ -99,6 +103,11 @@ class HomeViewModel @Inject constructor(
 
     fun retryPending(id: Long) = viewModelScope.launch { repository.retryPendingRequest(id) }
     fun deletePending(id: Long) = viewModelScope.launch { repository.deletePendingRequest(id) }
+
+    // Phải khai báo TRƯỚC khối init: Kotlin khởi tạo theo thứ tự trong lớp; nếu đặt sau, giá trị do loadData() ở init
+    // vừa ghi sẽ bị gán lại về 0/null và cơ chế chống tải trùng không hoạt động.
+    private var lastLoadAtMs = 0L
+    private var lastLoadDate: String? = null
 
     init {
         viewModelScope.launch {
@@ -132,14 +141,28 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun loadData(date: String? = null) {
+    /**
+     * @param onlyIfStale true khi gọi từ sự kiện quay lại màn hình (ON_RESUME): bỏ qua nếu vừa tải cùng ngày trong
+     * vài giây trước (lần mở app đầu tiên trước đây tải hai lần liên tiếp: một lần ở khởi tạo, một lần ở ON_RESUME).
+     */
+    fun loadData(date: String? = null, onlyIfStale: Boolean = false): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        // null nghĩa là "hôm nay": quy về cùng khoá với ngày màn hình truyền vào để so sánh đúng
+        val key = date ?: java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        if (onlyIfStale && key == lastLoadDate && now - lastLoadAtMs < FRESH_WINDOW_MS) return false
+        lastLoadAtMs = now
+        lastLoadDate = key
         loadWeekStatus()
         val username = repository.getCurrentUsername() ?: "Người dùng"
         _uiState.update { it.copy(username = username, isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val summaryResult = repository.fetchDailySummary(date)
-            val mealsResult = repository.fetchMealsFromRemote(date)
+            // Ba lời gọi độc lập: chạy song song thay vì chờ từng cái (tổng thời gian ≈ cái chậm nhất)
+            val summaryDeferred = async { repository.fetchDailySummary(date) }
+            val mealsDeferred = async { repository.fetchMealsFromRemote(date) }
+            val profileDeferred = async { repository.fetchRemoteProfile() }
+            val summaryResult = summaryDeferred.await()
+            val mealsResult = mealsDeferred.await()
 
             summaryResult.onSuccess { summaryData ->
                 _uiState.update {
@@ -162,7 +185,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { it.copy(meals = mealList) }
             }
 
-            repository.fetchRemoteProfile().onSuccess { profile ->
+            profileDeferred.await().onSuccess { profile ->
                 val current = profile.weightKg
                 val target = profile.targetWeightKg
                 _uiState.update {
@@ -178,6 +201,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+        return true
     }
 
     fun deleteMeal(mealId: String) {
